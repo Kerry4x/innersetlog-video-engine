@@ -3,12 +3,14 @@
  * ------------------------------------------------------------------
  * Vertical 9:16 (1080x1920) layer compositor + animation loop.
  *
- * STRICT Z-ORDER (STYLE_GUIDE.md §2) — rendered bottom to top:
+ * STRICT Z-ORDER (docs/CHARACTER_RIG.md §4) — rendered bottom to top:
  *   1. Background   – Flow-generated static room plate (assets/backgrounds)
  *   2. Midground    – desks, chairs, equipment (assets/props)
- *   3. Character    – <Stickman /> rig
- *   4. Foreground   – desk edges, laptops, anything in front of the hands
- *   5. UI / MoGraph – text, highlighter, zoom boxes, papers, checkmarks, bubbles
+ *   3. Character torso & back limbs        <Stickman part="back" />
+ *   4. Character head                      <Stickman part="head" />
+ *   5. Foreground limbs & hand props       <Stickman part="front" />, then
+ *      scene `foreground` items (desk edges, laptop lids) that must sit in front
+ *   6. UI / MoGraph – text, highlighter, zoom boxes, papers, checkmarks, bubbles
  *
  * STUDIO MOTION (STYLE_GUIDE.md §3, engine in src/engine/):
  *   - Every UI entrance is a spring (mass / stiffness / damping) — no linear tweens.
@@ -479,6 +481,8 @@ function Scene({ scene, t, sync, fps }) {
     if (ls && sync.words.length) charState.mouthOpen = lipSync(sync, t);
   }
 
+  const charDepth = scene.character?.depth ?? P.character;
+
   return (
     <>
       <g data-layer="1-background" transform={layerT(P.background)}>
@@ -491,17 +495,22 @@ function Scene({ scene, t, sync, fps }) {
           </g>
         ))}
       </g>
-      <g data-layer="3-character" transform={layerT(scene.character?.depth ?? P.character)}>
-        {charState && <Stickman {...charState} time={t /* global time: blinks/breath continuous across cuts */} />}
+      {/* global time keeps blinks/breath continuous across cuts */}
+      <g data-layer="3-character-back" transform={layerT(charDepth)}>
+        {charState && <Stickman {...charState} part="back" time={t} />}
       </g>
-      <g data-layer="4-foreground">
+      <g data-layer="4-character-head" transform={layerT(charDepth)}>
+        {charState && <Stickman {...charState} part="head" time={t} />}
+      </g>
+      <g data-layer="5-foreground">
+        <g transform={layerT(charDepth)}>{charState && <Stickman {...charState} part="front" time={t} />}</g>
         {(scene.foreground || []).map((it, i) => (
           <g key={i} transform={layerT(it.depth ?? P.foreground)}>
             <ImageLayer item={it} t={local} />
           </g>
         ))}
       </g>
-      <g data-layer="5-ui" transform={layerT(P.ui)}>
+      <g data-layer="6-ui" transform={layerT(P.ui)}>
         {(scene.ui || []).map((o, i) => {
           const def = UI_COMPONENTS[o.type];
           if (!def) return null;
@@ -571,9 +580,11 @@ export const DEMO_TIMELINE = {
     {
       id: 'hook',
       start: 0,
-      midground: [{ render: () => <DemoDesk />, depth: 1.0 /* character touches it → same depth */ }],
-      character: { x: 640, y: 1480, action: 'writing', handTarget: { x: 360, y: 1235 } },
-      foreground: [{ render: () => <DemoNotebook />, depth: 1.0 }],
+      midground: [
+        { render: () => <DemoDesk />, depth: 1.0 /* character touches it → same depth */ },
+        { render: () => <DemoNotebook />, depth: 1.0 }, // lies on the desk, under the hands
+      ],
+      character: { x: 560, y: 1480, scale: 1.25, action: 'writing', handTarget: { x: 380, y: 1222 } },
       camera: [
         { t: 0, zoom: 1.0, x: 540, y: 960 },
         { t: '@because', zoom: 1.14, x: 470, y: 1020 },
@@ -590,12 +601,12 @@ export const DEMO_TIMELINE = {
       character: {
         x: 540,
         y: 1560,
-        scale: 1.05,
+        scale: 1.3,
         action: 'thinking',
         track: [
-          { t: 0, headTurn: 0, expression: 'thinking' },
+          { t: 0, headTurn: 0, expression: 'focused' },
           { t: '@feelings', headTurn: 0.6 }, // head turns toward the bubble as the word lands
-          { t: '@fade', expression: 'concerned' },
+          { t: '@fade', expression: 'tired' },
         ],
       },
       camera: [
@@ -611,15 +622,15 @@ export const DEMO_TIMELINE = {
       id: 'research',
       start: '@researchers',
       character: {
-        x: 870,
+        x: 860,
         y: 1640,
-        scale: 0.85,
+        scale: 1.05,
         action: 'idle',
         lipSync: true,
         track: [
-          { t: 0, headTurn: 0, expression: 'neutral' },
-          { t: '@habits', headTurn: -0.5, expression: 'raised' },
-          { t: '@automatic', expression: 'smile' },
+          { t: 0, headTurn: 0, expression: 'focused' },
+          { t: '@habits', headTurn: -0.5 },
+          { t: '@automatic', expression: 'content' },
         ],
       },
       camera: [
