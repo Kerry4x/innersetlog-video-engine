@@ -169,15 +169,18 @@ function Limb({ a, b, c, width = STROKE.limb }) {
   );
 }
 
-function Head({ cx, cy, r, time, expression, gaze, blinkSeed, tilt, talk }) {
+function Head({ cx, cy, r, time, expression, gaze, blinkSeed, tilt, talk, mouthOpen, turn = 0 }) {
   const ex = EXPRESSIONS[expression] || EXPRESSIONS.neutral;
   const open = blinkAmount(time, blinkSeed);
   const clipId = `head-clip-${blinkSeed}`;
 
   // Face features sit slightly toward screen-left (3/4 view), back of head = right.
-  const fx = cx - r * 0.12 + gaze.x * r * 0.14;
+  // `turn` (-1..1) rotates the head: features slide across the face and the
+  // cel-shade crescent migrates so it always sits on the back of the head.
+  const tr = clamp(turn, -1, 1);
+  const fx = cx - r * 0.12 + tr * r * 0.34 + gaze.x * r * 0.14;
   const fy = cy + r * 0.05 + gaze.y * r * 0.1;
-  const eyeGap = r * 0.36;
+  const eyeGap = r * 0.36 * (1 - 0.22 * Math.abs(tr + 0.12));
   const eyeR = r * 0.085;
   const eyeY = fy - r * 0.04;
   const browY = eyeY - r * 0.27;
@@ -192,8 +195,13 @@ function Head({ cx, cy, r, time, expression, gaze, blinkSeed, tilt, talk }) {
     return `M${inner.x},${inner.y} Q${ctrl.x},${ctrl.y} ${outer.x},${outer.y}`;
   };
 
-  // Simple talk cycle opens the mouth slightly when `talk` is true.
-  const talkOpen = talk ? Math.max(0, Math.sin(time * 22)) * 0.6 + Math.max(0, Math.sin(time * 13.7)) * 0.4 : 0;
+  // Mouth: explicit `mouthOpen` (0..1, audio lip-sync) wins; else a generic talk cycle.
+  const talkOpen =
+    typeof mouthOpen === 'number'
+      ? clamp(mouthOpen, 0, 1)
+      : talk
+        ? Math.max(0, Math.sin(time * 22)) * 0.6 + Math.max(0, Math.sin(time * 13.7)) * 0.4
+        : 0;
   const mouthY = fy + r * 0.38;
   const mw = r * 0.26;
   let mouth;
@@ -217,7 +225,7 @@ function Head({ cx, cy, r, time, expression, gaze, blinkSeed, tilt, talk }) {
       {/* Cel shade: shade-filled disc, then skin disc offset toward the face -> crescent on back-right */}
       <g clipPath={`url(#${clipId})`}>
         <circle cx={cx} cy={cy} r={r} fill={PALETTE.shade} />
-        <circle cx={cx - r * 0.2} cy={cy - r * 0.08} r={r * 0.97} fill={PALETTE.skin} />
+        <circle cx={cx - r * (0.2 - 0.4 * tr)} cy={cy - r * 0.08} r={r * 0.97} fill={PALETTE.skin} />
       </g>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={PALETTE.ink} strokeWidth={STROKE.head} />
 
@@ -265,6 +273,8 @@ function Head({ cx, cy, r, time, expression, gaze, blinkSeed, tilt, talk }) {
  *  handTarget   {x,y} composition px – where the right hand works (writing) or points
  *  arms         optional overrides: { armL: [a1,a2] | {x,y}, armR: ... } ({x,y} = IK target in comp px)
  *  blinkSeed    vary per character so blinks don't sync
+ *  headTurn     -1..1 head rotation (0 = default 3/4 view, + = toward screen-right)
+ *  mouthOpen    0..1 explicit mouth opening (audio lip-sync); overrides `talking` cycle
  */
 export default function Stickman({
   x = 540,
@@ -279,6 +289,8 @@ export default function Stickman({
   handTarget,
   arms = {},
   blinkSeed = 1,
+  headTurn = 0,
+  mouthOpen,
 }) {
   const P = typeof pose === 'string' ? POSES[pose] || POSES.stand : pose;
   const b = breath(time);
@@ -293,7 +305,7 @@ export default function Stickman({
   const lean = (P.lean || 0) + actionLean + b * 0.8; // breathing = gentle rock, not stretch
   const shoulder = polar(hip, BONES.torso, -90 + lean);
   const neckTop = polar(shoulder, BONES.neck, -90 + lean * 1.4);
-  const headTilt = lean * 0.6 + (action === 'thinking' ? -6 : 0) + (action === 'writing' ? -10 : 0);
+  const headTilt = lean * 0.6 + headTurn * 4 + (action === 'thinking' ? -6 : 0) + (action === 'writing' ? -10 : 0);
   const head = polar(neckTop, BONES.headR - 6, -90 + lean * 1.4);
 
   // Shoulder sockets sit just below the neck so arms read as attached.
@@ -376,6 +388,8 @@ export default function Stickman({
         blinkSeed={blinkSeed}
         tilt={headTilt}
         talk={action === 'talking'}
+        mouthOpen={mouthOpen}
+        turn={headTurn}
       />
 
       {/* hand-to-chin must sit in front of the face */}

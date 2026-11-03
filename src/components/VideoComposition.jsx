@@ -8,19 +8,37 @@
  *   2. Midground    – desks, chairs, equipment (assets/props)
  *   3. Character    – <Stickman /> rig
  *   4. Foreground   – desk edges, laptops, anything in front of the hands
- *   5. UI / MoGraph – text, zoom boxes, research papers, checkmarks, bubbles
+ *   5. UI / MoGraph – text, highlighter, zoom boxes, papers, checkmarks, bubbles
  *
- * Layers 1–4 live inside the "world" group and move with the camera.
- * Layer 5 is screen-space, so UI stays crisp and locked to the frame.
+ * STUDIO MOTION (STYLE_GUIDE.md §3, engine in src/engine/):
+ *   - Every UI entrance is a spring (mass / stiffness / damping) — no linear tweens.
+ *   - Each layer has a parallax depth, so camera moves produce real depth.
+ *   - Elements landing together are auto-staggered 4–8 frames; sub-parts
+ *     (words, lines, puffs, tick-after-ring) stagger internally.
+ *   - Any time can be an audio cue ('@word', '@"a phrase":end+2f') resolved
+ *     against the voiceover's word timestamps.
  *
  * Time source:
  *   - Pass `frame` (e.g. Remotion's useCurrentFrame()) for deterministic renders.
- *   - Omit it and the component runs its own requestAnimationFrame preview loop.
+ *   - Otherwise the preview clock follows timeline.audio.src (if present) or a rAF loop.
  */
-import React, { useEffect, useRef, useState } from 'react';
-import Stickman, { PALETTE, clamp, lerp } from './Stickman.jsx';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Stickman, { PALETTE } from './Stickman.jsx';
+import {
+  MOTION_CONFIG,
+  EASE,
+  clamp,
+  lerp,
+  envelope,
+  parallaxTransform,
+  resolveEase,
+  spring,
+  springTrack,
+  staggered,
+} from '../engine/motion.js';
+import { resolveTimeline } from '../engine/timeline.js';
 
-export const CANVAS = { width: 1080, height: 1920, fps: 30 };
+export const CANVAS = { width: 1080, height: 1920, fps: MOTION_CONFIG.fps };
 
 const UI_FONT = "'Inter', 'Helvetica Neue', Arial, sans-serif";
 const UI = {
@@ -29,26 +47,16 @@ const UI = {
   plate: PALETTE.skin,
   accent: '#E4572E', // emphasis color for highlights / zoom boxes
   good: '#2E9E5B', // checkmarks
+  marker: '#FFE066', // highlighter
 };
 
-/* ------------------------------- easing -------------------------------- */
-export const EASE = {
-  linear: (t) => t,
-  inOut: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
-  out: (t) => 1 - Math.pow(1 - t, 3),
-  in: (t) => t * t * t,
-  outBack: (t) => {
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
-    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-  },
-};
-
+/* ============================ TRACK SAMPLING ============================ */
 /**
- * Interpolate a keyframe track: [{ t, ...numericProps, ease? }, ...]
- * Numeric values tween; non-numeric values step (hold until next key).
+ * Duration-based keyframe track (arrival semantics): each key is where the
+ * value *arrives* at time t. Default ease is a cinematic bezier, never linear.
+ * Numeric values tween; non-numeric values hold until the next key.
  */
-export function sampleTrack(track, t) {
+export function tweenTrack(track, t) {
   if (!track || track.length === 0) return {};
   if (t <= track[0].t) return { ...track[0] };
   const last = track[track.length - 1];
@@ -57,48 +65,67 @@ export function sampleTrack(track, t) {
   while (i < track.length - 1 && track[i + 1].t <= t) i++;
   const a = track[i];
   const b = track[i + 1];
-  const ease = EASE[b.ease || 'inOut'] || EASE.inOut;
-  const p = ease((t - a.t) / (b.t - a.t));
+  const p = resolveEase(b.ease || 'cinematic')((t - a.t) / (b.t - a.t));
   const out = { ...a };
   for (const k of Object.keys(b)) {
     if (k === 't' || k === 'ease') continue;
     if (typeof a[k] === 'number' && typeof b[k] === 'number') out[k] = lerp(a[k], b[k], p);
-    else if (typeof a[k] === 'object' && a[k] && typeof b[k] === 'object' && b[k])
-      out[k] = sampleTrack([{ t: 0, ...a[k] }, { t: 1, ease: b.ease, ...b[k] }], p);
     else if (!(k in a)) out[k] = b[k];
   }
   return out;
 }
 
-/** Entrance/exit envelope for an overlay: returns { inP, outP, visible }. */
-function envelope(t, start, end, inDur = 0.35, outDur = 0.25) {
-  if (t < start || t > end) return { visible: false, inP: 0, outP: 0 };
-  return {
-    visible: true,
-    inP: clamp((t - start) / inDur, 0, 1),
-    outP: clamp((end - t) / outDur, 0, 1),
-  };
-}
+/** Camera tracks: tween by default; any key with `spring` switches to spring-trigger semantics. */
+const sampleCamera = (keys, t) =>
+  keys && keys.some((k) => k.spring) ? springTrack(keys, t, 'camera') : tweenTrack(keys, t);
 
-/** Naive character-count wrapping for SVG text. */
-function wrapText(text, maxChars) {
-  const words = String(text).split(/\s+/);
+/* ============================ TEXT LAYOUT =============================== */
+// Approximate advance widths for bold sans (em units). Each word is then rendered
+// with textLength = its measured width, so layout, word spacing and highlighter
+// bars are identical whatever font the renderer actually has installed.
+function charEm(c) {
+  if (c === ' ') return 0.3;
+  if ("iljI.,:;!|'".includes(c)) return 0.3;
+  if ('ftr()'.includes(c)) return 0.4;
+  if ('mwMW'.includes(c)) return 0.9;
+  if (/[A-Z]/.test(c)) return 0.72;
+  if (/[0-9]/.test(c)) return 0.6;
+  return 0.6;
+}
+const measure = (s, size) => [...s].reduce((w, c) => w + charEm(c) * size, 0);
+
+/** Wrap words into centered lines; returns [{ words: [{text, x, w, i}], width }]. */
+function layoutWords(text, size, maxWidth) {
+  const toks = String(text).split(/\s+/).filter(Boolean);
+  const space = measure(' ', size);
   const lines = [];
-  let line = '';
-  for (const w of words) {
-    if ((line + ' ' + w).trim().length > maxChars && line) {
-      lines.push(line);
-      line = w;
-    } else line = (line + ' ' + w).trim();
+  let cur = [];
+  let curW = 0;
+  toks.forEach((tok, i) => {
+    const w = measure(tok, size);
+    if (cur.length && curW + space + w > maxWidth) {
+      lines.push({ words: cur, width: curW });
+      cur = [];
+      curW = 0;
+    }
+    cur.push({ text: tok, w, i });
+    curW += (cur.length > 1 ? space : 0) + w;
+  });
+  if (cur.length) lines.push({ words: cur, width: curW });
+  for (const line of lines) {
+    let x = -line.width / 2;
+    for (const w of line.words) {
+      w.x = x;
+      x += w.w + space;
+    }
   }
-  if (line) lines.push(line);
-  return lines;
+  return { lines, space };
 }
 
-/* ============================ LAYER 1 – 4 ============================== */
-function ImageLayer({ item }) {
-  // item: { src, x, y, w, h, rotate?, opacity? } or { render: (t) => <svg/> }
-  if (item.render) return item.render(item.__t);
+/* ============================ LAYERS 1 – 4 ============================== */
+function ImageLayer({ item, t }) {
+  // item: { src, x, y, w, h, rotate?, opacity?, depth? } or { render: (t) => <svg/> }
+  if (item.render) return item.render(t);
   const { src, x = 0, y = 0, w = CANVAS.width, h = CANVAS.height, rotate = 0, opacity = 1 } = item;
   return (
     <image
@@ -115,133 +142,201 @@ function ImageLayer({ item }) {
 }
 
 function BackgroundPlate({ src }) {
-  if (src) return <ImageLayer item={{ src }} />;
-  // Placeholder until the Flow plate exists: flat wall + floor, no gradients.
+  const os = MOTION_CONFIG.backgroundOverscan;
+  const { width: W, height: H } = CANVAS;
+  // Overscan so low-depth parallax never exposes the plate edge.
   return (
-    <g>
-      <rect width={CANVAS.width} height={CANVAS.height} fill="#E9E1D3" />
-      <rect y={1480} width={CANVAS.width} height={440} fill="#D8CDBA" />
-      <line x1={0} y1={1480} x2={CANVAS.width} y2={1480} stroke="#C5B9A4" strokeWidth={6} />
+    <g transform={`translate(${W / 2} ${H / 2}) scale(${os}) translate(${-W / 2} ${-H / 2})`}>
+      {src ? (
+        <ImageLayer item={{ src }} />
+      ) : (
+        // Placeholder until the Flow plate exists: flat wall + floor + window, no gradients.
+        <g>
+          <rect width={W} height={H} fill="#E9E1D3" />
+          <rect x={620} y={260} width={300} height={420} rx={10} fill="#F4EEE4" stroke="#CFC3AE" strokeWidth={10} />
+          <line x1={770} y1={260} x2={770} y2={680} stroke="#CFC3AE" strokeWidth={8} />
+          <rect y={1480} width={W} height={440} fill="#D8CDBA" />
+          <line x1={0} y1={1480} x2={W} y2={1480} stroke="#C5B9A4" strokeWidth={6} />
+        </g>
+      )}
     </g>
   );
 }
 
-/* ============================ LAYER 5 – UI ============================= */
-function TextOverlay({ t, o }) {
-  const { inP, outP } = o.env;
-  const p = EASE.outBack(inP);
+/* ============================ LAYER 5 – UI ============================== */
+function Plate({ width, height, y, size }) {
+  return (
+    <rect
+      x={-width / 2 - size * 0.45}
+      y={y}
+      width={width + size * 0.9}
+      height={height}
+      rx={28}
+      fill={UI.plate}
+      stroke={UI.ink}
+      strokeWidth={8}
+    />
+  );
+}
+
+/** Text callout. Words pop in staggered (4f) or exactly when spoken (syncWords). */
+function TextOverlay({ o }) {
+  const { inP, alpha, local } = o.env;
   const size = o.size || 72;
-  const lines = wrapText(o.text, o.maxChars || 18);
-  const words = o.text.split(/\s+/);
-  const wordsShown = o.reveal === 'words' ? Math.ceil(clamp((t - o.start) / (o.wordRate || 0.18), 0, words.length)) : Infinity;
-  let wordIdx = 0;
+  const { lines } = layoutWords(o.text, size, o.maxWidth || 860);
+  const lh = size * 1.18;
+  const widest = Math.max(...lines.map((l) => l.width));
   const x = o.x ?? CANVAS.width / 2;
   const y = o.y ?? 360;
-  const lh = size * 1.18;
-  const plate = o.plate !== false;
-  const padX = size * 0.45;
-  const widest = Math.max(...lines.map((l) => l.length)) * size * 0.56;
+  const fps = o.fps;
+  const hl = (w) => o.highlight && o.highlight.some((h) => w.toLowerCase().includes(h.toLowerCase()));
+
   return (
-    <g opacity={outP} transform={`translate(${x} ${y + (1 - p) * 40}) scale(${0.9 + 0.1 * p})`}>
-      {plate && (
-        <rect
-          x={-widest / 2 - padX}
-          y={-size * 1.05}
-          width={widest + padX * 2}
-          height={lines.length * lh + size * 0.5}
-          rx={28}
-          fill={UI.plate}
-          stroke={UI.ink}
-          strokeWidth={8}
-        />
+    <g opacity={alpha} transform={`translate(${x} ${y + (1 - inP) * 40}) scale(${0.92 + 0.08 * inP})`}>
+      {o.plate !== false && <Plate width={widest} height={lines.length * lh + size * 0.5} y={-size * 1.05} size={size} />}
+      {lines.map((line, li) =>
+        line.words.map((w) => {
+          let p;
+          if (o.reveal === 'all') p = inP;
+          else if (o.wordTimes) p = spring(local - (o.wordTimes[w.i].start - o.start), 'pop');
+          else p = staggered(local, w.i, { fps, delay: 3 / fps });
+          const cx = w.x + w.w / 2;
+          const cy = li * lh - size * 0.35;
+          return (
+            <g
+              key={w.i}
+              opacity={clamp(p * 1.6, 0, 1)}
+              transform={`translate(${cx} ${cy + (1 - p) * 22}) scale(${0.55 + 0.45 * p}) translate(${-cx} ${-cy})`}
+            >
+              <text x={w.x} y={li * lh} textLength={w.w} lengthAdjust="spacingAndGlyphs" fontFamily={UI_FONT} fontWeight={o.weight || 800} fontSize={size} fill={hl(w.text) ? UI.accent : UI.ink}>
+                {w.text}
+              </text>
+            </g>
+          );
+        })
       )}
-      {lines.map((line, li) => (
-        <text
-          key={li}
-          y={li * lh}
-          textAnchor="middle"
-          fontFamily={UI_FONT}
-          fontWeight={o.weight || 800}
-          fontSize={size}
-          fill={UI.ink}
-        >
-          {line.split(' ').map((w, wi) => {
-            const idx = wordIdx++;
-            const hl = o.highlight && o.highlight.some((h) => w.toLowerCase().includes(h.toLowerCase()));
-            return (
-              <tspan key={wi} fill={hl ? UI.accent : UI.ink} opacity={idx < wordsShown ? 1 : 0}>
-                {w + (wi < line.split(' ').length - 1 ? ' ' : '')}
-              </tspan>
-            );
-          })}
-        </text>
-      ))}
     </g>
   );
 }
 
+/** Highlighter: the marker crosses each word as the narrator says it. */
+function Highlight({ o }) {
+  const { inP, alpha, local } = o.env;
+  const size = o.size || 64;
+  const { lines, space } = layoutWords(o.text, size, o.maxWidth || 860);
+  const lh = size * 1.3;
+  const widest = Math.max(...lines.map((l) => l.width));
+  const x = o.x ?? CANVAS.width / 2;
+  const y = o.y ?? 360;
+  const times = o.wordTimes;
+
+  return (
+    <g opacity={alpha} transform={`translate(${x} ${y + (1 - inP) * 40}) scale(${0.92 + 0.08 * inP})`}>
+      {o.plate !== false && <Plate width={widest} height={lines.length * lh + size * 0.4} y={-size * 1.1} size={size} />}
+      {lines.map((line, li) =>
+        line.words.map((w, wi) => {
+          const wt = times[w.i];
+          const t0 = wt.start - o.start;
+          const dur = Math.max(wt.end - wt.start, 0.12);
+          const hp = EASE.glide(clamp((local - t0) / dur, 0, 1));
+          const isLast = wi === line.words.length - 1;
+          const full = w.w + (isLast ? 0 : space) + 14;
+          return (
+            <rect
+              key={`m${w.i}`}
+              x={w.x - 7}
+              y={li * lh - size * 0.8}
+              width={full * hp}
+              height={size * 1.0}
+              rx={6}
+              fill={UI.marker}
+            />
+          );
+        })
+      )}
+      {lines.map((line, li) =>
+        line.words.map((w) => (
+          <text key={`t${w.i}`} x={w.x} y={li * lh} textLength={w.w} lengthAdjust="spacingAndGlyphs" fontFamily={UI_FONT} fontWeight={o.weight || 800} fontSize={size} fill={UI.ink}>
+            {w.text}
+          </text>
+        ))
+      )}
+    </g>
+  );
+}
+
+/** Thought bubble: trailing puffs pop in sequence from the head, then the cloud, then the text. */
 function ThoughtBubble({ o }) {
-  const { inP, outP } = o.env;
-  const p = EASE.outBack(inP);
+  const { alpha, local } = o.env;
+  const fps = o.fps;
   const { x = 640, y = 520, w = 600, h = 300, anchor = { x: 480, y: 820 } } = o;
-  const lines = wrapText(o.text || '', o.maxChars || 16);
   const size = o.size || 54;
-  // trailing puffs from anchor (character head) to bubble
-  const puffs = [0.25, 0.5, 0.75].map((k, i) => ({
+  const { lines } = layoutWords(o.text || '', size, w * 0.68);
+  const puffs = [0.22, 0.45, 0.7].map((k, i) => ({
     x: lerp(anchor.x, x, k),
     y: lerp(anchor.y, y + h / 2, k),
     r: 12 + i * 9,
-    show: inP > i * 0.2,
+    p: staggered(local, i, { fps, gapFrames: 4 }),
   }));
-  const lobes = [];
-  const n = 9;
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2;
-    lobes.push({ cx: x + Math.cos(a) * w * 0.4, cy: y + Math.sin(a) * h * 0.36, r: h * 0.3 });
-  }
+  const cloudP = spring(local - 12 / fps, 'bubble');
+  const textP = spring(local - 17 / fps, 'gentle');
+  const lobes = Array.from({ length: 9 }, (_, i) => {
+    const a = (i / 9) * Math.PI * 2;
+    return { cx: x + Math.cos(a) * w * 0.4, cy: y + Math.sin(a) * h * 0.36, r: h * 0.3 };
+  });
+  // idle float so the bubble breathes while held
+  const bob = Math.sin(local * 2.2) * 5 * clamp(cloudP, 0, 1);
   return (
-    <g opacity={outP}>
-      {puffs.map((pf, i) =>
-        pf.show ? <circle key={i} cx={pf.x} cy={pf.y} r={pf.r} fill={UI.paper} stroke={UI.ink} strokeWidth={7} /> : null
-      )}
-      <g transform={`translate(${x} ${y}) scale(${p}) translate(${-x} ${-y})`}>
+    <g opacity={alpha}>
+      {puffs.map((pf, i) => (
+        <circle key={i} cx={pf.x} cy={pf.y} r={Math.max(0, pf.r * pf.p)} fill={UI.paper} stroke={UI.ink} strokeWidth={7} />
+      ))}
+      <g transform={`translate(${x} ${y + bob}) scale(${Math.max(0, cloudP)}) translate(${-x} ${-y})`}>
         {/* outline pass then fill pass = clean merged cloud silhouette */}
-        {lobes.map((l, i) => (
-          <circle key={`s${i}`} {...l} fill={UI.ink} r={l.r + 7} />
-        ))}
+        {lobes.map((l, i) => <circle key={`s${i}`} cx={l.cx} cy={l.cy} r={l.r + 7} fill={UI.ink} />)}
         <ellipse cx={x} cy={y} rx={w * 0.42 + 7} ry={h * 0.38 + 7} fill={UI.ink} />
-        {lobes.map((l, i) => (
-          <circle key={`f${i}`} {...l} fill={UI.paper} />
-        ))}
+        {lobes.map((l, i) => <circle key={`f${i}`} cx={l.cx} cy={l.cy} r={l.r} fill={UI.paper} />)}
         <ellipse cx={x} cy={y} rx={w * 0.42} ry={h * 0.38} fill={UI.paper} />
-        {lines.map((line, i) => (
-          <text
-            key={i}
-            x={x}
-            y={y + (i - (lines.length - 1) / 2) * size * 1.15 + size * 0.35}
-            textAnchor="middle"
-            fontFamily={UI_FONT}
-            fontWeight={700}
-            fontSize={size}
-            fill={UI.ink}
-          >
-            {line}
-          </text>
-        ))}
+        <g opacity={clamp(textP, 0, 1)} transform={`translate(0 ${(1 - textP) * 14})`}>
+          {lines.map((line, i) => (
+            <text
+              key={i}
+              x={x}
+              y={y + (i - (lines.length - 1) / 2) * size * 1.15 + size * 0.35}
+              textAnchor="middle"
+              fontFamily={UI_FONT}
+              fontWeight={700}
+              fontSize={size}
+              fill={UI.ink}
+            >
+              {line.words.map((w) => w.text).join(' ')}
+            </text>
+          ))}
+        </g>
       </g>
     </g>
   );
 }
 
+/**
+ * Checkmark: the ring draws on at `start`; the fill floods + tick strokes at
+ * `fillAt` (an audio cue, e.g. '@automatic'), with a scale pulse; label follows.
+ */
 function Checkmark({ o }) {
-  const { inP, outP } = o.env;
+  const { alpha, local, inP } = o.env;
+  const fps = o.fps;
   const { x = 540, y = 700, r = 90, label } = o;
-  const ring = EASE.out(clamp(inP * 1.6, 0, 1));
-  const tick = EASE.out(clamp(inP * 1.6 - 0.6, 0, 1));
+  const fl = local - ((o.fillAt ?? o.start + 6 / fps) - o.start);
+  const ring = clamp(spring(local, 'snappy'), 0, 1);
+  const fillP = spring(fl, 'pop');
+  const tick = clamp(spring(fl - 3 / fps, 'snappy'), 0, 1);
+  const pulse = spring(fl, 'pop') - spring(fl - 5 / fps, 'pop');
+  const labelP = spring(fl - 6 / fps, 'gentle');
   return (
-    <g opacity={outP} transform={`translate(${x} ${y}) scale(${0.85 + 0.15 * EASE.outBack(inP)})`}>
-      <circle r={r} fill={UI.good} opacity={ring} />
-      <circle r={r} fill="none" stroke={UI.ink} strokeWidth={9} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - ring} />
+    <g opacity={alpha} transform={`translate(${x} ${y}) scale(${(0.85 + 0.15 * inP) * (1 + 0.18 * pulse)})`}>
+      <circle r={r} fill={UI.paper} />
+      <circle r={Math.max(0, r * fillP)} fill={UI.good} />
+      <circle r={r} fill="none" stroke={UI.ink} strokeWidth={9} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - ring} transform="rotate(-90)" />
       <path
         d={`M${-r * 0.45},${r * 0.02} L${-r * 0.12},${r * 0.34} L${r * 0.48},${-r * 0.32}`}
         fill="none"
@@ -254,7 +349,15 @@ function Checkmark({ o }) {
         strokeDashoffset={1 - tick}
       />
       {label && (
-        <text x={r + 30} y={20} fontFamily={UI_FONT} fontWeight={800} fontSize={60} fill={UI.ink} opacity={tick}>
+        <text
+          x={r + 30 - (1 - labelP) * 30}
+          y={20}
+          fontFamily={UI_FONT}
+          fontWeight={800}
+          fontSize={60}
+          fill={UI.ink}
+          opacity={clamp(labelP, 0, 1)}
+        >
           {label}
         </text>
       )}
@@ -262,30 +365,24 @@ function Checkmark({ o }) {
   );
 }
 
+/** Research paper: heavy card springs up with inertia, lines stagger in, highlight sweeps at `highlightAt`. */
 function ResearchPaper({ o }) {
-  const { inP, outP } = o.env;
-  const p = EASE.outBack(inP);
+  const { alpha, local } = o.env;
+  const fps = o.fps;
   const { x = 540, y = 900, w = 620, h = 800, rotate = -4, title = 'Research Paper', source, highlightLine = 3 } = o;
-  const titleLines = wrapText(title, 20);
+  const p = spring(local, 'paper');
+  const titleSize = 46;
+  const { lines: titleLines } = layoutWords(title, titleSize, w - 100);
   const lineCount = 9;
+  const hlLocal = local - ((o.highlightAt ?? o.start + 0.8) - o.start);
+  const hlP = EASE.glide(clamp(hlLocal / 0.45, 0, 1));
   return (
-    <g
-      opacity={outP}
-      transform={`translate(${x} ${y + (1 - p) * 900}) rotate(${rotate * p}) scale(${0.8 + 0.2 * p})`}
-    >
+    <g opacity={alpha} transform={`translate(${x} ${y + (1 - p) * 1000}) rotate(${lerp(-14, rotate, p)}) scale(${0.85 + 0.15 * p})`}>
       <rect x={-w / 2 + 16} y={-h / 2 + 18} width={w} height={h} rx={18} fill={UI.ink} opacity={0.22} />
       <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={18} fill={UI.paper} stroke={UI.ink} strokeWidth={8} />
       {titleLines.map((l, i) => (
-        <text
-          key={i}
-          x={-w / 2 + 50}
-          y={-h / 2 + 100 + i * 56}
-          fontFamily={UI_FONT}
-          fontWeight={800}
-          fontSize={46}
-          fill={UI.ink}
-        >
-          {l}
+        <text key={i} x={-w / 2 + 50} y={-h / 2 + 100 + i * 56} fontFamily={UI_FONT} fontWeight={800} fontSize={titleSize} fill={UI.ink}>
+          {l.words.map((ww) => ww.text).join(' ')}
         </text>
       ))}
       {source && (
@@ -296,12 +393,12 @@ function ResearchPaper({ o }) {
       {Array.from({ length: lineCount }).map((_, i) => {
         const ly = -h / 2 + 260 + titleLines.length * 30 + i * 52;
         const lw = (w - 100) * (i === lineCount - 1 ? 0.55 : 0.85 + ((i * 37) % 15) / 100);
+        const lp = clamp(staggered(local, i, { fps, gapFrames: 2, delay: 8 / fps, spring: 'snappy' }), 0, 1.05);
         const isHl = i === highlightLine;
-        const hlP = clamp((inP - 0.6) / 0.4, 0, 1);
         return (
           <g key={i}>
-            {isHl && <rect x={-w / 2 + 44} y={ly - 22} width={(lw + 12) * hlP} height={40} fill="#FFE066" />}
-            <rect x={-w / 2 + 50} y={ly - 8} width={lw} height={14} rx={7} fill={isHl ? UI.ink : '#B9B2A6'} />
+            {isHl && <rect x={-w / 2 + 44} y={ly - 22} width={(lw + 12) * hlP} height={40} fill={UI.marker} />}
+            <rect x={-w / 2 + 50} y={ly - 8} width={lw * lp} height={14} rx={7} fill={isHl && hlP > 0 ? UI.ink : '#B9B2A6'} />
           </g>
         );
       })}
@@ -309,12 +406,18 @@ function ResearchPaper({ o }) {
   );
 }
 
+/** Zoom box: stroke draws on with a spring, settles from slightly oversized; label pops 5f later. */
 function ZoomBox({ o }) {
-  const { inP, outP } = o.env;
+  const { alpha, local } = o.env;
+  const fps = o.fps;
   const { x = 300, y = 900, w = 400, h = 300, label } = o;
-  const draw = EASE.out(inP);
+  const draw = clamp(spring(local, 'snappy'), 0, 1);
+  const s = 1 + 0.08 * (1 - spring(local, 'pop'));
+  const lp = spring(local - 5 / fps, 'pop');
+  const cx = x + w / 2;
+  const cy = y + h / 2;
   return (
-    <g opacity={outP}>
+    <g opacity={alpha} transform={`translate(${cx} ${cy}) scale(${s}) translate(${-cx} ${-cy})`}>
       <rect
         x={x}
         y={y}
@@ -330,8 +433,8 @@ function ZoomBox({ o }) {
         strokeDashoffset={1 - draw}
       />
       {label && (
-        <g opacity={clamp((inP - 0.5) * 2, 0, 1)}>
-          <rect x={x} y={y - 92} width={label.length * 30 + 48} height={74} rx={16} fill={UI.accent} />
+        <g opacity={clamp(lp, 0, 1)} transform={`translate(${x} ${y - 55}) scale(${Math.max(0, lp)}) translate(${-x} ${-(y - 55)})`}>
+          <rect x={x} y={y - 92} width={measure(label, 48) + 48} height={74} rx={16} fill={UI.accent} />
           <text x={x + 24} y={y - 40} fontFamily={UI_FONT} fontWeight={800} fontSize={48} fill={UI.paper}>
             {label}
           </text>
@@ -342,67 +445,70 @@ function ZoomBox({ o }) {
 }
 
 const UI_COMPONENTS = {
-  text: TextOverlay,
-  thought: ThoughtBubble,
-  check: Checkmark,
-  paper: ResearchPaper,
-  zoombox: ZoomBox,
+  text: { C: TextOverlay, spring: 'pop' },
+  highlight: { C: Highlight, spring: 'pop' },
+  thought: { C: ThoughtBubble, spring: 'bubble' },
+  check: { C: Checkmark, spring: 'pop' },
+  paper: { C: ResearchPaper, spring: 'paper' },
+  zoombox: { C: ZoomBox, spring: 'snappy' },
 };
 
 /* ============================ SCENE RENDER ============================= */
-function Scene({ scene, t }) {
+/** Mouth opening from voiceover timing: syllable-ish pulses while a word is spoken. */
+function lipSync(sync, t) {
+  const w = sync.speakingAt(t);
+  if (!w) return 0;
+  const syll = Math.max(1, Math.round(w.norm.length / 3));
+  const u = (t - w.start) / Math.max(w.end - w.start, 0.05);
+  return Math.abs(Math.sin(Math.PI * syll * u)) * 0.9;
+}
+
+function Scene({ scene, t, sync, fps }) {
   const local = t - scene.start;
+  const P = { ...MOTION_CONFIG.parallax, ...(scene.parallax || {}) };
 
-  // Camera: world-space focus point + zoom, tweened between keyframes.
-  const cam = {
-    zoom: 1,
-    x: CANVAS.width / 2,
-    y: CANVAS.height / 2,
-    ...sampleTrack(scene.camera, local),
-  };
-  // Optional subtle handheld drift keeps static plates alive.
-  const drift = scene.drift === false ? { x: 0, y: 0 } : { x: Math.sin(local * 0.7) * 3, y: Math.cos(local * 0.5) * 3 };
-  const camTransform = `translate(${CANVAS.width / 2} ${CANVAS.height / 2}) scale(${cam.zoom}) translate(${-cam.x + drift.x} ${-cam.y + drift.y})`;
+  const cam = { zoom: 1, x: CANVAS.width / 2, y: CANVAS.height / 2, ...sampleCamera(scene.camera, local) };
+  // Subtle handheld drift keeps static plates alive (scaled per layer by depth).
+  const drift = scene.drift === false ? { x: 0, y: 0 } : { x: Math.sin(local * 0.7) * 4, y: Math.cos(local * 0.5) * 3 };
+  const layerT = (depth) => parallaxTransform(cam, depth, CANVAS, drift);
 
-  const charState = scene.character
-    ? { ...scene.character, ...sampleTrack(scene.character.track, local) }
-    : null;
-
-  const withTime = (items = []) => items.map((it) => ({ ...it, __t: local }));
+  let charState = null;
+  if (scene.character) {
+    const { track, lipSync: ls, depth, ...base } = scene.character;
+    charState = { ...base, ...springTrack(track, local, 'gentle') };
+    if (ls && sync.words.length) charState.mouthOpen = lipSync(sync, t);
+  }
 
   return (
     <>
-      <g data-layer="world" transform={camTransform}>
-        <g data-layer="1-background">
-          <BackgroundPlate src={scene.background} />
-        </g>
-        <g data-layer="2-midground">
-          {withTime(scene.midground).map((it, i) => (
-            <ImageLayer key={i} item={it} />
-          ))}
-        </g>
-        <g data-layer="3-character">
-          {charState && (
-            <Stickman
-              {...charState}
-              track={undefined}
-              time={t /* global time so blinks/breath are continuous across cuts */}
-            />
-          )}
-        </g>
-        <g data-layer="4-foreground">
-          {withTime(scene.foreground).map((it, i) => (
-            <ImageLayer key={i} item={it} />
-          ))}
-        </g>
+      <g data-layer="1-background" transform={layerT(P.background)}>
+        <BackgroundPlate src={scene.background} />
       </g>
-
-      <g data-layer="5-ui">
+      <g data-layer="2-midground">
+        {(scene.midground || []).map((it, i) => (
+          <g key={i} transform={layerT(it.depth ?? P.midground)}>
+            <ImageLayer item={it} t={local} />
+          </g>
+        ))}
+      </g>
+      <g data-layer="3-character" transform={layerT(scene.character?.depth ?? P.character)}>
+        {charState && <Stickman {...charState} time={t /* global time: blinks/breath continuous across cuts */} />}
+      </g>
+      <g data-layer="4-foreground">
+        {(scene.foreground || []).map((it, i) => (
+          <g key={i} transform={layerT(it.depth ?? P.foreground)}>
+            <ImageLayer item={it} t={local} />
+          </g>
+        ))}
+      </g>
+      <g data-layer="5-ui" transform={layerT(P.ui)}>
         {(scene.ui || []).map((o, i) => {
-          const env = envelope(local, o.start, o.end, o.inDur, o.outDur);
+          const def = UI_COMPONENTS[o.type];
+          if (!def) return null;
+          const env = envelope(local, o.start, o.end, { spring: o.spring || def.spring, fps });
           if (!env.visible) return null;
-          const C = UI_COMPONENTS[o.type];
-          return C ? <C key={i} t={local} o={{ ...o, env }} /> : null;
+          const { C } = def;
+          return <C key={i} o={{ ...o, env, fps }} />;
         })}
       </g>
     </>
@@ -410,6 +516,25 @@ function Scene({ scene, t }) {
 }
 
 /* ============================ DEMO TIMELINE ============================ */
+/**
+ * Demo-only stand-in for real Whisper word timestamps, so the cue system can be
+ * previewed before a voiceover exists. Real projects pass
+ * timeline.audio.transcript (Whisper JSON / word list / SRT).
+ */
+function demoTranscript(text, { start = 0.4, wps = 2.7 } = {}) {
+  let t = start;
+  return text.split(/\s+/).map((word) => {
+    const d = (0.55 + word.length * 0.06) / (wps * 0.75);
+    const w = { word, start: t, end: t + d * 0.85 };
+    t += d + (/[.?!]$/.test(word) ? 0.45 : /,$/.test(word) ? 0.2 : 0);
+    return w;
+  });
+}
+
+const DEMO_VO =
+  'Why does discipline beat motivation? Because motivation is a feeling, and feelings fade. ' +
+  'Researchers found new habits take about sixty six days to become automatic. So start small.';
+
 // Vector stand-ins used until Flow props exist in assets/props.
 const DemoDesk = () => (
   <g>
@@ -419,75 +544,92 @@ const DemoDesk = () => (
   </g>
 );
 const DemoNotebook = () => (
-  <g>
-    <rect x={250} y={1226} width={260} height={30} rx={4} fill={UI.paper} stroke={PALETTE.ink} strokeWidth={6} />
-  </g>
+  <rect x={250} y={1226} width={260} height={30} rx={4} fill={UI.paper} stroke={PALETTE.ink} strokeWidth={6} />
 );
 
 /**
- * Timeline schema
+ * Timeline schema (any time field accepts seconds OR an audio cue — see audioSync.js)
  * {
- *   duration: seconds,
+ *   audio: { src: 'assets/audio/vo.mp3', transcript: <whisper json | word list | srt> },
+ *   stagger: { defaultFrames: 6 },          // optional override (clamped 4–8)
  *   scenes: [{
- *     id, start, end,                     // seconds (global)
+ *     id, start, end?,                     // end defaults to next scene start
  *     background: 'assets/backgrounds/x.png',
- *     midground:  [{ src, x, y, w, h } | { render }],
- *     character:  { ...Stickman props, track: [{ t, x, y, scale, action, expression, ... }] },
- *     foreground: [{ src, x, y, w, h } | { render }],
- *     camera:     [{ t, zoom, x, y, ease }], // t is scene-local
- *     ui:         [{ type: 'text'|'thought'|'check'|'paper'|'zoombox', start, end, ... }],
+ *     parallax:   { background, midground, character, foreground, ui },   // optional per-scene depths
+ *     midground:  [{ src, x, y, w, h, depth? } | { render, depth? }],
+ *     character:  { ...Stickman props, lipSync?, depth?,
+ *                   track: [{ t, headTurn, x, expression, action, spring? }] },  // spring-trigger keys
+ *     foreground: [{ src, x, y, w, h, depth? } | { render, depth? }],
+ *     camera:     [{ t, zoom, x, y, ease? }]  // arrival keys (cinematic bezier); add `spring` for trigger keys
+ *     ui: [{ type: 'text'|'highlight'|'thought'|'check'|'paper'|'zoombox', start, end?, stagger?, spring?, ... }],
  *   }]
  * }
  */
 export const DEMO_TIMELINE = {
-  duration: 12,
+  audio: { src: null, transcript: demoTranscript(DEMO_VO) },
   scenes: [
     {
       id: 'hook',
       start: 0,
-      end: 6,
-      background: null,
-      midground: [{ render: () => <DemoDesk /> }],
-      character: {
-        x: 640,
-        y: 1480,
-        scale: 1,
-        action: 'writing',
-        handTarget: { x: 360, y: 1235 },
-      },
-      foreground: [{ render: () => <DemoNotebook /> }],
+      midground: [{ render: () => <DemoDesk />, depth: 1.0 /* character touches it → same depth */ }],
+      character: { x: 640, y: 1480, action: 'writing', handTarget: { x: 360, y: 1235 } },
+      foreground: [{ render: () => <DemoNotebook />, depth: 1.0 }],
       camera: [
         { t: 0, zoom: 1.0, x: 540, y: 960 },
-        { t: 6, zoom: 1.12, x: 520, y: 1000, ease: 'inOut' },
+        { t: '@because', zoom: 1.14, x: 470, y: 1020 },
       ],
       ui: [
-        { type: 'text', start: 0.3, end: 5.8, text: 'Why discipline beats motivation', highlight: ['discipline'], reveal: 'words', y: 330 },
-        { type: 'zoombox', start: 2.5, end: 5.6, x: 220, y: 1160, w: 340, h: 140, label: 'the habit' },
+        { type: 'text', start: '@why-0.1', text: 'Why discipline beats motivation', highlight: ['discipline'], syncWords: true, y: 330 },
+        // lands on the same word as the title → engine staggers it 6 frames behind
+        { type: 'zoombox', start: '@why-0.1', x: 220, y: 1160, w: 340, h: 140, label: 'the habit' },
       ],
     },
     {
-      id: 'insight',
-      start: 6,
-      end: 12,
-      background: null,
+      id: 'feeling',
+      start: '@because',
       character: {
         x: 540,
         y: 1560,
         scale: 1.05,
         action: 'thinking',
         track: [
-          { t: 0, expression: 'thinking' },
-          { t: 3.6, expression: 'smile' },
+          { t: 0, headTurn: 0, expression: 'thinking' },
+          { t: '@feelings', headTurn: 0.6 }, // head turns toward the bubble as the word lands
+          { t: '@fade', expression: 'concerned' },
         ],
       },
       camera: [
-        { t: 0, zoom: 1.25, x: 540, y: 900 },
-        { t: 2.0, zoom: 1.0, x: 540, y: 960, ease: 'out' },
+        { t: 0, zoom: 1.28, x: 540, y: 900 },
+        { t: '@feeling', zoom: 1.0, x: 540, y: 960, spring: 'camera' }, // spring dolly-out keyed to speech
       ],
       ui: [
-        { type: 'thought', start: 0.4, end: 3.4, x: 700, y: 430, text: 'What if I just start small?', anchor: { x: 600, y: 700 } },
-        { type: 'paper', start: 3.4, end: 5.8, x: 560, y: 760, title: 'Habit formation in everyday life', source: 'Lally et al., 2010 · EJSP' },
-        { type: 'check', start: 4.4, end: 5.9, x: 150, y: 1760, r: 80, label: '66 days' },
+        { type: 'highlight', start: '@because', text: 'Motivation is a feeling, and feelings fade.', sweepStart: '@motivation', y: 300 },
+        { type: 'thought', start: '@feelings', x: 720, y: 640, w: 520, h: 260, text: 'It fades.', anchor: { x: 650, y: 860 } },
+      ],
+    },
+    {
+      id: 'research',
+      start: '@researchers',
+      character: {
+        x: 870,
+        y: 1640,
+        scale: 0.85,
+        action: 'idle',
+        lipSync: true,
+        track: [
+          { t: 0, headTurn: 0, expression: 'neutral' },
+          { t: '@habits', headTurn: -0.5, expression: 'raised' },
+          { t: '@automatic', expression: 'smile' },
+        ],
+      },
+      camera: [
+        { t: 0, zoom: 1.0, x: 540, y: 960 },
+        { t: '@days:end', zoom: 1.06, x: 520, y: 900 },
+      ],
+      ui: [
+        { type: 'paper', start: '@researchers', x: 420, y: 760, w: 580, title: 'Habit formation in everyday life', source: 'Lally et al., 2010 · EJSP', highlightAt: '@"sixty six"' },
+        // starts with the paper → auto-staggered; fill keyed to the word "automatic"
+        { type: 'check', start: '@researchers', fillAt: '@automatic', x: 140, y: 1500, r: 78, label: '66 days' },
       ],
     },
   ],
@@ -496,38 +638,49 @@ export const DEMO_TIMELINE = {
 /* ============================ MASTER COMPONENT ========================= */
 /**
  * <VideoComposition />
- *  timeline   timeline object (defaults to DEMO_TIMELINE)
- *  frame      external frame number (Remotion). If omitted, a rAF loop drives preview.
- *  fps        frames per second (default 30)
- *  loop       loop the preview clock (default true)
- *  style      CSS for the outer <svg>
+ *  timeline    timeline object (defaults to DEMO_TIMELINE)
+ *  transcript  optional transcript override (else timeline.audio.transcript)
+ *  frame       external frame number (Remotion). If omitted, preview clock runs.
+ *  fps         frames per second (default 30)
+ *  loop        loop the preview clock when there is no audio (default true)
+ *  style       CSS for the outer <svg>
  */
-export default function VideoComposition({ timeline = DEMO_TIMELINE, frame, fps = CANVAS.fps, loop = true, style }) {
+export default function VideoComposition({ timeline = DEMO_TIMELINE, transcript, frame, fps = CANVAS.fps, loop = true, style }) {
+  const resolved = useMemo(() => resolveTimeline(timeline, { fps, transcript }), [timeline, fps, transcript]);
   const [clock, setClock] = useState(0);
   const startRef = useRef(null);
+  const audioRef = useRef(null);
   const external = typeof frame === 'number';
+  const audioSrc = timeline.audio?.src;
+
+  useEffect(() => {
+    if (resolved.__warnings.length) console.warn('[Innersetlog timeline]\n' + resolved.__warnings.join('\n'));
+  }, [resolved]);
 
   useEffect(() => {
     if (external) return undefined;
     let raf;
     const tick = (now) => {
-      if (startRef.current == null) startRef.current = now;
-      let s = (now - startRef.current) / 1000;
-      if (loop) s %= timeline.duration;
-      else s = Math.min(s, timeline.duration);
-      // quantize to frames so preview == final render
-      setClock(Math.floor(s * fps) / fps);
+      let s;
+      if (audioSrc && audioRef.current) {
+        s = audioRef.current.currentTime; // audio is the master clock → perfect sync in preview
+      } else {
+        if (startRef.current == null) startRef.current = now;
+        s = (now - startRef.current) / 1000;
+        s = loop ? s % resolved.duration : Math.min(s, resolved.duration);
+      }
+      setClock(Math.floor(s * fps) / fps); // quantize so preview == final render
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [external, fps, loop, timeline.duration]);
+  }, [external, fps, loop, resolved.duration, audioSrc]);
 
   const t = external ? frame / fps : clock;
-  const scene =
-    timeline.scenes.find((s) => t >= s.start && t < s.end) || timeline.scenes[timeline.scenes.length - 1];
+  const scenes = resolved.scenes;
+  const scene = scenes.find((s) => t >= s.start && t < s.end) || scenes[scenes.length - 1];
 
-  return (
+  const svg = (
     <svg
       viewBox={`0 0 ${CANVAS.width} ${CANVAS.height}`}
       width="100%"
@@ -539,7 +692,17 @@ export default function VideoComposition({ timeline = DEMO_TIMELINE, frame, fps 
           <rect width={CANVAS.width} height={CANVAS.height} />
         </clipPath>
       </defs>
-      <g clipPath="url(#frame-clip)">{scene && <Scene key={scene.id} scene={scene} t={t} />}</g>
+      <g clipPath="url(#frame-clip)">
+        {scene && <Scene key={scene.id} scene={scene} t={t} sync={resolved.__sync} fps={fps} />}
+      </g>
     </svg>
+  );
+
+  if (external || !audioSrc) return svg;
+  return (
+    <div>
+      {svg}
+      <audio ref={audioRef} src={audioSrc} controls style={{ width: '100%' }} />
+    </div>
   );
 }
