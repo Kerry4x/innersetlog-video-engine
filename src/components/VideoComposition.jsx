@@ -1,16 +1,22 @@
 /**
  * Innersetlog Master Compositor
  * ------------------------------------------------------------------
- * Vertical 9:16 (1080x1920) layer compositor + animation loop.
+ * Vertical 9:16 (1080x1920) Flow-asset compositor + animation loop.
+ *
+ * FLOW-TO-CODE PIPELINE: Flow is the artist, this file is the assembler.
+ * Every plate, prop, body pose, head expression and hand item is a Flow
+ * PNG/SVG listed in assets/manifest.json (see docs/ASSET_PIPELINE.md). Code
+ * only places, layers, moves and times them; the only vector art generated
+ * here is the motion-graphics UI layer (text, highlighter, bubbles, checks).
  *
  * STRICT Z-ORDER (docs/CHARACTER_RIG.md §4) — rendered bottom to top:
- *   1. Background   – Flow-generated static room plate (assets/backgrounds)
- *   2. Midground    – desks, chairs, equipment (assets/props)
- *   3. Character torso & back limbs        <Stickman part="back" />
- *   4. Character head                      <Stickman part="head" />
- *   5. Foreground limbs & hand props       <Stickman part="front" />, then
- *      scene `foreground` items (desk edges, laptop lids) that must sit in front
- *   6. UI / MoGraph – text, highlighter, zoom boxes, papers, checkmarks, bubbles
+ *   1. Background   – assets/backgrounds/<id>
+ *   2. Midground    – assets/library/props/<id> (desks, chairs, items under the hands)
+ *   3. Character body sprite                  <CharacterAssembly part="back" />
+ *   4. Character head sprite                  <CharacterAssembly part="head" />
+ *   5. Body front overlay + held item sprites <CharacterAssembly part="front" />, then
+ *      scene `foreground` props that must sit in front (desk edges, laptop lids)
+ *   6. UI / MoGraph – text, highlighter, zoom boxes, papers, checkmarks, bubbles, sprite pop-ups
  *
  * STUDIO MOTION (STYLE_GUIDE.md §3, engine in src/engine/):
  *   - Every UI entrance is a spring (mass / stiffness / damping) — no linear tweens.
@@ -25,7 +31,9 @@
  *   - Otherwise the preview clock follows timeline.audio.src (if present) or a rAF loop.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Stickman, { PALETTE } from './Stickman.jsx';
+import CharacterAssembly from './CharacterAssembly.jsx';
+import { BackgroundSprite, Sprite } from './Sprite.jsx';
+import { useAssetManifest, auditTimeline } from '../engine/assets.js';
 import {
   MOTION_CONFIG,
   EASE,
@@ -44,9 +52,9 @@ export const CANVAS = { width: 1080, height: 1920, fps: MOTION_CONFIG.fps };
 
 const UI_FONT = "'Inter', 'Helvetica Neue', Arial, sans-serif";
 const UI = {
-  ink: PALETTE.ink,
+  ink: '#111111',
   paper: '#FFFDF8',
-  plate: PALETTE.skin,
+  plate: '#F7EFE2',
   accent: '#E4572E', // emphasis color for highlights / zoom boxes
   good: '#2E9E5B', // checkmarks
   marker: '#FFE066', // highlighter
@@ -124,48 +132,7 @@ function layoutWords(text, size, maxWidth) {
   return { lines, space };
 }
 
-/* ============================ LAYERS 1 – 4 ============================== */
-function ImageLayer({ item, t }) {
-  // item: { src, x, y, w, h, rotate?, opacity?, depth? } or { render: (t) => <svg/> }
-  if (item.render) return item.render(t);
-  const { src, x = 0, y = 0, w = CANVAS.width, h = CANVAS.height, rotate = 0, opacity = 1 } = item;
-  return (
-    <image
-      href={src}
-      x={x}
-      y={y}
-      width={w}
-      height={h}
-      opacity={opacity}
-      preserveAspectRatio="xMidYMid slice"
-      transform={rotate ? `rotate(${rotate} ${x + w / 2} ${y + h / 2})` : undefined}
-    />
-  );
-}
-
-function BackgroundPlate({ src }) {
-  const os = MOTION_CONFIG.backgroundOverscan;
-  const { width: W, height: H } = CANVAS;
-  // Overscan so low-depth parallax never exposes the plate edge.
-  return (
-    <g transform={`translate(${W / 2} ${H / 2}) scale(${os}) translate(${-W / 2} ${-H / 2})`}>
-      {src ? (
-        <ImageLayer item={{ src }} />
-      ) : (
-        // Placeholder until the Flow plate exists: flat wall + floor + window, no gradients.
-        <g>
-          <rect width={W} height={H} fill="#E9E1D3" />
-          <rect x={620} y={260} width={300} height={420} rx={10} fill="#F4EEE4" stroke="#CFC3AE" strokeWidth={10} />
-          <line x1={770} y1={260} x2={770} y2={680} stroke="#CFC3AE" strokeWidth={8} />
-          <rect y={1480} width={W} height={440} fill="#D8CDBA" />
-          <line x1={0} y1={1480} x2={W} y2={1480} stroke="#C5B9A4" strokeWidth={6} />
-        </g>
-      )}
-    </g>
-  );
-}
-
-/* ============================ LAYER 5 – UI ============================== */
+/* ============================ LAYER 6 – UI ============================== */
 function Plate({ width, height, y, size }) {
   return (
     <rect
@@ -446,7 +413,29 @@ function ZoomBox({ o }) {
   );
 }
 
+/** Flow asset as a pop-up graphic (e.g. a phone, a trophy): springs in from below with a slight tilt, then floats. */
+function SpritePop({ o }) {
+  const { inP, alpha, local } = o.env;
+  const float = Math.sin(local * 2.0) * 6 * clamp(inP, 0, 1);
+  return (
+    <g opacity={alpha} transform={`translate(0 ${(1 - inP) * 120 + float})`}>
+      <Sprite
+        manifest={o.manifest}
+        base={o.base}
+        asset={o.asset}
+        category={o.category || 'props'}
+        x={o.x ?? CANVAS.width / 2}
+        y={o.y ?? 1000}
+        scale={(o.scale ?? 1) * (0.6 + 0.4 * inP)}
+        rotate={(o.rotate ?? 0) + (1 - inP) * -10}
+        anchor={o.anchor}
+      />
+    </g>
+  );
+}
+
 const UI_COMPONENTS = {
+  sprite: { C: SpritePop, spring: 'pop' },
   text: { C: TextOverlay, spring: 'pop' },
   highlight: { C: Highlight, spring: 'pop' },
   thought: { C: ThoughtBubble, spring: 'bubble' },
@@ -465,7 +454,27 @@ function lipSync(sync, t) {
   return Math.abs(Math.sin(Math.PI * syll * u)) * 0.9;
 }
 
-function Scene({ scene, t, sync, fps }) {
+/**
+ * For a discrete track property (body pose, expression): the value before the
+ * most recent change and seconds since that change → drives sprite crossfades.
+ */
+function swapInfo(base, track, prop, local) {
+  if (!track) return undefined;
+  let prev = base[prop];
+  let cur = base[prop];
+  let since;
+  for (const k of track) {
+    if (!(prop in k) || k.t > local) continue;
+    if (k[prop] !== cur) {
+      prev = cur;
+      cur = k[prop];
+      since = local - k.t;
+    }
+  }
+  return since === undefined ? undefined : { prev, since };
+}
+
+function Scene({ scene, t, sync, fps, manifest, base: assetBase }) {
   const local = t - scene.start;
   const P = { ...MOTION_CONFIG.parallax, ...(scene.parallax || {}) };
 
@@ -479,34 +488,43 @@ function Scene({ scene, t, sync, fps }) {
     const { track, lipSync: ls, depth, ...base } = scene.character;
     charState = { ...base, ...springTrack(track, local, 'gentle') };
     if (ls && sync.words.length) charState.mouthOpen = lipSync(sync, t);
+    charState.swap = {
+      body: swapInfo(base, track, 'body', local),
+      expression: swapInfo(base, track, 'expression', local),
+    };
+    charState.manifest = manifest;
+    charState.base = assetBase;
   }
+  const placeProp = (it) => (
+    <Sprite manifest={manifest} base={assetBase} asset={it.asset} x={it.x} y={it.y} scale={it.scale ?? 1} rotate={it.rotate ?? 0} flipX={it.flipX} opacity={it.opacity ?? 1} anchor={it.anchor} />
+  );
 
   const charDepth = scene.character?.depth ?? P.character;
 
   return (
     <>
       <g data-layer="1-background" transform={layerT(P.background)}>
-        <BackgroundPlate src={scene.background} />
+        <BackgroundSprite manifest={manifest} base={assetBase} asset={scene.background} canvas={CANVAS} overscan={MOTION_CONFIG.backgroundOverscan} />
       </g>
       <g data-layer="2-midground">
         {(scene.midground || []).map((it, i) => (
           <g key={i} transform={layerT(it.depth ?? P.midground)}>
-            <ImageLayer item={it} t={local} />
+            {placeProp(it)}
           </g>
         ))}
       </g>
       {/* global time keeps blinks/breath continuous across cuts */}
       <g data-layer="3-character-back" transform={layerT(charDepth)}>
-        {charState && <Stickman {...charState} part="back" time={t} />}
+        {charState && <CharacterAssembly {...charState} part="back" time={t} />}
       </g>
       <g data-layer="4-character-head" transform={layerT(charDepth)}>
-        {charState && <Stickman {...charState} part="head" time={t} />}
+        {charState && <CharacterAssembly {...charState} part="head" time={t} />}
       </g>
       <g data-layer="5-foreground">
-        <g transform={layerT(charDepth)}>{charState && <Stickman {...charState} part="front" time={t} />}</g>
+        <g transform={layerT(charDepth)}>{charState && <CharacterAssembly {...charState} part="front" time={t} />}</g>
         {(scene.foreground || []).map((it, i) => (
           <g key={i} transform={layerT(it.depth ?? P.foreground)}>
-            <ImageLayer item={it} t={local} />
+            {placeProp(it)}
           </g>
         ))}
       </g>
@@ -517,7 +535,7 @@ function Scene({ scene, t, sync, fps }) {
           const env = envelope(local, o.start, o.end, { spring: o.spring || def.spring, fps });
           if (!env.visible) return null;
           const { C } = def;
-          return <C key={i} o={{ ...o, env, fps }} />;
+          return <C key={i} o={{ ...o, env, fps, manifest, base: assetBase }} />;
         })}
       </g>
     </>
@@ -544,18 +562,6 @@ const DEMO_VO =
   'Why does discipline beat motivation? Because motivation is a feeling, and feelings fade. ' +
   'Researchers found new habits take about sixty six days to become automatic. So start small.';
 
-// Vector stand-ins used until Flow props exist in assets/props.
-const DemoDesk = () => (
-  <g>
-    <rect x={40} y={1250} width={720} height={36} rx={8} fill="#8A6A4A" stroke={PALETTE.ink} strokeWidth={10} />
-    <rect x={80} y={1286} width={26} height={300} fill={PALETTE.ink} />
-    <rect x={694} y={1286} width={26} height={300} fill={PALETTE.ink} />
-  </g>
-);
-const DemoNotebook = () => (
-  <rect x={250} y={1226} width={260} height={30} rx={4} fill={UI.paper} stroke={PALETTE.ink} strokeWidth={6} />
-);
-
 /**
  * Timeline schema (any time field accepts seconds OR an audio cue — see audioSync.js)
  * {
@@ -563,14 +569,15 @@ const DemoNotebook = () => (
  *   stagger: { defaultFrames: 6 },          // optional override (clamped 4–8)
  *   scenes: [{
  *     id, start, end?,                     // end defaults to next scene start
- *     background: 'assets/backgrounds/x.png',
+ *     background: '<background id>',        // assets/backgrounds/<id>.png via manifest
  *     parallax:   { background, midground, character, foreground, ui },   // optional per-scene depths
- *     midground:  [{ src, x, y, w, h, depth? } | { render, depth? }],
- *     character:  { ...Stickman props, lipSync?, depth?,
- *                   track: [{ t, headTurn, x, expression, action, spring? }] },  // spring-trigger keys
- *     foreground: [{ src, x, y, w, h, depth? } | { render, depth? }],
+ *     midground:  [{ asset: '<prop id>', x, y, scale?, rotate?, flipX?, anchor?, depth? }],  // (x,y) = prop anchor
+ *     character:  { body: '<pose id>', expression: '<head id>', hold: { L?, R?: '<item id>' },
+ *                   x, y, scale, facing?, headTilt?, lipSync?, depth?,
+ *                   track: [{ t, body?, expression?, hold?, x?, headTilt?, spring? }] },  // cue-triggered; swaps crossfade
+ *     foreground: [{ asset: '<prop id>', x, y, ... }],  // props in front of the character
  *     camera:     [{ t, zoom, x, y, ease? }]  // arrival keys (cinematic bezier); add `spring` for trigger keys
- *     ui: [{ type: 'text'|'highlight'|'thought'|'check'|'paper'|'zoombox', start, end?, stagger?, spring?, ... }],
+ *     ui: [{ type: 'text'|'highlight'|'thought'|'check'|'paper'|'zoombox'|'sprite', start, end?, stagger?, spring?, ... }],
  *   }]
  * }
  */
@@ -580,11 +587,12 @@ export const DEMO_TIMELINE = {
     {
       id: 'hook',
       start: 0,
+      background: 'study_night',
       midground: [
-        { render: () => <DemoDesk />, depth: 1.0 /* character touches it → same depth */ },
-        { render: () => <DemoNotebook />, depth: 1.0 }, // lies on the desk, under the hands
+        { asset: 'desk', x: 400, y: 1560, depth: 1.0 /* character touches it → same depth */ },
+        { asset: 'notebook_open', x: 380, y: 1250, depth: 1.0 }, // lies on the desk, under the hands
       ],
-      character: { x: 560, y: 1480, scale: 1.25, action: 'writing', handTarget: { x: 380, y: 1222 } },
+      character: { body: 'sit_writing', expression: 'focused', hold: { R: 'pen' }, x: 640, y: 1560, scale: 1.0 },
       camera: [
         { t: 0, zoom: 1.0, x: 540, y: 960 },
         { t: '@because', zoom: 1.14, x: 470, y: 1020 },
@@ -598,15 +606,17 @@ export const DEMO_TIMELINE = {
     {
       id: 'feeling',
       start: '@because',
+      background: 'study_night',
       character: {
+        body: 'stand_hand_on_chin',
+        expression: 'focused',
         x: 540,
-        y: 1560,
-        scale: 1.3,
-        action: 'thinking',
+        y: 1700,
+        scale: 1.25,
         track: [
-          { t: 0, headTurn: 0, expression: 'focused' },
-          { t: '@feelings', headTurn: 0.6 }, // head turns toward the bubble as the word lands
-          { t: '@fade', expression: 'tired' },
+          { t: 0, headTilt: 0 },
+          { t: '@feelings', headTilt: 8 }, // head tilts toward the bubble as the word lands
+          { t: '@fade', expression: 'tired', body: 'stand_slumped' }, // sprite swap, spring crossfade
         ],
       },
       camera: [
@@ -621,15 +631,18 @@ export const DEMO_TIMELINE = {
     {
       id: 'research',
       start: '@researchers',
+      background: 'library_day',
       character: {
+        body: 'stand_holding_phone',
+        expression: 'focused',
+        hold: { R: 'phone' },
         x: 860,
-        y: 1640,
-        scale: 1.05,
-        action: 'idle',
-        lipSync: true,
+        y: 1700,
+        scale: 1.0,
+        lipSync: true, // swaps to the head's `talk` variant while words are spoken
         track: [
-          { t: 0, headTurn: 0, expression: 'focused' },
-          { t: '@habits', headTurn: -0.5 },
+          { t: 0, headTilt: 0 },
+          { t: '@habits', headTilt: -6 },
           { t: '@automatic', expression: 'content' },
         ],
       },
@@ -654,10 +667,23 @@ export const DEMO_TIMELINE = {
  *  frame       external frame number (Remotion). If omitted, preview clock runs.
  *  fps         frames per second (default 30)
  *  loop        loop the preview clock when there is no audio (default true)
+ *  manifest    asset manifest object, or URL to it (default 'assets/manifest.json')
+ *  assetBase   prefix for asset srcs (e.g. Remotion staticFile('') or a CDN root)
  *  style       CSS for the outer <svg>
  */
-export default function VideoComposition({ timeline = DEMO_TIMELINE, transcript, frame, fps = CANVAS.fps, loop = true, style }) {
+export default function VideoComposition({
+  timeline = DEMO_TIMELINE,
+  transcript,
+  frame,
+  fps = CANVAS.fps,
+  loop = true,
+  manifest: manifestSource = 'assets/manifest.json',
+  assetBase = '',
+  style,
+}) {
+  const manifest = useAssetManifest(manifestSource);
   const resolved = useMemo(() => resolveTimeline(timeline, { fps, transcript }), [timeline, fps, transcript]);
+  const audit = useMemo(() => auditTimeline(timeline, manifest), [timeline, manifest]);
   const [clock, setClock] = useState(0);
   const startRef = useRef(null);
   const audioRef = useRef(null);
@@ -666,7 +692,9 @@ export default function VideoComposition({ timeline = DEMO_TIMELINE, transcript,
 
   useEffect(() => {
     if (resolved.__warnings.length) console.warn('[Innersetlog timeline]\n' + resolved.__warnings.join('\n'));
-  }, [resolved]);
+    if (audit.missing.length)
+      console.info('[Innersetlog assets] placeholders in use for:\n' + audit.missing.map((m) => `  ${m.category}/${m.id}  (${m.where})`).join('\n'));
+  }, [resolved, audit]);
 
   useEffect(() => {
     if (external) return undefined;
@@ -704,7 +732,7 @@ export default function VideoComposition({ timeline = DEMO_TIMELINE, transcript,
         </clipPath>
       </defs>
       <g clipPath="url(#frame-clip)">
-        {scene && <Scene key={scene.id} scene={scene} t={t} sync={resolved.__sync} fps={fps} />}
+        {scene && <Scene key={scene.id} scene={scene} t={t} sync={resolved.__sync} fps={fps} manifest={manifest} base={assetBase} />}
       </g>
     </svg>
   );

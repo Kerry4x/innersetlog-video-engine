@@ -1,7 +1,7 @@
 # Innersetlog Visual & Character Specifications
 
 ## 1. Character Core Geometry & Palette
-> **Superseded in detail by [`docs/CHARACTER_RIG.md`](docs/CHARACTER_RIG.md)**, the source of truth for character geometry, skeletal anchors, expressions and held props. Where the two differ, the rig spec wins.
+> **Art direction for Flow.** All character art is generated in Flow (see [`docs/ASSET_PIPELINE.md`](docs/ASSET_PIPELINE.md)); the engine never draws the character. These specs, detailed in [`docs/CHARACTER_RIG.md`](docs/CHARACTER_RIG.md), describe what the Flow assets must look like. Where the two differ, the rig spec wins.
 
 - **Head:** Oversized circle, fill `#F7EFE2` (Warm Off-White), stroke `#111111` (18px–22px weight).
 - **Cel Shading:** Crescent shadow on the back-right of the head (`#DFD6C5`) to give 3D depth without gradients.
@@ -12,9 +12,9 @@
 Per `docs/CHARACTER_RIG.md` §4, every scene composites in this strict order:
 1. **Background Plates:** Flow room background.
 2. **Midground Furniture:** Desks, chairs, and anything lying under the hands (e.g. a notebook on the desk).
-3. **Character Torso & Back Limbs:** `<Stickman part="back" />`.
-4. **Character Head:** `<Stickman part="head" />`.
-5. **Foreground Limbs & Hand Props:** `<Stickman part="front" />` (front arm/leg + held notebooks, pens, phones), followed by any scene `foreground` items that must sit in front of the character (desk edges, laptop lids).
+3. **Character Torso & Back Limbs:** Flow body sprite (`library/bodies/<pose>`).
+4. **Character Head:** Flow head sprite (`library/heads/<expression>`), attached at the body's neck anchor.
+5. **Foreground Limbs & Hand Props:** the body's optional `__front` overlay plus Flow item sprites (`library/items/`) pinned to the hand anchors, followed by any scene `foreground` items that must sit in front of the character (desk edges, laptop lids).
 6. **UI Overlays:** Thought bubbles, pop-up text, highlighters, research papers, checkmarks.
 
 ## 3. Studio Motion Rules
@@ -33,5 +33,5 @@ Implemented in `src/engine/` (`motion.js`, `audioSync.js`, `timeline.js`) and en
    - Sub-parts stagger internally: words (4f), bubble puffs (4f), paper lines (2f), label after zoom box (5f), tick after fill (3f).
 4. **Audio-Synced Triggers**
    - Any time field accepts a voiceover cue resolved from word timestamps: `'@habit'`, `'@habit#2'`, `'@habit:end'`, `'@"sixty six"'`, `'@habit+0.15'`, `'@habit-2f'`, `'@@12.8'` (absolute seconds).
-   - Checkmarks fill at `fillAt`, paper highlights sweep at `highlightAt`, `highlight` text bars cross each word as it is spoken, `syncWords` text pops each word on its spoken time, character `track` keys (head turns, expressions) spring at their cue, and `lipSync: true` drives the mouth from speech timing.
+   - Checkmarks fill at `fillAt`, paper highlights sweep at `highlightAt`, `highlight` text bars cross each word as it is spoken, `syncWords` text pops each word on its spoken time, character `track` keys (head turns, expressions) spring at their cue, and `lipSync: true` swaps in the head's `__talk` variant while words are spoken.
    - Transcript input: Whisper/WhisperX JSON with word timestamps (preferred), a flat `[{word,start,end}]` list, or SRT (segment-level, approximated).
