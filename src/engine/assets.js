@@ -39,6 +39,7 @@ export function normalizeManifest(m) {
   return {
     ...EMPTY_MANIFEST,
     ...src,
+    characters: { ...(src.characters || {}) },
     backgrounds: { ...(src.backgrounds || {}) },
     library: {
       bodies: { ...(src.library?.bodies || {}) },
@@ -58,6 +59,13 @@ const table = (manifest, category) => (category === 'backgrounds' ? manifest.bac
  */
 export function findAsset(manifest, id, category) {
   if (!id) return null;
+  // Cast assets: '<char_id>:<prop|pose|expr>', e.g. 'char_01_lead:prop_1'
+  if (id.includes(':')) {
+    const [c, key] = id.split(':');
+    const C = manifest.characters?.[c];
+    const entry = C?.props?.[key] || C?.poses?.[key] || C?.heads?.[key] || null;
+    return { category: 'props', id, entry };
+  }
   let cat = category;
   let key = id;
   if (id.includes('/')) {
@@ -93,7 +101,14 @@ export function auditTimeline(timeline, manifest) {
     for (const [i, it] of (s.midground || []).entries()) add(it.asset, 'props', `${s.id}.midground[${i}]`);
     for (const [i, it] of (s.foreground || []).entries()) add(it.asset, 'props', `${s.id}.foreground[${i}]`);
     const ch = s.character;
-    if (ch) {
+    if (ch?.cast) {
+      const C = manifest.characters?.[ch.cast];
+      for (const f of [ch, ...(ch.track || [])]) {
+        if (f.pose) refs.push({ id: `${ch.cast}:${f.pose}`, category: 'cast', where: `${s.id}.character.pose`, ok: !!C?.poses?.[f.pose] });
+        if (f.expression && f.expression !== 'native')
+          refs.push({ id: `${ch.cast}:${f.expression}`, category: 'cast', where: `${s.id}.character.expression`, ok: !!C?.heads?.[f.expression] });
+      }
+    } else if (ch) {
       const frames = [ch, ...(ch.track || [])];
       for (const f of frames) {
         add(f.body, 'bodies', `${s.id}.character.body`);
@@ -110,7 +125,7 @@ export function auditTimeline(timeline, manifest) {
     seen.add(k);
     return true;
   });
-  return { refs: unique, missing: unique.filter((r) => !findAsset(manifest, r.id, r.category)?.entry) };
+  return { refs: unique, missing: unique.filter((r) => (r.category === 'cast' ? !r.ok : !findAsset(manifest, r.id, r.category)?.entry)) };
 }
 
 /**
@@ -140,6 +155,12 @@ export function useAssetManifest(source) {
 /** Collect every src in the manifest (incl. variants / front overlays). */
 export function manifestSources(manifest) {
   const out = [];
+  for (const C of Object.values(manifest.characters || {}))
+    for (const group of [C.poses, C.heads, C.props])
+      for (const e of Object.values(group || {})) {
+        if (e.src) out.push(e.src);
+        for (const v of Object.values(e.variants || {})) out.push(v);
+      }
   for (const c of CATEGORIES) {
     for (const e of Object.values(table(manifest, c))) {
       if (e.src) out.push(e.src);

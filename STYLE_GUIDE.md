@@ -12,8 +12,8 @@
 Per `docs/CHARACTER_RIG.md` §4, every scene composites in this strict order:
 1. **Background Plates:** Flow room background.
 2. **Midground Furniture:** Desks, chairs, and anything lying under the hands (e.g. a notebook on the desk).
-3. **Character Torso & Back Limbs:** Flow body sprite (`library/bodies/<pose>`).
-4. **Character Head:** Flow head sprite (`library/heads/<expression>`), attached at the body's neck anchor.
+3. **Character Torso & Back Limbs:** the Flow pose sprite (`characters/<id>/poses/pose_N`, full body).
+4. **Character Head:** the Flow expression head (`characters/<id>/heads/expr_N`), composited over the pose's fitted head circle.
 5. **Foreground Limbs & Hand Props:** the body's optional `__front` overlay plus Flow item sprites (`library/items/`) pinned to the hand anchors, followed by any scene `foreground` items that must sit in front of the character (desk edges, laptop lids).
 6. **UI Overlays:** Thought bubbles, pop-up text, highlighters, research papers, checkmarks.
 

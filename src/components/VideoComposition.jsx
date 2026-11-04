@@ -12,9 +12,9 @@
  * STRICT Z-ORDER (docs/CHARACTER_RIG.md §4) — rendered bottom to top:
  *   1. Background   – assets/backgrounds/<id>
  *   2. Midground    – assets/library/props/<id> (desks, chairs, items under the hands)
- *   3. Character body sprite                  <CharacterAssembly part="back" />
- *   4. Character head sprite                  <CharacterAssembly part="head" />
- *   5. Body front overlay + held item sprites <CharacterAssembly part="front" />, then
+ *   3. Character pose / body sprite           <CastCharacter|CharacterAssembly part="back" />
+ *   4. Expression overlay / head sprite       <CastCharacter|CharacterAssembly part="head" />
+ *   5. Front overlay + held item sprites      <CharacterAssembly part="front" />, then
  *      scene `foreground` props that must sit in front (desk edges, laptop lids)
  *   6. UI / MoGraph – text, highlighter, zoom boxes, papers, checkmarks, bubbles, sprite pop-ups
  *
@@ -32,6 +32,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import CharacterAssembly from './CharacterAssembly.jsx';
+import CastCharacter from './CastCharacter.jsx';
 import { BackgroundSprite, Sprite } from './Sprite.jsx';
 import { useAssetManifest, auditTimeline } from '../engine/assets.js';
 import {
@@ -514,6 +515,7 @@ function Scene({ scene, t, sync, fps, manifest, base: assetBase }) {
     if (ls && sync.words.length) charState.mouthOpen = lipSync(sync, t);
     charState.swap = {
       body: swapInfo(base, track, 'body', local),
+      pose: swapInfo(base, track, 'pose', local),
       expression: swapInfo(base, track, 'expression', local),
     };
     charState.manifest = manifest;
@@ -524,6 +526,8 @@ function Scene({ scene, t, sync, fps, manifest, base: assetBase }) {
   );
 
   const charDepth = scene.character?.depth ?? P.character;
+  // Cast characters (full-body turnaround poses + in-place face masking) vs. body/head assembly
+  const Char = scene.character?.cast ? CastCharacter : CharacterAssembly;
 
   return (
     <>
@@ -551,13 +555,13 @@ function Scene({ scene, t, sync, fps, manifest, base: assetBase }) {
       </g>
       {/* global time keeps blinks/breath continuous across cuts */}
       <g data-layer="3-character-back" transform={layerT(charDepth)}>
-        {charState && <CharacterAssembly {...charState} part="back" time={t} />}
+        {charState && <Char {...charState} part="back" time={t} />}
       </g>
       <g data-layer="4-character-head" transform={layerT(charDepth)}>
-        {charState && <CharacterAssembly {...charState} part="head" time={t} />}
+        {charState && <Char {...charState} part="head" time={t} />}
       </g>
       <g data-layer="5-foreground">
-        <g transform={layerT(charDepth)}>{charState && <CharacterAssembly {...charState} part="front" time={t} />}</g>
+        <g transform={layerT(charDepth)}>{charState && <Char {...charState} part="front" time={t} />}</g>
         {(scene.foreground || []).map((it, i) => (
           <g key={i} transform={layerT(it.depth ?? P.foreground)}>
             {placeProp(it)}
@@ -608,9 +612,10 @@ const DEMO_VO =
  *     background: '<background id>',        // assets/backgrounds/<id>.png via manifest
  *     parallax:   { background, midground, character, foreground, ui },   // optional per-scene depths
  *     midground:  [{ asset: '<prop id>', x, y, scale?, rotate?, flipX?, anchor?, depth? }],  // (x,y) = prop anchor
- *     character:  { body: '<pose id>', expression: '<head id>', hold: { L?, R?: '<item id>' },
+ *     character:  { cast: 'char_01_lead', pose: 'pose_1', expression: 'expr_2' | 'native',   // cast mode
+ *                   — or — body: '<pose id>', expression: '<head id>', hold: { L?, R?: '<item id>' },  // assembly mode
  *                   x, y, scale, facing?, headTilt?, lipSync?, depth?,
- *                   track: [{ t, body?, expression?, hold?, x?, headTilt?, spring? }] },  // cue-triggered; swaps crossfade
+ *                   track: [{ t, pose?|body?, expression?, hold?, x?, headTilt?, spring? }] },  // cue-triggered; swaps crossfade
  *     foreground: [{ asset: '<prop id>', x, y, ... }],  // props in front of the character
  *     camera:     [{ t, zoom, x, y, ease? }] | 'static'  // arrival keys (cinematic bezier); `spring` for trigger keys;
  *                                             // omitted → slow cinematic push-in (MOTION_CONFIG.slowZoom)
@@ -629,7 +634,7 @@ export const DEMO_TIMELINE = {
       midground: [
         { asset: 'desk', x: 420, y: 1600, depth: 1.0 /* character touches it → same depth */ },
       ],
-      character: { body: 'body_sit_desk_upright', expression: 'head_focused_deep', x: 700, y: 1600, scale: 0.42 },
+      character: { cast: 'char_01_lead', pose: 'pose_4', expression: 'expr_6', x: 700, y: 1640, scale: 1.75 },
       camera: [
         { t: 0, zoom: 1.0, x: 540, y: 960 },
         { t: '@because', zoom: 1.14, x: 470, y: 1020 },
@@ -645,15 +650,16 @@ export const DEMO_TIMELINE = {
       start: '@because',
       background: 'study_night',
       character: {
-        body: 'body_stand_chin_think',
-        expression: 'head_focused_deep',
+        cast: 'char_01_lead',
+        pose: 'pose_1',
+        expression: 'expr_1',
         x: 540,
-        y: 1720,
-        scale: 0.5,
+        y: 1760,
+        scale: 1.9,
         track: [
           { t: 0, headTilt: 0 },
           { t: '@feelings', headTilt: 8 }, // head tilts toward the bubble as the word lands
-          { t: '@fade', expression: 'head_exhausted_2am', body: 'body_stand_slump_heavy', x: 420, headTilt: 0 }, // sprite swap + grounded settle
+          { t: '@fade', expression: 'expr_5', headTilt: 0 }, // expression crossfade on the spoken word
         ],
       },
       camera: [
@@ -670,21 +676,22 @@ export const DEMO_TIMELINE = {
       start: '@researchers',
       background: 'library_day',
       character: {
-        body: 'body_stand_explain_right',
-        expression: 'head_neutral_calm',
-        x: 820,
-        y: 1720,
-        scale: 0.42,
-        lipSync: true, // neutral head swaps talk_small / talk_wide per syllable; blinks every 3.5–4.5s
+        cast: 'char_03_psych',
+        pose: 'pose_2',
+        expression: 'expr_3', // neutral → generated blink / talk / talk_wide variants
+        x: 800,
+        y: 1760,
+        scale: 1.6,
+        lipSync: true, // talk / talk_wide per syllable; blinks every 3.5–4.5s
         track: [
           { t: 0, headTilt: 0 },
           { t: '@habits', headTilt: -6 },
-          { t: '@automatic', expression: 'head_relief_peace' },
+          { t: '@automatic', expression: 'expr_1' },
         ],
       },
       // no camera keys → default slow cinematic push-in; the paper card takes focus → plates blur (DOF)
       ui: [
-        { type: 'paper', start: '@researchers', x: 400, y: 700, w: 580, title: 'Habit formation in everyday life', source: 'Lally et al., 2010 · EJSP', highlightAt: '@"sixty six"' },
+        { type: 'paper', start: '@researchers', x: 360, y: 700, w: 520, title: 'Habit formation in everyday life', source: 'Lally et al., 2010 · EJSP', highlightAt: '@"sixty six"' },
         // starts with the paper → auto-staggered; fill keyed to the word "automatic"
         { type: 'check', start: '@researchers', fillAt: '@automatic', x: 140, y: 1500, r: 78, label: '66 days' },
       ],

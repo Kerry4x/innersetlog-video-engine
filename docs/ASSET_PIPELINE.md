@@ -3,7 +3,45 @@
 **Flow is the artist. The code is the assembler and director.**
 Every visual (background plates, room props, character body poses, head expressions, hand items) is generated in Flow and committed to `assets/`. The engine never draws characters, faces or scenery. It loads these files through `assets/manifest.json` and composites them with parallax, springs, staggers and audio-synced timing. The only vector graphics generated in code are the motion-graphics UI overlays (text plates, highlighter, thought bubbles, checkmarks, zoom boxes, the research-paper card).
 
-## 1. Folder layout & naming
+
+## 0. Cast characters from master turnaround sheets (current workflow)
+
+Each recurring character arrives as **one Flow turnaround sheet** in `assets/_flow_raw/<char_id>_sheet.(png|jpg)`:
+full-body poses on the left, the signature prop(s) top-right, and isolated expression heads bottom-right.
+
+```bash
+python3 scripts/process_flow_assets.py   # slices every *_sheet.* and writes manifest.characters
+node scripts/build-manifest.mjs          # (keeps the characters section; refreshes backgrounds/library)
+```
+
+Output in `assets/library/characters/<char_id>/`:
+
+| Folder | Files |
+| --- | --- |
+| `poses/` | `pose_N.png` (full body **with its native head**: proportions and stroke weight stay locked), `pose_N__masked.png` (same pose with the native head and its protrusions, like hair tufts and glasses arms, cleared; drawn under expression overlays) |
+| `heads/` | `expr_N.png` in reading order. The neutral one also gets generated `__blink`, `__talk` and `__talk_wide` variants |
+| `props/` | `prop_N.png`, left → right |
+
+**How it works**
+- **Background removal:** the `#111` outlines act as walls, and only white connected to the sheet edge is removed. Interior fills (`#F7EFE2` heads, the coat white, clipboard brown, notebook orange) survive, and soft ground shadows go with the background.
+- **Enclosed gaps:** background pockets (between legs, inside crossed arms) are cleared. On white-fill characters, coat white is told apart from sheet white by color: Flow's coat is a warm `~(248,249,243)`, the sheet is `~(255,255,255)`.
+- **Head circles:** fitted with RANSAC on the outline's outer edge, which is robust to hair, glasses arms and the neck. Each is stored as `head: {cx, cy, r}` (outer radius, px) for every pose and expression head.
+- **In-place face masking:** at render time, `CastCharacter` draws the (masked) pose, then scales the chosen expression head so its `r` matches the pose's `r` and centers it on `(cx, cy)`. There's no neck slicing.
+- **Views:** each pose is tagged `front | three_quarter | profile | back`, set per character in `CAST` at the top of the script. Overlays (and therefore blink and lip-sync) only apply to `front` and `three_quarter`. Profile and back poses keep their native face.
+
+Use in a timeline:
+
+```js
+character: { cast: 'char_03_psych', pose: 'pose_2', expression: 'expr_3', lipSync: true, x: 800, y: 1760, scale: 1.6,
+             track: [{ t: '@automatic', expression: 'expr_1' }] }
+ui: [{ type: 'sprite', asset: 'char_03_psych:prop_1', start: '@clipboard' }]   // cast props as pop-ups
+```
+
+**Sheet requirements for Flow:** keep the same layout, give every object clear white space around it (slicing relies on it), and keep the expression heads as complete circles. Higher resolution helps a lot: the current sheets are 1376×768, so a head is only about 72px in radius.
+
+---
+
+## 1. Folder layout & naming (body/head assembly mode)
 
 ```
 assets/
@@ -37,9 +75,9 @@ assets/
 
 Character art should follow `docs/CHARACTER_RIG.md` §1 and §3 (palette, stroke weights, cel-shade crescent, expression descriptions).
 
-## 2b. Cleaning raw exports (`scripts/process_flow_assets.py`)
+## 2b. (Legacy) cleaning separate body/head exports
 
-Flow currently exports opaque JPGs on white. Drop them in `assets/_flow_raw/{heads,bodies}/` and run:
+The earlier single-file body/head workflow (`CharacterAssembly`) is still supported by the engine, but `process_flow_assets.py` now handles turnaround sheets only (section 0). The notes below describe how those earlier assets were prepared:
 
 ```bash
 python3 scripts/process_flow_assets.py     # numpy + Pillow only

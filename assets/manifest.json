@@ -2,365 +2,545 @@
   "version": 1,
   "backgrounds": {},
   "library": {
-    "bodies": {
-      "body_sit_desk_slouched": {
-        "anchor": {
-          "x": 695,
-          "y": 1584
-        },
-        "neck": {
-          "x": 207,
-          "y": 45
-        },
-        "hands": {
-          "L": {
-            "x": 78,
-            "y": 941,
-            "angle": 95
-          },
-          "R": {
-            "x": 586,
-            "y": 817,
-            "angle": 50
-          }
-        },
-        "src": "assets/library/bodies/body_sit_desk_slouched.png",
-        "w": 959,
-        "h": 1609,
-        "neckAxis": -78.7,
-        "headTilt": 6.8,
-        "scale": 1
-      },
-      "body_sit_desk_upright": {
-        "anchor": {
-          "x": 407,
-          "y": 1256
-        },
-        "neck": {
-          "x": 123,
-          "y": 41
-        },
-        "hands": {
-          "L": {
-            "x": 611,
-            "y": 459,
-            "angle": -3
-          },
-          "R": {
-            "x": 553,
-            "y": 513,
-            "angle": 2
-          }
-        },
-        "src": "assets/library/bodies/body_sit_desk_upright.png",
-        "w": 650,
-        "h": 1275,
-        "neckAxis": -71.4,
-        "headTilt": 11.2,
-        "scale": 1
-      },
-      "body_stand_arms_crossed": {
-        "anchor": {
-          "x": 256,
-          "y": 1450
-        },
-        "neck": {
-          "x": 254,
-          "y": 38
-        },
-        "hands": {
-          "L": {
-            "x": 97,
-            "y": 331,
-            "angle": 180
-          },
-          "R": {
-            "x": 410,
-            "y": 330,
-            "angle": 0
-          }
-        },
-        "src": "assets/library/bodies/body_stand_arms_crossed.png",
-        "w": 514,
-        "h": 1472,
-        "neckAxis": -92.4,
-        "headTilt": -1.4,
-        "scale": 1
-      },
-      "body_stand_chin_think": {
-        "anchor": {
-          "x": 262,
-          "y": 1563
-        },
-        "neck": {
-          "x": 151,
-          "y": 94
-        },
-        "hands": {
-          "L": {
-            "x": 386,
-            "y": 473,
-            "angle": -15
-          },
-          "R": {
-            "x": 334,
-            "y": 95,
-            "angle": -98
-          }
-        },
-        "src": "assets/library/bodies/body_stand_chin_think.png",
-        "w": 475,
-        "h": 1584,
-        "neckAxis": -98,
-        "headTilt": -4.8,
-        "scale": 1
-      },
-      "body_stand_explain_right": {
-        "anchor": {
-          "x": 304,
-          "y": 1530
-        },
-        "neck": {
-          "x": 247,
-          "y": 40
-        },
-        "hands": {
-          "L": {
-            "x": 91,
-            "y": 781,
-            "angle": 95
-          },
-          "R": {
-            "x": 646,
-            "y": 330,
-            "angle": -33
-          }
-        },
-        "src": "assets/library/bodies/body_stand_explain_right.png",
-        "w": 767,
-        "h": 1552,
-        "neckAxis": -80.4,
-        "headTilt": 5.8,
-        "scale": 1
-      },
-      "body_stand_idle": {
-        "anchor": {
-          "x": 320,
-          "y": 1730
-        },
-        "neck": {
-          "x": 332,
-          "y": 41
-        },
-        "hands": {
-          "L": {
-            "x": 82,
-            "y": 903,
-            "angle": 92
-          },
-          "R": {
-            "x": 526,
-            "y": 889,
-            "angle": 70
-          }
-        },
-        "src": "assets/library/bodies/body_stand_idle.png",
-        "w": 611,
-        "h": 1755,
-        "neckAxis": -78.7,
-        "headTilt": 6.8,
-        "scale": 1
-      },
-      "body_stand_slump_heavy": {
-        "anchor": {
-          "x": 236,
-          "y": 1368
-        },
-        "neck": {
-          "x": 586,
-          "y": 45
-        },
-        "hands": {
-          "L": {
-            "x": 439,
-            "y": 796,
-            "angle": 95
-          },
-          "R": {
-            "x": 578,
-            "y": 779,
-            "angle": 90
-          }
-        },
-        "src": "assets/library/bodies/body_stand_slump_heavy.png",
-        "w": 656,
-        "h": 1388,
-        "neckAxis": -22.7,
-        "headTilt": 20,
-        "scale": 1
-      },
-      "body_walk_stride_right": {
-        "anchor": {
-          "x": 414,
-          "y": 1455
-        },
-        "neck": {
-          "x": 399,
-          "y": 39
-        },
-        "hands": {
-          "L": {
-            "x": 104,
-            "y": 715,
-            "angle": 100
-          },
-          "R": {
-            "x": 705,
-            "y": 643,
-            "angle": 45
-          }
-        },
-        "src": "assets/library/bodies/body_walk_stride_right.png",
-        "w": 826,
-        "h": 1474,
-        "neckAxis": -73.4,
-        "headTilt": 10.0,
-        "scale": 1
-      }
-    },
-    "heads": {
-      "head_anxious_overthinking": {
-        "neck": {
-          "x": 512,
-          "y": 960
-        },
-        "src": "assets/library/heads/head_anxious_overthinking.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_defeated_slump": {
-        "neck": {
-          "x": 512,
-          "y": 959
-        },
-        "src": "assets/library/heads/head_defeated_slump.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_dopamine_smug": {
-        "neck": {
-          "x": 512,
-          "y": 959
-        },
-        "src": "assets/library/heads/head_dopamine_smug.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_exhausted_2am": {
-        "neck": {
-          "x": 512,
-          "y": 959
-        },
-        "src": "assets/library/heads/head_exhausted_2am.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_focused_deep": {
-        "neck": {
-          "x": 512,
-          "y": 959
-        },
-        "src": "assets/library/heads/head_focused_deep.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_neutral_blink": {
-        "neck": {
-          "x": 512,
-          "y": 962
-        },
-        "src": "assets/library/heads/head_neutral_blink.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_neutral_calm": {
-        "neck": {
-          "x": 512,
-          "y": 956
-        },
-        "src": "assets/library/heads/head_neutral_calm.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920,
-        "variants": {
-          "blink": "assets/library/heads/head_neutral_blink.png",
-          "talk_small": "assets/library/heads/head_talk_small.png",
-          "talk_wide": "assets/library/heads/head_talk_wide.png"
-        }
-      },
-      "head_realization_shift": {
-        "neck": {
-          "x": 512,
-          "y": 960
-        },
-        "src": "assets/library/heads/head_realization_shift.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_relief_peace": {
-        "neck": {
-          "x": 512,
-          "y": 961
-        },
-        "src": "assets/library/heads/head_relief_peace.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_skeptical_doubt": {
-        "neck": {
-          "x": 512,
-          "y": 961
-        },
-        "src": "assets/library/heads/head_skeptical_doubt.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_talk_small": {
-        "neck": {
-          "x": 512,
-          "y": 959
-        },
-        "src": "assets/library/heads/head_talk_small.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      },
-      "head_talk_wide": {
-        "neck": {
-          "x": 512,
-          "y": 960
-        },
-        "src": "assets/library/heads/head_talk_wide.png",
-        "w": 1024,
-        "h": 1024,
-        "diameter": 920
-      }
-    },
+    "bodies": {},
+    "heads": {},
     "items": {},
     "props": {}
   },
-  "character": {
-    "headDiameter": 844,
-    "_note": "head = 1/3 of standing height (docs/CHARACTER_RIG.md \u00a71): diameter = (feet-to-neck of body_stand_idle) / 2, in normalized body px",
-    "strokePx": 46
+  "characters": {
+    "char_01_lead": {
+      "source": "assets/_flow_raw/char_01_lead_sheet.jpg",
+      "neutral": "expr_1",
+      "poses": {
+        "pose_1": {
+          "head": {
+            "cx": 78.5,
+            "cy": 80,
+            "r": 71.9,
+            "fit_inliers": 741
+          },
+          "view": "front",
+          "faceOverlay": true,
+          "src": "assets/library/characters/char_01_lead/poses/pose_1.png",
+          "w": 158,
+          "h": 528,
+          "anchor": {
+            "x": 78,
+            "y": 519
+          },
+          "masked": "assets/library/characters/char_01_lead/poses/pose_1__masked.png"
+        },
+        "pose_2": {
+          "head": {
+            "cx": 79.5,
+            "cy": 79.9,
+            "r": 71.8,
+            "fit_inliers": 752
+          },
+          "view": "three_quarter",
+          "faceOverlay": true,
+          "src": "assets/library/characters/char_01_lead/poses/pose_2.png",
+          "w": 200,
+          "h": 532,
+          "anchor": {
+            "x": 80,
+            "y": 524
+          },
+          "masked": "assets/library/characters/char_01_lead/poses/pose_2__masked.png"
+        },
+        "pose_3": {
+          "head": {
+            "cx": 79.4,
+            "cy": 79.9,
+            "r": 71.9,
+            "fit_inliers": 742
+          },
+          "view": "profile",
+          "faceOverlay": false,
+          "src": "assets/library/characters/char_01_lead/poses/pose_3.png",
+          "w": 170,
+          "h": 525,
+          "anchor": {
+            "x": 99,
+            "y": 517
+          }
+        },
+        "pose_4": {
+          "head": {
+            "cx": 78.8,
+            "cy": 80,
+            "r": 71.9,
+            "fit_inliers": 759
+          },
+          "view": "three_quarter",
+          "faceOverlay": true,
+          "src": "assets/library/characters/char_01_lead/poses/pose_4.png",
+          "w": 197,
+          "h": 528,
+          "anchor": {
+            "x": 119,
+            "y": 519
+          },
+          "masked": "assets/library/characters/char_01_lead/poses/pose_4__masked.png"
+        }
+      },
+      "heads": {
+        "expr_1": {
+          "src": "assets/library/characters/char_01_lead/heads/expr_1.png",
+          "w": 145,
+          "h": 147,
+          "head": {
+            "cx": 72.5,
+            "cy": 73,
+            "r": 64.8,
+            "fit_inliers": 693
+          },
+          "variants": {
+            "blink": "assets/library/characters/char_01_lead/heads/expr_1__blink.png",
+            "talk": "assets/library/characters/char_01_lead/heads/expr_1__talk.png",
+            "talk_wide": "assets/library/characters/char_01_lead/heads/expr_1__talk_wide.png"
+          },
+          "_variant_detection": {
+            "eyes": 2,
+            "mouth": true
+          }
+        },
+        "expr_2": {
+          "src": "assets/library/characters/char_01_lead/heads/expr_2.png",
+          "w": 145,
+          "h": 147,
+          "head": {
+            "cx": 72.1,
+            "cy": 73.2,
+            "r": 64.9,
+            "fit_inliers": 703
+          }
+        },
+        "expr_3": {
+          "src": "assets/library/characters/char_01_lead/heads/expr_3.png",
+          "w": 145,
+          "h": 147,
+          "head": {
+            "cx": 72,
+            "cy": 73.1,
+            "r": 64.8,
+            "fit_inliers": 697
+          }
+        },
+        "expr_4": {
+          "src": "assets/library/characters/char_01_lead/heads/expr_4.png",
+          "w": 146,
+          "h": 146,
+          "head": {
+            "cx": 72.4,
+            "cy": 72.6,
+            "r": 65,
+            "fit_inliers": 700
+          }
+        },
+        "expr_5": {
+          "src": "assets/library/characters/char_01_lead/heads/expr_5.png",
+          "w": 146,
+          "h": 146,
+          "head": {
+            "cx": 72.9,
+            "cy": 72.7,
+            "r": 65,
+            "fit_inliers": 702
+          }
+        },
+        "expr_6": {
+          "src": "assets/library/characters/char_01_lead/heads/expr_6.png",
+          "w": 146,
+          "h": 146,
+          "head": {
+            "cx": 72.9,
+            "cy": 72.6,
+            "r": 65,
+            "fit_inliers": 706
+          }
+        }
+      },
+      "props": {
+        "prop_1": {
+          "src": "assets/library/characters/char_01_lead/props/prop_1.png",
+          "w": 283,
+          "h": 195,
+          "anchor": {
+            "x": 141,
+            "y": 195
+          }
+        },
+        "prop_2": {
+          "src": "assets/library/characters/char_01_lead/props/prop_2.png",
+          "w": 47,
+          "h": 142,
+          "anchor": {
+            "x": 23,
+            "y": 142
+          }
+        }
+      }
+    },
+    "char_02_friend": {
+      "source": "assets/_flow_raw/char_02_friend_sheet.jpg",
+      "neutral": "expr_1",
+      "poses": {
+        "pose_1": {
+          "head": {
+            "cx": 78.6,
+            "cy": 80,
+            "r": 71.8,
+            "fit_inliers": 747
+          },
+          "view": "front",
+          "faceOverlay": true,
+          "src": "assets/library/characters/char_02_friend/poses/pose_1.png",
+          "w": 158,
+          "h": 528,
+          "anchor": {
+            "x": 78,
+            "y": 520
+          },
+          "masked": "assets/library/characters/char_02_friend/poses/pose_1__masked.png"
+        },
+        "pose_2": {
+          "head": {
+            "cx": 83.7,
+            "cy": 79.9,
+            "r": 72,
+            "fit_inliers": 692
+          },
+          "view": "front",
+          "faceOverlay": true,
+          "src": "assets/library/characters/char_02_friend/poses/pose_2.png",
+          "w": 169,
+          "h": 532,
+          "anchor": {
+            "x": 84,
+            "y": 524
+          },
+          "masked": "assets/library/characters/char_02_friend/poses/pose_2__masked.png"
+        },
+        "pose_3": {
+          "head": {
+            "cx": 79.3,
+            "cy": 79.9,
+            "r": 71.9,
+            "fit_inliers": 757
+          },
+          "view": "profile",
+          "faceOverlay": false,
+          "src": "assets/library/characters/char_02_friend/poses/pose_3.png",
+          "w": 198,
+          "h": 528,
+          "anchor": {
+            "x": 91,
+            "y": 520
+          }
+        },
+        "pose_4": {
+          "head": {
+            "cx": 81.7,
+            "cy": 79.7,
+            "r": 72,
+            "fit_inliers": 707
+          },
+          "view": "three_quarter",
+          "faceOverlay": true,
+          "src": "assets/library/characters/char_02_friend/poses/pose_4.png",
+          "w": 170,
+          "h": 533,
+          "anchor": {
+            "x": 115,
+            "y": 524
+          },
+          "masked": "assets/library/characters/char_02_friend/poses/pose_4__masked.png"
+        }
+      },
+      "heads": {
+        "expr_1": {
+          "src": "assets/library/characters/char_02_friend/heads/expr_1.png",
+          "w": 145,
+          "h": 146,
+          "head": {
+            "cx": 72.5,
+            "cy": 72.2,
+            "r": 64.8,
+            "fit_inliers": 697
+          },
+          "variants": {
+            "blink": "assets/library/characters/char_02_friend/heads/expr_1__blink.png",
+            "talk": "assets/library/characters/char_02_friend/heads/expr_1__talk.png",
+            "talk_wide": "assets/library/characters/char_02_friend/heads/expr_1__talk_wide.png"
+          },
+          "_variant_detection": {
+            "eyes": 2,
+            "mouth": true
+          }
+        },
+        "expr_2": {
+          "src": "assets/library/characters/char_02_friend/heads/expr_2.png",
+          "w": 145,
+          "h": 146,
+          "head": {
+            "cx": 72.1,
+            "cy": 72.2,
+            "r": 64.7,
+            "fit_inliers": 699
+          }
+        },
+        "expr_3": {
+          "src": "assets/library/characters/char_02_friend/heads/expr_3.png",
+          "w": 146,
+          "h": 146,
+          "head": {
+            "cx": 73,
+            "cy": 72.4,
+            "r": 64.9,
+            "fit_inliers": 714
+          }
+        },
+        "expr_4": {
+          "src": "assets/library/characters/char_02_friend/heads/expr_4.png",
+          "w": 146,
+          "h": 146,
+          "head": {
+            "cx": 72.4,
+            "cy": 72.6,
+            "r": 64.9,
+            "fit_inliers": 701
+          }
+        },
+        "expr_5": {
+          "src": "assets/library/characters/char_02_friend/heads/expr_5.png",
+          "w": 146,
+          "h": 146,
+          "head": {
+            "cx": 72.8,
+            "cy": 72.6,
+            "r": 65,
+            "fit_inliers": 706
+          }
+        },
+        "expr_6": {
+          "src": "assets/library/characters/char_02_friend/heads/expr_6.png",
+          "w": 146,
+          "h": 146,
+          "head": {
+            "cx": 72.8,
+            "cy": 72.7,
+            "r": 65,
+            "fit_inliers": 707
+          }
+        }
+      },
+      "props": {
+        "prop_1": {
+          "src": "assets/library/characters/char_02_friend/props/prop_1.png",
+          "w": 185,
+          "h": 245,
+          "anchor": {
+            "x": 92,
+            "y": 245
+          }
+        }
+      }
+    },
+    "char_03_psych": {
+      "source": "assets/_flow_raw/char_03_psych_sheet.jpg",
+      "neutral": "expr_3",
+      "poses": {
+        "pose_1": {
+          "head": {
+            "cx": 89.8,
+            "cy": 80.2,
+            "r": 72.4,
+            "fit_inliers": 605
+          },
+          "view": "front",
+          "faceOverlay": true,
+          "src": "assets/library/characters/char_03_psych/poses/pose_1.png",
+          "w": 181,
+          "h": 477,
+          "anchor": {
+            "x": 90,
+            "y": 469
+          },
+          "masked": "assets/library/characters/char_03_psych/poses/pose_1__masked.png"
+        },
+        "pose_2": {
+          "head": {
+            "cx": 93.7,
+            "cy": 80.2,
+            "r": 72.5,
+            "fit_inliers": 648
+          },
+          "view": "three_quarter",
+          "faceOverlay": true,
+          "src": "assets/library/characters/char_03_psych/poses/pose_2.png",
+          "w": 218,
+          "h": 481,
+          "anchor": {
+            "x": 108,
+            "y": 472
+          },
+          "masked": "assets/library/characters/char_03_psych/poses/pose_2__masked.png"
+        },
+        "pose_3": {
+          "head": {
+            "cx": 86.2,
+            "cy": 80.2,
+            "r": 72.5,
+            "fit_inliers": 652
+          },
+          "view": "profile",
+          "faceOverlay": false,
+          "src": "assets/library/characters/char_03_psych/poses/pose_3.png",
+          "w": 170,
+          "h": 479,
+          "anchor": {
+            "x": 101,
+            "y": 471
+          }
+        },
+        "pose_4": {
+          "head": {
+            "cx": 85,
+            "cy": 80.1,
+            "r": 72.4,
+            "fit_inliers": 601
+          },
+          "view": "back",
+          "faceOverlay": false,
+          "src": "assets/library/characters/char_03_psych/poses/pose_4.png",
+          "w": 176,
+          "h": 477,
+          "anchor": {
+            "x": 87,
+            "y": 469
+          }
+        }
+      },
+      "heads": {
+        "expr_1": {
+          "src": "assets/library/characters/char_03_psych/heads/expr_1.png",
+          "w": 190,
+          "h": 178,
+          "head": {
+            "cx": 94.2,
+            "cy": 88.2,
+            "r": 80.9,
+            "fit_inliers": 729
+          }
+        },
+        "expr_2": {
+          "src": "assets/library/characters/char_03_psych/heads/expr_2.png",
+          "w": 190,
+          "h": 178,
+          "head": {
+            "cx": 94.7,
+            "cy": 88.1,
+            "r": 81,
+            "fit_inliers": 715
+          }
+        },
+        "expr_3": {
+          "src": "assets/library/characters/char_03_psych/heads/expr_3.png",
+          "w": 190,
+          "h": 178,
+          "head": {
+            "cx": 94.7,
+            "cy": 88.7,
+            "r": 80.9,
+            "fit_inliers": 717
+          },
+          "variants": {
+            "blink": "assets/library/characters/char_03_psych/heads/expr_3__blink.png",
+            "talk": "assets/library/characters/char_03_psych/heads/expr_3__talk.png",
+            "talk_wide": "assets/library/characters/char_03_psych/heads/expr_3__talk_wide.png"
+          },
+          "_variant_detection": {
+            "eyes": 2,
+            "mouth": true
+          }
+        },
+        "expr_4": {
+          "src": "assets/library/characters/char_03_psych/heads/expr_4.png",
+          "w": 191,
+          "h": 178,
+          "head": {
+            "cx": 94.6,
+            "cy": 88.7,
+            "r": 81,
+            "fit_inliers": 721
+          }
+        },
+        "expr_5": {
+          "src": "assets/library/characters/char_03_psych/heads/expr_5.png",
+          "w": 190,
+          "h": 178,
+          "head": {
+            "cx": 94.2,
+            "cy": 88.9,
+            "r": 81,
+            "fit_inliers": 720
+          }
+        },
+        "expr_6": {
+          "src": "assets/library/characters/char_03_psych/heads/expr_6.png",
+          "w": 190,
+          "h": 178,
+          "head": {
+            "cx": 93.7,
+            "cy": 88.7,
+            "r": 81.1,
+            "fit_inliers": 730
+          }
+        },
+        "expr_7": {
+          "src": "assets/library/characters/char_03_psych/heads/expr_7.png",
+          "w": 179,
+          "h": 178,
+          "head": {
+            "cx": 88.9,
+            "cy": 88.7,
+            "r": 81,
+            "fit_inliers": 863
+          }
+        },
+        "expr_8": {
+          "src": "assets/library/characters/char_03_psych/heads/expr_8.png",
+          "w": 190,
+          "h": 178,
+          "head": {
+            "cx": 94.6,
+            "cy": 88.8,
+            "r": 81,
+            "fit_inliers": 716
+          }
+        }
+      },
+      "props": {
+        "prop_1": {
+          "src": "assets/library/characters/char_03_psych/props/prop_1.png",
+          "w": 155,
+          "h": 219,
+          "anchor": {
+            "x": 77,
+            "y": 219
+          }
+        },
+        "prop_2": {
+          "src": "assets/library/characters/char_03_psych/props/prop_2.png",
+          "w": 63,
+          "h": 176,
+          "anchor": {
+            "x": 31,
+            "y": 176
+          }
+        }
+      }
+    }
   }
 }
