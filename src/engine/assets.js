@@ -73,7 +73,7 @@ export function findAsset(manifest, id, category) {
 }
 
 /** Join a manifest src with the serving base (e.g. '' in dev, staticFile root in Remotion). */
-export const assetUrl = (src, base = '') => (!src ? null : /^(https?:|data:|\/)/.test(src) ? src : `${base}${src}`);
+export const assetUrl = (src, base = '') => (!src ? null : /^([a-z][a-z0-9+.-]*:|\/)/i.test(src) ? src : `${base}${src}`); // any URL scheme or root path = absolute
 
 /** Placeholder box sizes used until a Flow asset exists, so timelines stay previewable. */
 export const PLACEHOLDER_SIZE = {

@@ -78,7 +78,8 @@ const rel = (abs) => path.relative(ROOT, abs).split(path.sep).join('/');
 const old = fs.existsSync(MANIFEST) ? JSON.parse(fs.readFileSync(MANIFEST, 'utf8')) : {};
 const oldTable = (cat) => (cat === 'backgrounds' ? old.backgrounds : old.library?.[cat]) || {};
 
-const out = { version: 1, backgrounds: {}, library: { bodies: {}, heads: {}, items: {}, props: {} } };
+// Keep any extra top-level sections (e.g. `character`) that were tuned by hand.
+const out = { ...old, version: 1, backgrounds: {}, library: { bodies: {}, heads: {}, items: {}, props: {} } };
 const report = { added: [], updated: [], removed: [], unverified: [] };
 
 function scan(cat, dir) {
@@ -104,7 +105,11 @@ function scan(cat, dir) {
     } else if (before.w !== w || before.h !== h || before.src !== entry.src) {
       report.updated.push(`${cat}/${id}`);
     }
-    delete entry.variants;
+    // Hand-authored variants (pointing at other ids' files) are kept if their file still exists.
+    if (entry.variants) {
+      for (const [k, v] of Object.entries(entry.variants)) if (!fs.existsSync(path.join(ROOT, v.src || v))) delete entry.variants[k];
+      if (!Object.keys(entry.variants).length) delete entry.variants;
+    }
     table[id] = entry;
   }
   for (const { f, id, variant } of parsed.filter((p) => p.variant)) {

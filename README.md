@@ -8,7 +8,8 @@ Programmatic 9:16 animation engine for the **Innersetlog** YouTube channel (stic
 ## Docs
 - [`docs/ASSET_PIPELINE.md`](docs/ASSET_PIPELINE.md): **how to deliver Flow assets** (folders, naming, export rules, anchors).
 - [`docs/CHARACTER_RIG.md`](docs/CHARACTER_RIG.md): character art spec for Flow, plus the 6-layer z-order.
-- [`STYLE_GUIDE.md`](STYLE_GUIDE.md): palette summary, z-order, and the studio motion rules.
+- [`STYLE_GUIDE.md`](STYLE_GUIDE.md): palette summary, z-order, studio motion rules, editorial restraint.
+- [`docs/rig_verification.png`](docs/rig_verification.png): calibration sheet (8 bodies × heads).
 
 ## Layout
 | Path | Purpose |
@@ -16,6 +17,7 @@ Programmatic 9:16 animation engine for the **Innersetlog** YouTube channel (stic
 | `src/components/CharacterAssembly.jsx` | Assembles Flow body / head / item sprites at manifest anchors (breathing, head tilt, blink/talk variants, spring crossfades) |
 | `src/components/Sprite.jsx` | Sprite, background and placeholder primitives |
 | `src/engine/assets.js` | Manifest loading, asset lookup, timeline asset audit, preload |
+| `scripts/process_flow_assets.py` | Strips Flow's white backgrounds, normalizes head diameter and body stroke scale |
 | `scripts/build-manifest.mjs` | Regenerates `assets/manifest.json` from `assets/` (keeps hand-set anchors) |
 | `assets/backgrounds/`, `assets/library/{bodies,heads,items,props}/` | Flow assets |
 | `src/components/VideoComposition.jsx` | Master compositor: layers, parallax camera, UI overlays, preview clock |
@@ -35,5 +37,6 @@ Programmatic 9:16 animation engine for the **Innersetlog** YouTube channel (stic
 
 After dropping new Flow files into `assets/`:
 ```bash
+python3 scripts/process_flow_assets.py   # raw Flow JPGs in assets/_flow_raw → clean transparent PNGs
 node scripts/build-manifest.mjs
 ```

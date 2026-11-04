@@ -30,12 +30,18 @@ const hash01 = (n) => {
   return s - Math.floor(s);
 };
 
-/** Eye openness 1 → 0 → 1 on a natural deterministic schedule (every 2.8–5.0s, 0.16s long). */
+export const BLINK = { minGap: 3.5, maxGap: 4.5, duration: 0.15 };
+
+/**
+ * Eye openness 1 → 0 → 1 on a natural deterministic schedule: one blink every
+ * 3.5–4.5s (jittered per blink), 0.15s long. The blink sprite shows while
+ * openness < 0.75, i.e. ~3 frames at 30fps.
+ */
 export function blinkAmount(time, seed = 0) {
   let t = 0;
   for (let i = 0; i < 10000; i++) {
-    const start = t + 2.8 + hash01(i + seed * 97) * 2.2;
-    if (time >= start && time <= start + 0.16) return Math.abs(1 - 2 * ((time - start) / 0.16));
+    const start = t + BLINK.minGap + hash01(i + seed * 97) * (BLINK.maxGap - BLINK.minGap);
+    if (time >= start && time <= start + BLINK.duration) return Math.abs(1 - 2 * ((time - start) / BLINK.duration));
     if (start > time) break;
     t = start;
   }
@@ -60,7 +66,7 @@ const itemDefaults = (w, h) => ({ grip: { x: w / 2, y: h / 2 }, angle: 0 });
  *  body, expression     body pose id, head expression id
  *  hold                 { L?: itemId | { asset, rotate?, scale? }, R?: ... }
  *  headTilt             degrees (springable via track)
- *  mouthOpen            0..1 from audio lip-sync → uses head `talk` variant when > 0.35
+ *  mouthOpen            0..1 from audio lip-sync → head variants `talk_small` (> 0.2) / `talk_wide` (> 0.82)
  *  talk                 generic talk cycle when no audio
  *  breathe              default true
  *  blinkSeed            desync blinks between characters
@@ -87,17 +93,19 @@ export default function CharacterAssembly({
 }) {
   const f = facing < 0 ? -1 : 1;
   const breath = breathe ? Math.sin((time * Math.PI * 2) / 3.8) : 0;
-  const by = 1 + 0.006 * breath; // chest rise, anchored at the feet
+  // Pose change: grounded micro-settle, scaleY 0.98 → 1.0 about the feet (no overshoot).
+  const settle = swap.body && swap.body.since >= 0 ? 0.98 + 0.02 * clamp(spring(swap.body.since, 'gentle'), 0, 1) : 1;
+  const by = (1 + 0.006 * breath) * settle; // chest rise + settle, anchored at the feet
 
   const bodyLayer = (id) => {
     const s = resolveSprite(manifest, id, 'bodies', base);
     const e = { ...bodyDefaults(s.w, s.h), ...(s.entry || {}) };
-    return { ...s, e };
+    return { ...s, e, k: scale * (e.scale ?? 1) }; // k: per-pose normalization (manifest) × scene scale
   };
   const B = bodyLayer(body);
-  const toWorld = (p) => ({ x: x + (p.x - B.e.anchor.x) * scale * f, y: y + (p.y - B.e.anchor.y) * scale * by });
+  const toWorld = (p) => ({ x: x + (p.x - B.e.anchor.x) * B.k * f, y: y + (p.y - B.e.anchor.y) * B.k * by });
   const bodyTransform = (L) =>
-    `translate(${x} ${y}) scale(${scale * f} ${scale * by}) translate(${-L.e.anchor.x} ${-L.e.anchor.y})`;
+    `translate(${x} ${y}) scale(${L.k * f} ${L.k * by}) translate(${-L.e.anchor.x} ${-L.e.anchor.y})`;
 
   // Crossfade progress for a discrete swap (pose / expression change).
   const fade = (sw) => (sw && sw.prev && sw.since >= 0 ? clamp(spring(sw.since, 'snappy'), 0, 1) : 1);
@@ -133,28 +141,47 @@ export default function CharacterAssembly({
   };
   const renderHead = () => {
     const H = headLayer(expression);
-    const hs = scale * (H.e.scale ?? 1) * (B.e.headScale ?? 1);
-    const tilt = (headTilt + breath * 0.6) * f;
-    // Variant swaps (only if Flow supplied them)
+    // Every expression renders at one diameter: manifest.character.headDiameter (body px) / head art diameter.
+    const D = manifest?.character?.headDiameter;
+    const headNorm = D && H.e.diameter ? D / H.e.diameter : H.e.scale ?? 1;
+    const hs = B.k * headNorm * (B.e.headScale ?? 1);
+    // Head follows the pose's neck-stub direction (manifest headTilt) + animated tilt + breath.
+    const tilt = (headTilt + (B.e.headTilt ?? 0) + breath * 0.6) * f;
+    // Variant swaps (only if Flow supplied them for this expression)
     const v = H.e.variants || {};
     const talkOpen =
       typeof mouthOpen === 'number' ? mouthOpen : talk ? Math.max(0, Math.sin(time * 22)) * 0.6 + Math.max(0, Math.sin(time * 13.7)) * 0.4 : 0;
     let variant = null;
-    if (H.entry && v.talk && talkOpen > 0.35) variant = v.talk;
-    if (H.entry && v.blink && blinkAmount(time, blinkSeed) < 0.5) variant = v.blink; // blink wins
+    if (H.entry) {
+      // quiet editorial lip-sync: small mouth carries speech, wide only on syllable peaks
+      if (v.talk_wide && talkOpen > 0.82) variant = v.talk_wide;
+      else if (v.talk_small && talkOpen > 0.2) variant = v.talk_small;
+      else if (v.talk && talkOpen > 0.35) variant = v.talk;
+      if (v.blink && blinkAmount(time, blinkSeed) < 0.75) variant = v.blink; // blink wins
+    }
     const href = variant ? assetUrl(variant.src || variant, base) : H.href;
 
     const p = fade(swap.expression);
-    const pop = 1 + 0.035 * (1 - clamp(spring(swap.expression?.since ?? 9, 'pop'), 0, 2)); // subtle settle on change
-    const place = (L, inner, opacity, k) => (
-      <g
-        key={k}
-        opacity={opacity}
-        transform={`translate(${neckW.x} ${neckW.y}) rotate(${tilt}) scale(${hs * f * (k === 'cur' ? pop : 1)} ${hs * (k === 'cur' ? pop : 1)}) translate(${-L.e.neck.x} ${-L.e.neck.y})`}
-      >
-        {inner}
-      </g>
-    );
+    // quiet settle on expression change: 1.015 → 1.0, critically damped (no bounce)
+    const pop = 1 + 0.015 * (1 - clamp(spring(swap.expression?.since ?? 9, 'gentle'), 0, 1));
+    // Seat the head along the neck stub: its center sits one "neck radius" out from the
+    // stub tip in the stub's own direction (manifest neckAxis, default straight up), so
+    // forward-leaning or drooping necks carry the head with them. The face's rotation
+    // (tilt) is applied separately and stays capped for readability.
+    const axis = ((B.e.neckAxis ?? -90) * Math.PI) / 180;
+    const ax = { x: Math.cos(axis) * f, y: Math.sin(axis) };
+    const place = (L, inner, opacity, k) => {
+      const k2 = hs * (k === 'cur' ? pop : 1);
+      const cx = L.w / 2;
+      const cy = L.h / 2;
+      const reach = (L.e.neck.y - cy) * hs; // head center → neck point distance, in world px
+      const c = { x: neckW.x + ax.x * reach, y: neckW.y + ax.y * reach };
+      return (
+        <g key={k} opacity={opacity} transform={`translate(${c.x} ${c.y}) rotate(${tilt}) scale(${k2 * f} ${k2}) translate(${-cx} ${-cy})`}>
+          {inner}
+        </g>
+      );
+    };
     const layers = [];
     if (p < 1 && swap.expression.prev !== expression) {
       const P = headLayer(swap.expression.prev);
@@ -185,7 +212,7 @@ export default function CharacterAssembly({
       const W = toWorld(hand);
       // spec §4: anchored at the hand point, rotated with the wrist vector
       const rot = (hand.angle ?? 90) - (ie.angle ?? 0) + (hs.rotate ?? 0);
-      const is = scale * (ie.scale ?? 1) * (hs.scale ?? 1);
+      const is = B.k * (ie.scale ?? 1) * (hs.scale ?? 1);
       out.push(
         <g key={side} transform={`translate(${W.x} ${W.y}) scale(${f} 1) rotate(${rot}) scale(${is}) translate(${-ie.grip.x} ${-ie.grip.y})`}>
           <SpriteImage {...I} />

@@ -32,6 +32,10 @@ export const MOTION_CONFIG = {
   },
   // Background overscan so low-depth plates never expose edges while the camera pans.
   backgroundOverscan: 1.1,
+  // Default camera when a scene defines none: slow cinematic push-in.
+  slowZoom: { perSecond: 0.008, max: 0.06 },
+  // Depth of field: blur (px) applied while an editorial card / typography takes focus.
+  dof: { background: 5, midground: 2 },
   exitFrames: 9, // how long a UI element takes to leave
 };
 

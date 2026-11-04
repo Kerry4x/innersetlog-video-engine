@@ -478,7 +478,31 @@ function Scene({ scene, t, sync, fps, manifest, base: assetBase }) {
   const local = t - scene.start;
   const P = { ...MOTION_CONFIG.parallax, ...(scene.parallax || {}) };
 
-  const cam = { zoom: 1, x: CANVAS.width / 2, y: CANVAS.height / 2, ...sampleCamera(scene.camera, local) };
+  // Camera: authored keys, 'static', or (default) a slow cinematic push-in across the scene.
+  const sceneLen = scene.end - scene.start;
+  const camKeys =
+    scene.camera === 'static'
+      ? null
+      : Array.isArray(scene.camera)
+        ? scene.camera
+        : [
+            { t: 0, zoom: 1 },
+            { t: sceneLen, zoom: 1 + Math.min(MOTION_CONFIG.slowZoom.max, MOTION_CONFIG.slowZoom.perSecond * sceneLen), ease: 'cinematic' },
+          ];
+  const cam = { zoom: 1, x: CANVAS.width / 2, y: CANVAS.height / 2, ...sampleCamera(camKeys, local) };
+
+  // Depth of field: while an editorial card / typography holds focus, the plates soften.
+  // 'paper' cards take focus by default; any UI element can opt in/out with `focus`.
+  let focus = 0;
+  for (const o of scene.ui || []) {
+    const wants = o.focus ?? o.type === 'paper';
+    if (!wants || local < o.start || local > o.end) continue;
+    const env = envelope(local, o.start, o.end, { spring: 'gentle', fps });
+    focus = Math.max(focus, clamp(spring(local - o.start, 'gentle'), 0, 1) * clamp(env.outP, 0, 1));
+  }
+  const dof = MOTION_CONFIG.dof;
+  const blurBg = focus * (scene.dof?.background ?? dof.background);
+  const blurMid = focus * (scene.dof?.midground ?? dof.midground);
   // Subtle handheld drift keeps static plates alive (scaled per layer by depth).
   const drift = scene.drift === false ? { x: 0, y: 0 } : { x: Math.sin(local * 0.7) * 4, y: Math.cos(local * 0.5) * 3 };
   const layerT = (depth) => parallaxTransform(cam, depth, CANVAS, drift);
@@ -503,10 +527,22 @@ function Scene({ scene, t, sync, fps, manifest, base: assetBase }) {
 
   return (
     <>
-      <g data-layer="1-background" transform={layerT(P.background)}>
+      <defs>
+        {blurBg > 0.05 && (
+          <filter id="dof-bg" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation={blurBg} edgeMode="duplicate" />
+          </filter>
+        )}
+        {blurMid > 0.05 && (
+          <filter id="dof-mid" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation={blurMid} edgeMode="duplicate" />
+          </filter>
+        )}
+      </defs>
+      <g data-layer="1-background" transform={layerT(P.background)} filter={blurBg > 0.05 ? 'url(#dof-bg)' : undefined}>
         <BackgroundSprite manifest={manifest} base={assetBase} asset={scene.background} canvas={CANVAS} overscan={MOTION_CONFIG.backgroundOverscan} />
       </g>
-      <g data-layer="2-midground">
+      <g data-layer="2-midground" filter={blurMid > 0.05 ? 'url(#dof-mid)' : undefined}>
         {(scene.midground || []).map((it, i) => (
           <g key={i} transform={layerT(it.depth ?? P.midground)}>
             {placeProp(it)}
@@ -576,8 +612,10 @@ const DEMO_VO =
  *                   x, y, scale, facing?, headTilt?, lipSync?, depth?,
  *                   track: [{ t, body?, expression?, hold?, x?, headTilt?, spring? }] },  // cue-triggered; swaps crossfade
  *     foreground: [{ asset: '<prop id>', x, y, ... }],  // props in front of the character
- *     camera:     [{ t, zoom, x, y, ease? }]  // arrival keys (cinematic bezier); add `spring` for trigger keys
- *     ui: [{ type: 'text'|'highlight'|'thought'|'check'|'paper'|'zoombox'|'sprite', start, end?, stagger?, spring?, ... }],
+ *     camera:     [{ t, zoom, x, y, ease? }] | 'static'  // arrival keys (cinematic bezier); `spring` for trigger keys;
+ *                                             // omitted → slow cinematic push-in (MOTION_CONFIG.slowZoom)
+ *     dof:        { background?, midground? } // blur px while a focus card is up (defaults MOTION_CONFIG.dof)
+ *     ui: [{ type: 'text'|'highlight'|'thought'|'check'|'paper'|'zoombox'|'sprite', start, end?, stagger?, spring?, focus?, ... }],
  *   }]
  * }
  */
@@ -589,10 +627,9 @@ export const DEMO_TIMELINE = {
       start: 0,
       background: 'study_night',
       midground: [
-        { asset: 'desk', x: 400, y: 1560, depth: 1.0 /* character touches it → same depth */ },
-        { asset: 'notebook_open', x: 380, y: 1250, depth: 1.0 }, // lies on the desk, under the hands
+        { asset: 'desk', x: 420, y: 1600, depth: 1.0 /* character touches it → same depth */ },
       ],
-      character: { body: 'sit_writing', expression: 'focused', hold: { R: 'pen' }, x: 640, y: 1560, scale: 1.0 },
+      character: { body: 'body_sit_desk_upright', expression: 'head_focused_deep', x: 700, y: 1600, scale: 0.42 },
       camera: [
         { t: 0, zoom: 1.0, x: 540, y: 960 },
         { t: '@because', zoom: 1.14, x: 470, y: 1020 },
@@ -608,15 +645,15 @@ export const DEMO_TIMELINE = {
       start: '@because',
       background: 'study_night',
       character: {
-        body: 'stand_hand_on_chin',
-        expression: 'focused',
+        body: 'body_stand_chin_think',
+        expression: 'head_focused_deep',
         x: 540,
-        y: 1700,
-        scale: 1.25,
+        y: 1720,
+        scale: 0.5,
         track: [
           { t: 0, headTilt: 0 },
           { t: '@feelings', headTilt: 8 }, // head tilts toward the bubble as the word lands
-          { t: '@fade', expression: 'tired', body: 'stand_slumped' }, // sprite swap, spring crossfade
+          { t: '@fade', expression: 'head_exhausted_2am', body: 'body_stand_slump_heavy', x: 420, headTilt: 0 }, // sprite swap + grounded settle
         ],
       },
       camera: [
@@ -633,25 +670,21 @@ export const DEMO_TIMELINE = {
       start: '@researchers',
       background: 'library_day',
       character: {
-        body: 'stand_holding_phone',
-        expression: 'focused',
-        hold: { R: 'phone' },
-        x: 860,
-        y: 1700,
-        scale: 1.0,
-        lipSync: true, // swaps to the head's `talk` variant while words are spoken
+        body: 'body_stand_explain_right',
+        expression: 'head_neutral_calm',
+        x: 820,
+        y: 1720,
+        scale: 0.42,
+        lipSync: true, // neutral head swaps talk_small / talk_wide per syllable; blinks every 3.5–4.5s
         track: [
           { t: 0, headTilt: 0 },
           { t: '@habits', headTilt: -6 },
-          { t: '@automatic', expression: 'content' },
+          { t: '@automatic', expression: 'head_relief_peace' },
         ],
       },
-      camera: [
-        { t: 0, zoom: 1.0, x: 540, y: 960 },
-        { t: '@days:end', zoom: 1.06, x: 520, y: 900 },
-      ],
+      // no camera keys → default slow cinematic push-in; the paper card takes focus → plates blur (DOF)
       ui: [
-        { type: 'paper', start: '@researchers', x: 420, y: 760, w: 580, title: 'Habit formation in everyday life', source: 'Lally et al., 2010 · EJSP', highlightAt: '@"sixty six"' },
+        { type: 'paper', start: '@researchers', x: 400, y: 700, w: 580, title: 'Habit formation in everyday life', source: 'Lally et al., 2010 · EJSP', highlightAt: '@"sixty six"' },
         // starts with the paper → auto-staggered; fill keyed to the word "automatic"
         { type: 'check', start: '@researchers', fillAt: '@automatic', x: 140, y: 1500, r: 78, label: '66 days' },
       ],

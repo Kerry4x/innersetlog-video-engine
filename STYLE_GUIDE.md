@@ -35,3 +35,11 @@ Implemented in `src/engine/` (`motion.js`, `audioSync.js`, `timeline.js`) and en
    - Any time field accepts a voiceover cue resolved from word timestamps: `'@habit'`, `'@habit#2'`, `'@habit:end'`, `'@"sixty six"'`, `'@habit+0.15'`, `'@habit-2f'`, `'@@12.8'` (absolute seconds).
    - Checkmarks fill at `fillAt`, paper highlights sweep at `highlightAt`, `highlight` text bars cross each word as it is spoken, `syncWords` text pops each word on its spoken time, character `track` keys (head turns, expressions) spring at their cue, and `lipSync: true` swaps in the head's `__talk` variant while words are spoken.
    - Transcript input: Whisper/WhisperX JSON with word timestamps (preferred), a flat `[{word,start,end}]` list, or SRT (segment-level, approximated).
+
+## 4. Editorial Restraint
+The channel's look is clean, quiet and editorial.
+- **No cartoon FX:** no smear frames, impact lines, line-boil or wobble filters, and no squash-and-stretch beyond the grounded pose settle (`scaleY 0.98 → 1.0`, no overshoot).
+- **Character:** expression changes settle without bounce, the wide mouth is reserved for syllable peaks, and blinks are brief (3 frames every 3.5–4.5s).
+- **Camera:** scenes without camera keys get a slow cinematic push-in (≤ 6%, about 0.8% per second). Authored moves use the cinematic bezier or the heavy, bounce-free `camera` spring.
+- **Depth of field:** when an editorial card or typography takes focus (`paper` cards by default, any element with `focus: true`), the background plate softens to `blur(5px)` and the midground to 2px. It eases in and out with the card while the character and the card stay sharp.
+

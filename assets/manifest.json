@@ -2,9 +2,365 @@
   "version": 1,
   "backgrounds": {},
   "library": {
-    "bodies": {},
-    "heads": {},
+    "bodies": {
+      "body_sit_desk_slouched": {
+        "anchor": {
+          "x": 695,
+          "y": 1584
+        },
+        "neck": {
+          "x": 207,
+          "y": 45
+        },
+        "hands": {
+          "L": {
+            "x": 78,
+            "y": 941,
+            "angle": 95
+          },
+          "R": {
+            "x": 586,
+            "y": 817,
+            "angle": 50
+          }
+        },
+        "src": "assets/library/bodies/body_sit_desk_slouched.png",
+        "w": 959,
+        "h": 1609,
+        "neckAxis": -78.7,
+        "headTilt": 6.8,
+        "scale": 1
+      },
+      "body_sit_desk_upright": {
+        "anchor": {
+          "x": 407,
+          "y": 1256
+        },
+        "neck": {
+          "x": 123,
+          "y": 41
+        },
+        "hands": {
+          "L": {
+            "x": 611,
+            "y": 459,
+            "angle": -3
+          },
+          "R": {
+            "x": 553,
+            "y": 513,
+            "angle": 2
+          }
+        },
+        "src": "assets/library/bodies/body_sit_desk_upright.png",
+        "w": 650,
+        "h": 1275,
+        "neckAxis": -71.4,
+        "headTilt": 11.2,
+        "scale": 1
+      },
+      "body_stand_arms_crossed": {
+        "anchor": {
+          "x": 256,
+          "y": 1450
+        },
+        "neck": {
+          "x": 254,
+          "y": 38
+        },
+        "hands": {
+          "L": {
+            "x": 97,
+            "y": 331,
+            "angle": 180
+          },
+          "R": {
+            "x": 410,
+            "y": 330,
+            "angle": 0
+          }
+        },
+        "src": "assets/library/bodies/body_stand_arms_crossed.png",
+        "w": 514,
+        "h": 1472,
+        "neckAxis": -92.4,
+        "headTilt": -1.4,
+        "scale": 1
+      },
+      "body_stand_chin_think": {
+        "anchor": {
+          "x": 262,
+          "y": 1563
+        },
+        "neck": {
+          "x": 151,
+          "y": 94
+        },
+        "hands": {
+          "L": {
+            "x": 386,
+            "y": 473,
+            "angle": -15
+          },
+          "R": {
+            "x": 334,
+            "y": 95,
+            "angle": -98
+          }
+        },
+        "src": "assets/library/bodies/body_stand_chin_think.png",
+        "w": 475,
+        "h": 1584,
+        "neckAxis": -98,
+        "headTilt": -4.8,
+        "scale": 1
+      },
+      "body_stand_explain_right": {
+        "anchor": {
+          "x": 304,
+          "y": 1530
+        },
+        "neck": {
+          "x": 247,
+          "y": 40
+        },
+        "hands": {
+          "L": {
+            "x": 91,
+            "y": 781,
+            "angle": 95
+          },
+          "R": {
+            "x": 646,
+            "y": 330,
+            "angle": -33
+          }
+        },
+        "src": "assets/library/bodies/body_stand_explain_right.png",
+        "w": 767,
+        "h": 1552,
+        "neckAxis": -80.4,
+        "headTilt": 5.8,
+        "scale": 1
+      },
+      "body_stand_idle": {
+        "anchor": {
+          "x": 320,
+          "y": 1730
+        },
+        "neck": {
+          "x": 332,
+          "y": 41
+        },
+        "hands": {
+          "L": {
+            "x": 82,
+            "y": 903,
+            "angle": 92
+          },
+          "R": {
+            "x": 526,
+            "y": 889,
+            "angle": 70
+          }
+        },
+        "src": "assets/library/bodies/body_stand_idle.png",
+        "w": 611,
+        "h": 1755,
+        "neckAxis": -78.7,
+        "headTilt": 6.8,
+        "scale": 1
+      },
+      "body_stand_slump_heavy": {
+        "anchor": {
+          "x": 236,
+          "y": 1368
+        },
+        "neck": {
+          "x": 586,
+          "y": 45
+        },
+        "hands": {
+          "L": {
+            "x": 439,
+            "y": 796,
+            "angle": 95
+          },
+          "R": {
+            "x": 578,
+            "y": 779,
+            "angle": 90
+          }
+        },
+        "src": "assets/library/bodies/body_stand_slump_heavy.png",
+        "w": 656,
+        "h": 1388,
+        "neckAxis": -22.7,
+        "headTilt": 20,
+        "scale": 1
+      },
+      "body_walk_stride_right": {
+        "anchor": {
+          "x": 414,
+          "y": 1455
+        },
+        "neck": {
+          "x": 399,
+          "y": 39
+        },
+        "hands": {
+          "L": {
+            "x": 104,
+            "y": 715,
+            "angle": 100
+          },
+          "R": {
+            "x": 705,
+            "y": 643,
+            "angle": 45
+          }
+        },
+        "src": "assets/library/bodies/body_walk_stride_right.png",
+        "w": 826,
+        "h": 1474,
+        "neckAxis": -73.4,
+        "headTilt": 10.0,
+        "scale": 1
+      }
+    },
+    "heads": {
+      "head_anxious_overthinking": {
+        "neck": {
+          "x": 512,
+          "y": 960
+        },
+        "src": "assets/library/heads/head_anxious_overthinking.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_defeated_slump": {
+        "neck": {
+          "x": 512,
+          "y": 959
+        },
+        "src": "assets/library/heads/head_defeated_slump.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_dopamine_smug": {
+        "neck": {
+          "x": 512,
+          "y": 959
+        },
+        "src": "assets/library/heads/head_dopamine_smug.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_exhausted_2am": {
+        "neck": {
+          "x": 512,
+          "y": 959
+        },
+        "src": "assets/library/heads/head_exhausted_2am.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_focused_deep": {
+        "neck": {
+          "x": 512,
+          "y": 959
+        },
+        "src": "assets/library/heads/head_focused_deep.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_neutral_blink": {
+        "neck": {
+          "x": 512,
+          "y": 962
+        },
+        "src": "assets/library/heads/head_neutral_blink.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_neutral_calm": {
+        "neck": {
+          "x": 512,
+          "y": 956
+        },
+        "src": "assets/library/heads/head_neutral_calm.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920,
+        "variants": {
+          "blink": "assets/library/heads/head_neutral_blink.png",
+          "talk_small": "assets/library/heads/head_talk_small.png",
+          "talk_wide": "assets/library/heads/head_talk_wide.png"
+        }
+      },
+      "head_realization_shift": {
+        "neck": {
+          "x": 512,
+          "y": 960
+        },
+        "src": "assets/library/heads/head_realization_shift.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_relief_peace": {
+        "neck": {
+          "x": 512,
+          "y": 961
+        },
+        "src": "assets/library/heads/head_relief_peace.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_skeptical_doubt": {
+        "neck": {
+          "x": 512,
+          "y": 961
+        },
+        "src": "assets/library/heads/head_skeptical_doubt.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_talk_small": {
+        "neck": {
+          "x": 512,
+          "y": 959
+        },
+        "src": "assets/library/heads/head_talk_small.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      },
+      "head_talk_wide": {
+        "neck": {
+          "x": 512,
+          "y": 960
+        },
+        "src": "assets/library/heads/head_talk_wide.png",
+        "w": 1024,
+        "h": 1024,
+        "diameter": 920
+      }
+    },
     "items": {},
     "props": {}
+  },
+  "character": {
+    "headDiameter": 844,
+    "_note": "head = 1/3 of standing height (docs/CHARACTER_RIG.md \u00a71): diameter = (feet-to-neck of body_stand_idle) / 2, in normalized body px",
+    "strokePx": 46
   }
 }
