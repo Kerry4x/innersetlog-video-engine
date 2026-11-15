@@ -4,6 +4,8 @@ Every analyzed video has its own file: script breakdown (timestamped beats, shor
 
 **Start here:** [`COMPARISON.md`](COMPARISON.md): all styles side by side, shared rules, gaps, and candidate niches.
 
+**Niche data:** [`niche/NICHE_SCAN.md`](niche/NICHE_SCAN.md): free saturation scan of 12 topic pools (demand, breakouts, concentration). Rerun with `python3 library/_tools/niche_scan.py <pools.json> <out.json>`.
+
 ## Tutorials (workflow only, visual style not used)
 
 | ID | File | What it teaches |

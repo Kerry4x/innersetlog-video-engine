@@ -1,0 +1,1119 @@
+{
+  "Myths & legends (2nd person)": {
+    "queries": [
+      "greek mythology story animated",
+      "norse mythology story animated",
+      "what if you were in greek mythology"
+    ],
+    "n_results": 68,
+    "median_views": 1072328,
+    "p75_views": 3582443,
+    "distinct_channels": 38,
+    "top3_concentration": 0.38,
+    "animated_share": 0.19,
+    "breakouts": 7,
+    "breakout_examples": [
+      {
+        "title": "What If You Were the Only Man on an Island of 100 Amazons?",
+        "channel": "Hypo Room",
+        "views": 718770,
+        "subs": 17400
+      },
+      {
+        "title": "Every God in Greek Mythology Explained in 25 Minutes",
+        "channel": "Yorp",
+        "views": 709918,
+        "subs": 12200
+      },
+      {
+        "title": "VIKINGS: Norse Mythology - I: Creation of the Universe",
+        "channel": "Cans",
+        "views": 70356,
+        "subs": 4620
+      },
+      {
+        "title": "What If You Were the Only Man in Ancient Greece?",
+        "channel": "Elsewhen",
+        "views": 15918,
+        "subs": 198
+      },
+      {
+        "title": "What if you were the ONLY GUY in an island of Sirens?",
+        "channel": "The Clipping Files",
+        "views": 8668,
+        "subs": 640
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "How Thor got his hammer - Scott A. Mellor",
+        "channel": "TED-Ed",
+        "views": 14109125,
+        "subs": 23000000
+      },
+      {
+        "title": "The myth of Prometheus - Iseult Gillespie",
+        "channel": "TED-Ed",
+        "views": 9818558,
+        "subs": 23000000
+      },
+      {
+        "title": "The tragic myth of Orpheus and Eurydice - Brendan Pelsue",
+        "channel": "TED-Ed",
+        "views": 9531664,
+        "subs": 23000000
+      },
+      {
+        "title": "The myth of Arachne  - Iseult Gillespie",
+        "channel": "TED-Ed",
+        "views": 9440447,
+        "subs": 23000000
+      },
+      {
+        "title": "The myth of Pandora\u2019s box - Iseult Gillespie",
+        "channel": "TED-Ed",
+        "views": 9240413,
+        "subs": 23000000
+      },
+      {
+        "title": "Greek Mythology Explained (COMPILATION #1)",
+        "channel": "Jake Doubleyoo",
+        "views": 9189421,
+        "subs": 570000
+      },
+      {
+        "title": "The myth of Sisyphus - Alex Gendler",
+        "channel": "TED-Ed",
+        "views": 8941985,
+        "subs": 23000000
+      },
+      {
+        "title": "The myth of Thor's journey to the land of giants - Scott A. Mellor",
+        "channel": "TED-Ed",
+        "views": 8800157,
+        "subs": 23000000
+      }
+    ]
+  },
+  "Folk tales, fables & parables": {
+    "queries": [
+      "folktale animated story",
+      "parable story animated",
+      "zen story animated"
+    ],
+    "n_results": 75,
+    "median_views": 148322,
+    "p75_views": 568208,
+    "distinct_channels": 46,
+    "top3_concentration": 0.27,
+    "animated_share": 0.37,
+    "breakouts": 25,
+    "breakout_examples": [
+      {
+        "title": "How Tiger Got His Stripes (Animated Stories for Kids)",
+        "channel": "August House/Story Cove",
+        "views": 3586623,
+        "subs": 28600
+      },
+      {
+        "title": "SHE USED JUJU! | The War of the Slay Queens (African Folktale Comedy Movie 2026)",
+        "channel": "Kwesh Cinematic Tales",
+        "views": 685240,
+        "subs": 15500
+      },
+      {
+        "title": "She Brought Her Boyfriend Home To Mock Her Fat Friend But This Happened | African Folktales",
+        "channel": "Grace African Folktales ",
+        "views": 661566,
+        "subs": 22500
+      },
+      {
+        "title": "8 Skinwalker Stories Animated [Compilation]",
+        "channel": "Into The Dark Animations",
+        "views": 660498,
+        "subs": 13700
+      },
+      {
+        "title": "Parable of the Wise and Foolish Builders",
+        "channel": "RodTheNey",
+        "views": 644733,
+        "subs": 13100
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "The Gingerbread Man | Full Story | Animated Fairy Tales For Children | 4K UHD",
+        "channel": "Geethanjali Kids - Rhymes and Stories",
+        "views": 236230865,
+        "subs": 1640000
+      },
+      {
+        "title": "The tragic myth of Orpheus and Eurydice - Brendan Pelsue",
+        "channel": "TED-Ed",
+        "views": 9531664,
+        "subs": 23000000
+      },
+      {
+        "title": "The myth of Pandora\u2019s box - Iseult Gillespie",
+        "channel": "TED-Ed",
+        "views": 9240413,
+        "subs": 23000000
+      },
+      {
+        "title": "The Prodigal Son + More Parables of the Bible | Stories of the Bible",
+        "channel": "Saddleback Kids",
+        "views": 5112408,
+        "subs": 1000000
+      },
+      {
+        "title": "The Gruffalo - Animated Read Aloud Book",
+        "channel": "Reading is",
+        "views": 4895713,
+        "subs": 341000
+      },
+      {
+        "title": "The myth of Hades and Persephone - Iseult Gillespie",
+        "channel": "TED-Ed",
+        "views": 4257978,
+        "subs": 23000000
+      },
+      {
+        "title": "How Tiger Got His Stripes (Animated Stories for Kids)",
+        "channel": "August House/Story Cove",
+        "views": 3586623,
+        "subs": 28600
+      },
+      {
+        "title": "20 True Creepy Horror Stories Animated",
+        "channel": "MJV Animations",
+        "views": 3135820,
+        "subs": 606000
+      }
+    ]
+  },
+  "Dark original fairy tales": {
+    "queries": [
+      "original dark fairy tales animated",
+      "real story behind fairy tale animated"
+    ],
+    "n_results": 50,
+    "median_views": 111083,
+    "p75_views": 560802,
+    "distinct_channels": 42,
+    "top3_concentration": 0.16,
+    "animated_share": 0.42,
+    "breakouts": 19,
+    "breakout_examples": [
+      {
+        "title": "Truly Boring Fairy Tales | Casper Sleep Channel",
+        "channel": "Casper",
+        "views": 4627379,
+        "subs": 86800
+      },
+      {
+        "title": "Your Favorite Disney Movies\u2019 Dark Origins \u2014 Explained in 19 Minutes",
+        "channel": "Easily Explained",
+        "views": 2261231,
+        "subs": 86500
+      },
+      {
+        "title": "Princess Stories | Fairy Tales for Kids \ud83d\udc51\u2728",
+        "channel": "A.B.C. Animation",
+        "views": 271910,
+        "subs": 2290
+      },
+      {
+        "title": "7 Bald Princesses | Fairy Tales in Urdu | Hindi Story #fairytalesinurdu",
+        "channel": "FunToon's fairy tales",
+        "views": 217482,
+        "subs": 20500
+      },
+      {
+        "title": "SLEEPING BEAUTY: The Dark Fairy's Curse \ud83c\udf39 Full Fairy Tale Movie",
+        "channel": "Zubzoo Studios",
+        "views": 197309,
+        "subs": 4820
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "Fixed Fairy Tales Compilation | Three Little Pigs | Humpty Dumpty | and Lots More",
+        "channel": "HISHE Kids",
+        "views": 16514599,
+        "subs": 259000
+      },
+      {
+        "title": "Dad's Fairy Tale from the 80's | Bluey | CBeebies",
+        "channel": "CBeebies",
+        "views": 7116788,
+        "subs": 4020000
+      },
+      {
+        "title": "Zhiharka \u2b50 English Fairy Tale \u2b50 Cartoon for kids Kedoo Toons TV",
+        "channel": "Super Toons for Kids",
+        "views": 5965864,
+        "subs": 8640000
+      },
+      {
+        "title": "Top 10 Fairy Tale Dark Origins",
+        "channel": "Creeps Plays",
+        "views": 5598566,
+        "subs": 458000
+      },
+      {
+        "title": "Hansel and Gretel | Fairy Tales | Gigglebox",
+        "channel": "Gigglebox",
+        "views": 4738286,
+        "subs": 455000
+      },
+      {
+        "title": "Truly Boring Fairy Tales | Casper Sleep Channel",
+        "channel": "Casper",
+        "views": 4627379,
+        "subs": 86800
+      },
+      {
+        "title": "Rumpelstiltskin | Fairy Tales | Gigglebox",
+        "channel": "Gigglebox",
+        "views": 2991483,
+        "subs": 455000
+      },
+      {
+        "title": "Your Favorite Disney Movies\u2019 Dark Origins \u2014 Explained in 19 Minutes",
+        "channel": "Easily Explained",
+        "views": 2261231,
+        "subs": 86500
+      }
+    ]
+  },
+  "Life of a ___ (history)": {
+    "queries": [
+      "life of a medieval peasant animated",
+      "life of a roman soldier animated",
+      "worst jobs in history animated"
+    ],
+    "n_results": 75,
+    "median_views": 23,
+    "p75_views": 454,
+    "distinct_channels": 26,
+    "top3_concentration": 0.69,
+    "animated_share": 0.23,
+    "breakouts": 1,
+    "breakout_examples": [
+      {
+        "title": "Your Life as a Medieval Peasant",
+        "channel": "The Pov Dude ",
+        "views": 150,
+        "subs": 3
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "Life in a Medieval Village",
+        "channel": "Simple History",
+        "views": 2459389,
+        "subs": 5120000
+      },
+      {
+        "title": "What If You Were a Villager Peasant in Medieval Times? (Animation)",
+        "channel": "Fuzzy & Nutz",
+        "views": 823627,
+        "subs": 464000
+      },
+      {
+        "title": "Why It Sucks to Be Born as a Medieval Peasant",
+        "channel": "StickTory",
+        "views": 154428,
+        "subs": 147000
+      },
+      {
+        "title": "What Did Medieval People Do All Day?",
+        "channel": "Basically Primitive",
+        "views": 56762,
+        "subs": 47600
+      },
+      {
+        "title": "Life as a Medieval Peasant - TRAILER",
+        "channel": "Milmino",
+        "views": 1655,
+        "subs": 248
+      },
+      {
+        "title": "The Life of a Medieval Peasant",
+        "channel": "Pastimation",
+        "views": 483,
+        "subs": 712
+      },
+      {
+        "title": "Your Life as a Medieval Peasant",
+        "channel": "Movie Vault sos",
+        "views": 370,
+        "subs": 451
+      },
+      {
+        "title": "Your Life as a Medieval Peasant",
+        "channel": "Stick Ages",
+        "views": 341,
+        "subs": 308
+      }
+    ]
+  },
+  "Would you survive (history)": {
+    "queries": [
+      "would you survive history animated",
+      "what if you lived in ancient rome",
+      "could you survive the middle ages"
+    ],
+    "n_results": 72,
+    "median_views": 61068,
+    "p75_views": 734587,
+    "distinct_channels": 57,
+    "top3_concentration": 0.21,
+    "animated_share": 0.1,
+    "breakouts": 7,
+    "breakout_examples": [
+      {
+        "title": "You Wake Up in Ancient Rome. Can You Survive One Day?",
+        "channel": "History Respawn",
+        "views": 381,
+        "subs": 3
+      },
+      {
+        "title": "Why You Wouldn\u2019t Survive a Week in Medieval Europe",
+        "channel": "PastQuest",
+        "views": 165,
+        "subs": 2
+      },
+      {
+        "title": "What If You Woke Up in Ancient Rome?",
+        "channel": "Ancient Minds",
+        "views": 118,
+        "subs": 3
+      },
+      {
+        "title": "Would You Survive Ancient Rome? (Your Apartment Might Not)",
+        "channel": "Explainer Stunt",
+        "views": 94,
+        "subs": 4
+      },
+      {
+        "title": "Would You SURVIVE In The StoneAge?(Animated)\ud83d\udc18",
+        "channel": "Ember Explainer",
+        "views": 76,
+        "subs": 4
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "Advice for time traveling to medieval Europe",
+        "channel": "Premodernist",
+        "views": 6900495,
+        "subs": 423000
+      },
+      {
+        "title": "Boring History For Sleep | Why You Wouldn't Last a Day in Medieval Times and more",
+        "channel": "Sleepless Historian",
+        "views": 4348842,
+        "subs": 718000
+      },
+      {
+        "title": "What It Was Like To Live In Ancient Rome During Its Golden Age",
+        "channel": "Weird History",
+        "views": 4201875,
+        "subs": 4740000
+      },
+      {
+        "title": "Why You Wouldn't Survive in Ancient Egypt",
+        "channel": "Chat History",
+        "views": 3921951,
+        "subs": 1140000
+      },
+      {
+        "title": "Why You Wouldn't Last 24 Hours in The Dark Ages....",
+        "channel": "MedievalMadness",
+        "views": 3782968,
+        "subs": 507000
+      },
+      {
+        "title": "Why You Wouldn't Last 24 Hours in Medieval Times",
+        "channel": "Medieval Times Discovered",
+        "views": 2962606,
+        "subs": 148000
+      },
+      {
+        "title": "What If You Lived During the Middle Ages?",
+        "channel": "What If",
+        "views": 2962383,
+        "subs": 8990000
+      },
+      {
+        "title": "Why You Wouldn't Survive The Roman Empire",
+        "channel": "Chat History",
+        "views": 2383846,
+        "subs": 1140000
+      }
+    ]
+  },
+  "True survival stories": {
+    "queries": [
+      "true survival story animated",
+      "lost at sea survival story animated",
+      "survived alone story animated"
+    ],
+    "n_results": 69,
+    "median_views": 37300,
+    "p75_views": 932612,
+    "distinct_channels": 63,
+    "top3_concentration": 0.12,
+    "animated_share": 0.23,
+    "breakouts": 20,
+    "breakout_examples": [
+      {
+        "title": "Resilience | Animated Short | CalArts Film 2023",
+        "channel": "Yunie Choi",
+        "views": 10972793,
+        "subs": 77400
+      },
+      {
+        "title": "Surviving in a Glass House During a Zombie Apocalypse\ud83c\udf0a\ud83e\udddf| Ghibli Style Survival",
+        "channel": "Ghibli Arni",
+        "views": 7735589,
+        "subs": 27400
+      },
+      {
+        "title": "Zombie Outbreak: 30 Days Locked Inside a Supermarket",
+        "channel": "Nobody Gets In",
+        "views": 4166127,
+        "subs": 69000
+      },
+      {
+        "title": "They Were Left On An Island For 15 Years: True Survival Story",
+        "channel": "Atlas One",
+        "views": 3115501,
+        "subs": 9150
+      },
+      {
+        "title": "Trapped In Walmart After Closing 1 Year (Full Story)",
+        "channel": "One Year Inside",
+        "views": 3064366,
+        "subs": 33200
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "Timber | Short Film about Solidarity by Nils Hedinger",
+        "channel": "Kurzfilm Agentur Hamburg",
+        "views": 80405241,
+        "subs": 375000
+      },
+      {
+        "title": "I Trained Hard To Fight My BF\u2019s Sister",
+        "channel": "MSA",
+        "views": 13997475,
+        "subs": 27800000
+      },
+      {
+        "title": "I Spent 2 Hours In A Haunted Mansion, It Went Wrong",
+        "channel": "MSA",
+        "views": 12729961,
+        "subs": 27800000
+      },
+      {
+        "title": "Resilience | Animated Short | CalArts Film 2023",
+        "channel": "Yunie Choi",
+        "views": 10972793,
+        "subs": 77400
+      },
+      {
+        "title": "Incredible Sea Survival Stories",
+        "channel": "Doctor Mike",
+        "views": 10254432,
+        "subs": 15100000
+      },
+      {
+        "title": "Left Home Alone In A Tornado",
+        "channel": "storybooth",
+        "views": 8452749,
+        "subs": 4560000
+      },
+      {
+        "title": "Surviving in a Glass House During a Zombie Apocalypse\ud83c\udf0a\ud83e\udddf| Ghibli Style Survival",
+        "channel": "Ghibli Arni",
+        "views": 7735589,
+        "subs": 27400
+      },
+      {
+        "title": "Zombie Outbreak: 30 Days Locked Inside a Supermarket",
+        "channel": "Nobody Gets In",
+        "views": 4166127,
+        "subs": 69000
+      }
+    ]
+  },
+  "What would it feel like": {
+    "queries": [
+      "what would it actually feel like",
+      "what if you had superpowers realistic animated",
+      "what it feels like to animated"
+    ],
+    "n_results": 75,
+    "median_views": 78215,
+    "p75_views": 488806,
+    "distinct_channels": 68,
+    "top3_concentration": 0.08,
+    "animated_share": 0.35,
+    "breakouts": 13,
+    "breakout_examples": [
+      {
+        "title": "Why SUPERPOWERS Would SUCK in Real Life",
+        "channel": "Whatever Really",
+        "views": 2216028,
+        "subs": 27600
+      },
+      {
+        "title": "why is indie animation dialogue *like that*? (but like, ACTUALLY)",
+        "channel": "Crowlee",
+        "views": 1322026,
+        "subs": 7220
+      },
+      {
+        "title": "What Does Dying From Heroin Overdoes Actually Feel Like?",
+        "channel": "SKELETON GUY",
+        "views": 526254,
+        "subs": 32500
+      },
+      {
+        "title": "Y'all cannot be serious\u2026",
+        "channel": "Jaxks",
+        "views": 391211,
+        "subs": 38900
+      },
+      {
+        "title": "what 5 years of animation progress looks like",
+        "channel": "ruthie",
+        "views": 304849,
+        "subs": 13800
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "\"What It Sounds Like \" | Official Song Clip | KPop Demon Hunters | Sony Animation",
+        "channel": "Sony Pictures Animation",
+        "views": 224043698,
+        "subs": 7660000
+      },
+      {
+        "title": "A short animation about what love is [ Love is in small things: Collection ]",
+        "channel": "Puuung \ud37c\uc5c9",
+        "views": 22508367,
+        "subs": 1810000
+      },
+      {
+        "title": "super powers",
+        "channel": "Ice Cream Sandwich",
+        "views": 10589525,
+        "subs": 3840000
+      },
+      {
+        "title": "The sculpture that looks like a real-life cartoon",
+        "channel": "Tom Scott",
+        "views": 10065740,
+        "subs": 6750000
+      },
+      {
+        "title": "are super powers with side effects still worth it?",
+        "channel": "Ice Cream Sandwich",
+        "views": 7645747,
+        "subs": 3840000
+      },
+      {
+        "title": "Extreme Environments That Give You Superpowers",
+        "channel": "Dumb Doggo",
+        "views": 6816278,
+        "subs": 854000
+      },
+      {
+        "title": "What If Minecraft Looked Like A Cartoon?",
+        "channel": "Skip the Tutorial",
+        "views": 5753919,
+        "subs": 10700000
+      },
+      {
+        "title": "If superpowers were real: Immortality - Joy Lin",
+        "channel": "TED-Ed",
+        "views": 5341251,
+        "subs": 23000000
+      }
+    ]
+  },
+  "Never want to meet (creatures)": {
+    "queries": [
+      "why you'd never want to meet animal",
+      "deadliest animal explained animated",
+      "deep sea creature animated"
+    ],
+    "n_results": 75,
+    "median_views": 583846,
+    "p75_views": 3937136,
+    "distinct_channels": 61,
+    "top3_concentration": 0.13,
+    "animated_share": 0.23,
+    "breakouts": 16,
+    "breakout_examples": [
+      {
+        "title": "Why You'd Never Want To Meet A Sperm Whale",
+        "channel": "Depth Theory",
+        "views": 8479130,
+        "subs": 28200
+      },
+      {
+        "title": "Deep sea animals | What kind of fish lives under the deep sea? | Kids Draw",
+        "channel": "Kids Draw ",
+        "views": 2773225,
+        "subs": 41100
+      },
+      {
+        "title": "Biggest Sea Monster & Underwater Dinosaur | Dinosaur Song for Kids | Nursery Rhymes | Little Artie",
+        "channel": "Little Artie - Kids Songs",
+        "views": 1361650,
+        "subs": 2320
+      },
+      {
+        "title": "The Deadliest Animal in Every Country",
+        "channel": "Milex",
+        "views": 1102639,
+        "subs": 13800
+      },
+      {
+        "title": "Every Continent's Deadliest Animal Explained",
+        "channel": "The Animal Dude",
+        "views": 694085,
+        "subs": 26100
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "Oliver Tree & Robin Schulz - Miss You [Official Music Video]",
+        "channel": "Oliver Tree",
+        "views": 546296469,
+        "subs": 11900000
+      },
+      {
+        "title": "This Incredible Animation Shows How Deep The Ocean Really Is",
+        "channel": "Insider Tech",
+        "views": 83711832,
+        "subs": 4220000
+      },
+      {
+        "title": "What\u2019s Hiding at the Most Solitary Place on Earth? The Deep Sea",
+        "channel": "Kurzgesagt \u2013 In a Nutshell",
+        "views": 25817442,
+        "subs": 25800000
+      },
+      {
+        "title": "360\u00b0 VR - TERRIFYING Sea Creatures | Deep Ocean Horror",
+        "channel": "MVR",
+        "views": 17123630,
+        "subs": 1050000
+      },
+      {
+        "title": "sea life",
+        "channel": "cyriak",
+        "views": 12551398,
+        "subs": 3150000
+      },
+      {
+        "title": "What It's Like To Fight The Deadliest Beetles",
+        "channel": "Dumb Doggo",
+        "views": 10592089,
+        "subs": 854000
+      },
+      {
+        "title": "Fish eat Fish | Comparison | 3D animation",
+        "channel": "Zoom Life",
+        "views": 8873206,
+        "subs": 168000
+      },
+      {
+        "title": "Why You'd Never Want To Meet A Sperm Whale",
+        "channel": "Depth Theory",
+        "views": 8479130,
+        "subs": 28200
+      }
+    ]
+  },
+  "Bizarre history events": {
+    "queries": [
+      "strangest events in history animated",
+      "weird history explained animated"
+    ],
+    "n_results": 48,
+    "median_views": 4257978,
+    "p75_views": 11201133,
+    "distinct_channels": 12,
+    "top3_concentration": 0.77,
+    "animated_share": 0.27,
+    "breakouts": 1,
+    "breakout_examples": [
+      {
+        "title": "The Weird History of Cartoon Network",
+        "channel": "whoisblase",
+        "views": 1933,
+        "subs": 163
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "The American Civil War - OverSimplified (Part 1)",
+        "channel": "OverSimplified",
+        "views": 72857692,
+        "subs": 9690000
+      },
+      {
+        "title": "The First Punic War - OverSimplified (Part 1)",
+        "channel": "OverSimplified",
+        "views": 37625717,
+        "subs": 9690000
+      },
+      {
+        "title": "What Happened Before History? Human Origins",
+        "channel": "Kurzgesagt \u2013 In a Nutshell",
+        "views": 24382466,
+        "subs": 25800000
+      },
+      {
+        "title": "A brie(f) history of cheese - Paul Kindstedt",
+        "channel": "TED-Ed",
+        "views": 21953731,
+        "subs": 23000000
+      },
+      {
+        "title": "A brief history of chess - Alex Gendler",
+        "channel": "TED-Ed",
+        "views": 13230780,
+        "subs": 23000000
+      },
+      {
+        "title": "The history of chocolate - Deanna Pucciarelli",
+        "channel": "TED-Ed",
+        "views": 11201133,
+        "subs": 23000000
+      },
+      {
+        "title": "The history of the world according to cats - Eva-Maria Geigl",
+        "channel": "TED-Ed",
+        "views": 10537064,
+        "subs": 23000000
+      },
+      {
+        "title": "The rise and fall of the Berlin Wall - Konrad H. Jarausch",
+        "channel": "TED-Ed",
+        "views": 10095774,
+        "subs": 23000000
+      }
+    ]
+  },
+  "Unsolved mysteries": {
+    "queries": [
+      "unsolved mystery animated",
+      "mysterious disappearance animated story"
+    ],
+    "n_results": 48,
+    "median_views": 438374,
+    "p75_views": 1686627,
+    "distinct_channels": 38,
+    "top3_concentration": 0.19,
+    "animated_share": 0.35,
+    "breakouts": 7,
+    "breakout_examples": [
+      {
+        "title": "An Empty Cage At Wimbledon Stadium | Mystery Lane (S01E03) \ud83d\udc39 Cartoon for Kids",
+        "channel": "Mystery Lane - Official Channel",
+        "views": 639898,
+        "subs": 26200
+      },
+      {
+        "title": "Creepy Unsolved Mysteries in the Philippines 2",
+        "channel": "Pinoy Paint Explainer",
+        "views": 483247,
+        "subs": 6570
+      },
+      {
+        "title": "Creepy Unsolved Mysteries in the Philippines 1",
+        "channel": "Pinoy Paint Explainer",
+        "views": 241213,
+        "subs": 6570
+      },
+      {
+        "title": "BuzzFeed Unsolved ANIMATED: The Goatman's Bridge",
+        "channel": "Claymation",
+        "views": 233825,
+        "subs": 3070
+      },
+      {
+        "title": "Ethan\u2019s Backpack DISAPPEARED at School! Kids Mystery Story | New Kid at School | English Listening",
+        "channel": "Story Kingdom",
+        "views": 29186,
+        "subs": 1280
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "The Vanishing of Flight 370",
+        "channel": "LEMMiNO",
+        "views": 30223020,
+        "subs": 5930000
+      },
+      {
+        "title": "6 Disturbing Unsolved Cases With Video Footage",
+        "channel": "SIRIUS",
+        "views": 8581428,
+        "subs": 303000
+      },
+      {
+        "title": "Searching for The Five",
+        "channel": "Nexpo",
+        "views": 8227736,
+        "subs": 4000000
+      },
+      {
+        "title": "Creepiest Internet Mysteries That Were Finally Solved",
+        "channel": "The Paint Explainer",
+        "views": 6380438,
+        "subs": 2020000
+      },
+      {
+        "title": "Japan's Strangest Unsolved Mystery",
+        "channel": "Nexpo",
+        "views": 4978148,
+        "subs": 4000000
+      },
+      {
+        "title": "Terrifying Unsolved Mysteries FINALLY Answered And Other Insane Mysteries (Compilation)",
+        "channel": "The Infographics Show",
+        "views": 4928079,
+        "subs": 15500000
+      },
+      {
+        "title": "The Strange Unsolved Disappearances that Still Haunt Me",
+        "channel": "Wendigoon",
+        "views": 3946850,
+        "subs": 4750000
+      },
+      {
+        "title": "How Did A Whole Village Disappear? (The Lost Colony of Roanoke Mystery)",
+        "channel": "The Infographics Show",
+        "views": 2431170,
+        "subs": 15500000
+      }
+    ]
+  },
+  "Thought experiments & paradoxes": {
+    "queries": [
+      "philosophy thought experiment animated",
+      "paradox explained animated"
+    ],
+    "n_results": 50,
+    "median_views": 412654,
+    "p75_views": 6241748,
+    "distinct_channels": 20,
+    "top3_concentration": 0.66,
+    "animated_share": 0.3,
+    "breakouts": 4,
+    "breakout_examples": [
+      {
+        "title": "Every Time Travel Paradox Explained in 8 Minutes",
+        "channel": "Explained-4-You",
+        "views": 390036,
+        "subs": 5950
+      },
+      {
+        "title": "Animation of the strangest paradox in math - the Banach-Tarski Paradox",
+        "channel": "Kung, David T",
+        "views": 95779,
+        "subs": 125
+      },
+      {
+        "title": "The Craziest Paradox You Never Heard Of - Andromeda Paradox",
+        "channel": "wut",
+        "views": 36107,
+        "subs": 2160
+      },
+      {
+        "title": "Every MIND BLOWING Space Paradox Explained",
+        "channel": "RedHead Explainer",
+        "views": 9567,
+        "subs": 573
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "The Banach\u2013Tarski Paradox",
+        "channel": "Vsauce",
+        "views": 49168725,
+        "subs": 25400000
+      },
+      {
+        "title": "The Fermi Paradox \u2014 Where Are All The Aliens? (1/2)",
+        "channel": "Kurzgesagt \u2013 In a Nutshell",
+        "views": 35527663,
+        "subs": 25800000
+      },
+      {
+        "title": "The Infinite Hotel Paradox - Jeff Dekofsky",
+        "channel": "TED-Ed",
+        "views": 25439627,
+        "subs": 23000000
+      },
+      {
+        "title": "Did The Future Already Happen? - The Paradox of Time",
+        "channel": "Kurzgesagt \u2013 In a Nutshell",
+        "views": 15260903,
+        "subs": 25800000
+      },
+      {
+        "title": "The Paradox of an Infinite Universe",
+        "channel": "Kurzgesagt \u2013 In a Nutshell",
+        "views": 12717636,
+        "subs": 25800000
+      },
+      {
+        "title": "Every Paradox Explained in a Simple Way",
+        "channel": "The Paint Explainer",
+        "views": 6567715,
+        "subs": 2020000
+      },
+      {
+        "title": "Einstein's twin paradox explained - Amber Stuver",
+        "channel": "TED-Ed",
+        "views": 5915782,
+        "subs": 23000000
+      },
+      {
+        "title": "What is Zeno's Dichotomy Paradox? - Colm Kelleher",
+        "channel": "TED-Ed",
+        "views": 3857780,
+        "subs": 23000000
+      }
+    ]
+  },
+  "Ancient tech & lost knowledge": {
+    "queries": [
+      "ancient technology animated explained",
+      "lost ancient inventions animated"
+    ],
+    "n_results": 46,
+    "median_views": 67,
+    "p75_views": 2438,
+    "distinct_channels": 44,
+    "top3_concentration": 0.11,
+    "animated_share": 0.28,
+    "breakouts": 7,
+    "breakout_examples": [
+      {
+        "title": "Past and Present | Technology Then and Now",
+        "channel": "Astrolabe",
+        "views": 1679391,
+        "subs": 10100
+      },
+      {
+        "title": "How Water Wheels Changed the World  Ancient Inventions Explained",
+        "channel": "Discovery sketch",
+        "views": 11593,
+        "subs": 224
+      },
+      {
+        "title": "7 Ancient Technologies We Still Can't Explain",
+        "channel": "Beyond Reality | Explainer",
+        "views": 110,
+        "subs": 8
+      },
+      {
+        "title": "5 Ancient Inventions That Shouldn't Exist",
+        "channel": "History in Sticks",
+        "views": 68,
+        "subs": 5
+      },
+      {
+        "title": "6 Ancient Lost Technologies Science Still Can't Explain",
+        "channel": "Ember Ink History",
+        "views": 66,
+        "subs": 2
+      }
+    ],
+    "recent_uploads_median_views": 0,
+    "recent_distinct_channels": 0,
+    "top_results": [
+      {
+        "title": "Ancient Technologies We Still Can't Explain",
+        "channel": "Professor Historian and EverythingProfessor",
+        "views": 7990308,
+        "subs": null
+      },
+      {
+        "title": "The Advanced Tech of The Roman Empire",
+        "channel": "Lost in Time",
+        "views": 5582217,
+        "subs": 2300000
+      },
+      {
+        "title": "Ancient Technologies That Were WAY Ahead Of Their Time",
+        "channel": "BE AMAZED",
+        "views": 2107578,
+        "subs": 13500000
+      },
+      {
+        "title": "Leonardo da Vinci\u2019s GENIUS Inventions",
+        "channel": "Lost in Time",
+        "views": 1844474,
+        "subs": 2300000
+      },
+      {
+        "title": "Past and Present | Technology Then and Now",
+        "channel": "Astrolabe",
+        "views": 1679391,
+        "subs": 10100
+      },
+      {
+        "title": "Crazy Ancient Technologies We Still Can't Explain",
+        "channel": "Trust Me Bro",
+        "views": 711032,
+        "subs": 1440000
+      },
+      {
+        "title": "Lost Ancient Technologies We Still Can't Explain",
+        "channel": "Some Guy Who Knows Stuff",
+        "views": 115291,
+        "subs": 133000
+      },
+      {
+        "title": "Ancient Technologies We Lost That Would Solve Modern Problems",
+        "channel": "Chill Dude Explains",
+        "views": 92406,
+        "subs": 759000
+      }
+    ]
+  }
+}

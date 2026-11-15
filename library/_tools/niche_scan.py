@@ -14,6 +14,8 @@ Then per pool:
 
     python3 library/_tools/niche_scan.py pools.json out.json
 pools.json: {"pool name": ["query 1", "query 2", ...], ...}
+NOTE: the recency half ("ytsearchdate") is not supported by the installed yt-dlp and
+returns nothing; recency fields are 0. Use the small-channel flood signal instead.
 """
 import json, re, subprocess, sys, statistics, time
 from concurrent.futures import ThreadPoolExecutor
