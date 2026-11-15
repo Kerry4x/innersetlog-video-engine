@@ -48,7 +48,19 @@ The slower read is offset by **twice the cut rate of S05**. In the application m
 
 ## 4. Audio
 
-_See measured values in the audio table below._
+| Metric | Value |
+|---|---|
+| Voice share | 76% |
+| Music coverage | 100% (1 continuous cue, 0 changes) |
+| Music vs voice | −14.1 dB |
+| Music rise in pauses | +0.1 dB |
+| Sound effects | 4.5/min loud · 8.2/min soft |
+| Effects under speech / on a visual change | 17% / 83% |
+| Effect level vs voice | −4.8 dB |
+
+**One unbroken music bed** at a clearly audible −14 dB under the voice, and it does **not** rise in the pauses. The few hits land **on visual changes** (83%), mostly in the modern section (1:04–1:12).
+
+*Stems leak a few dB; treat levels as about ±3 dB. Measured with the skill's audio-layers mode (demucs voice/music split).*
 
 ## 5. What makes it work
 

@@ -51,7 +51,19 @@ Structure: **routine, then a crack in it, an accusation, a trial, a reversal.** 
 
 ## 4. Audio
 
-_See measured values in the audio table below._
+| Metric | Value |
+|---|---|
+| Voice share | 80% |
+| Music coverage | 92% (5 segments, 0.9 cue changes/min) |
+| Music vs voice | −27.6 dB (very quiet bed) |
+| Music rise in pauses | +0.8 dB |
+| Sound effects | 5.4/min loud · 9.0/min soft |
+| Effects under speech / on a visual change | 83% / 0% |
+| Effect level vs voice | −2.7 dB |
+
+The quietest music of the three: a barely-there bed. Sound effects sit **under speech** (83%), not on cuts: foley for the story (butter, footsteps, gavel) rather than "whoosh" transitions.
+
+*Stems leak a few dB; treat levels as about ±3 dB. Measured with the skill's audio-layers mode (demucs voice/music split).*
 
 ## 5. What makes it work (evidence-tied)
 

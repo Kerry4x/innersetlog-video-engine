@@ -45,7 +45,19 @@ Structure: **mystery object → reveal → why it was hidden → "you did the sa
 
 ## 4. Audio
 
-_See measured values in the audio table below._
+| Metric | Value |
+|---|---|
+| Voice share | 79% |
+| Music coverage | 100% (1 continuous cue, 0 changes) |
+| Music vs voice | −15.9 dB |
+| Music rise in pauses | +0.2 dB |
+| Sound effects | 2.4/min loud · 3.9/min soft |
+| Effects under speech / on a visual change | 67% / 33% |
+| Effect level vs voice | −3.1 dB |
+
+Same recipe as S06: one continuous bed at about −16 dB and very sparse sound effects. The narration does the work.
+
+*Stems leak a few dB; treat levels as about ±3 dB. Measured with the skill's audio-layers mode (demucs voice/music split).*
 
 ## 5. What makes it work
 
@@ -64,5 +76,8 @@ _See measured values in the audio table below._
 | Cuts/min | 28.9 | 66.0 | 53.1 |
 | Avg shot | 2.0 s | 0.91 s | 1.11 s |
 | Lesson section | none (twist) | modern examples | metaphor as character |
+| Music vs voice | −27.6 dB | −14.1 dB | −15.9 dB |
+| Music cue changes | 5 segments | 1 continuous | 1 continuous |
+| Sound effects/min (loud) | 5.4 | 4.5 | 2.4 |
 
 **Formula:** a famous folk/zen/historical parable, told in ~45 s, then (usually) "You see / At some point in your life…", then the lesson shown in the same clay world, then a short imperative and "Follow, or you might miss the next lesson." Idea supply is effectively **unlimited and free** (the world's parables, fables and koans).
