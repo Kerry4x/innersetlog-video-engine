@@ -73,3 +73,30 @@ Run 2026-11-15, same method. Raw data: [`scan2.json`](scan2.json), queries: [`po
 2. **Forgotten history is almost never animated (3%)** despite a 698K median, which is the clearest open lane in either scan.
 3. **Animated Bible stories are crowded** (97% animated, few channels, many AI-made). The opening there is *which* stories (the obscure ones) and *how* they're told, not animation itself.
 4. **Faith content has its own rules** *(note)*: an audience that cares about accuracy and respect, and an apocrypha corner that slides into conspiracy. Doable, but it needs care.
+
+---
+
+# Scan 3 · Life problems: plain self-help vs the Bible applied to life
+
+Run 2026-11-15. Searched by **the problem people have**, not by a category label (per Kerry). Raw data: [`scan3.json`](scan3.json), queries: [`pools3.json`](pools3.json).
+
+| Problem | Self-help median | Bible-angle median | Bible-angle channels | Bible-angle top-3 conc. | Bible-angle animated |
+|---|---|---|---|---|---|
+| Overthinking | 139K | 17K | 13 | 0.73 | 5% |
+| Discipline | **610K** | 105K | 18 | 0.64 | 5% |
+| Anxiety & worry | 271K | **166K** (7 breakouts) | 44 | 0.12 | 4% |
+| Money & wealth | **576K** | 46K | 32 | 0.33 | 4% |
+| Betrayal & letting go | 275K | **210K** (5 breakouts) | 44 | 0.14 | 2% |
+| Purpose & meaning | **521K** | 155K | 38 | 0.26 | 14% (BibleProject) |
+| "Bible as philosophy / wisdom" (label search) | — | **14K** | 40 | 0.49 | 10% |
+
+**Who serves the Bible-angle side today:** pastors and church channels (Steven Furtick, Elevation, Joyce Meyer, David Jeremiah, Charles Stanley), guided prayer and "audio Bible" meditations with music, verse slideshows, and BibleProject (animated *book summaries*, not life application). **Almost no animated or story-driven content** applies the Bible to a specific modern problem (2–5%).
+
+**Breakouts (small channel, big video):** *5 Things Jesus Said About Worry (Most People Ignore)*: **1.05M / 10.6K** · *The most beautiful message from Jesus*: **3.0M / 29K** · *Proverbs Explained: 40 Powerful Lessons*: **1.1M / 58.9K** · *What the Bible Says About People Who Feel Like They've Wasted Their Years*: **218K / 7.8K** · *Ecclesiastes' Greatest Lessons: Ancient Wisdom for Today's Life*: **271K / 4.1K**.
+
+## What scan 3 says
+
+1. **Self-help demand is huge** (discipline, money and purpose videos have a median of 500K–600K views).
+2. **Labelling it "Bible wisdom" kills reach:** the label search has a median of just 14K. This confirms Kerry's point: lead with the problem, not the category.
+3. **The Bible-applied-to-life lane is served almost entirely by sermons, prayers and verse slideshows**, rarely by storytelling or animation. Small channels that frame it as *a surprising, practical answer to a real problem* break out to 1–3M views.
+4. **The opening:** take the self-help audience's exact problems ("Why you can't stop overthinking"), answer them with what the Bible actually says, and use storytelling (the Clayrified parable → "you" turn, proven in S06/S07) instead of a sermon.
