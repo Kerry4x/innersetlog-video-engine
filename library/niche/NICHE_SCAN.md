@@ -39,3 +39,37 @@ Run 2026-11-15 with `library/_tools/niche_scan.py` (yt-dlp YouTube search + chan
 2. **Big-concept explainer lanes are owned** (bizarre history, paradoxes, mythology top results): too many incumbents to beat on search.
 3. **Folklore is the widest open, proven lane:** the most breakouts, low concentration, and breakouts in *different* sub-genres (kids' fables, African folktale comedy, Navajo-inspired horror, Clayrified's parables). Demand exists in many directions at once, and no single channel or template owns "world folklore".
 4. **Regional folklore is an underserved angle** *(inference from the breakouts)*: African folktale comedy, Filipino mysteries and Skinwalker horror all break out on small channels. A channel that covers **the world's folklore systematically, region by region**, has a supply of tens of thousands of stories and no dominant owner.
+
+---
+
+# Scan 2 · Lesser-known recorded history + Bible / Christian content
+
+Run 2026-11-15, same method. Raw data: [`scan2.json`](scan2.json), queries: [`pools2.json`](pools2.json).
+
+| Pool | Median views | Breakouts | Channels | Top-3 conc. | **Animated share** | Read |
+|---|---|---|---|---|---|---|
+| **Forgotten true stories** | **698K** | **15** | 43 | 0.40 | **3%** | High demand, almost **nobody animates it**: documentaries, compilations, talking heads |
+| Strange court cases (history) | 137K | 9 | 63 | **0.08** | 3% | Totally fragmented; a few 6–8-sub template channels starting to appear |
+| Old newspaper stories | 76K | 7 | 52 | 0.26 | 1% | Noisy query; weak signal |
+| Small human moments | 296K | 7 | 65 | 0.12 | 3% | Noisy query (music, science); weak signal |
+| Bible stories animated | 232K | 6 | **16** | 0.48 | **97%** | **Crowded with animation** (BibleProject, many look AI-made); few channels share the space |
+| **Bible stories narrated / explained** | **535K** | **12** | 45 | 0.22 | 28% | Strong; breakouts are the **dark / strange / lesser-known** side of the Bible |
+| Christian & church history | 228K | **14** | 46 | 0.25 | 24% | Documentary-led; animated early-church video breaks out (637K / 53K) |
+| Biblical archaeology | 747K | 3 | 34 | 0.23 | 6% | Owned by big documentary channels |
+| Lost books / apocrypha | 622K | 8 | 41 | 0.18 | 51% | Hot, but already templated ("Every BANNED book… explained in N minutes" on several channels); drifts into conspiracy |
+| Parables of Jesus | 192K | 9 | 37 | 0.24 | 41% | Mostly kids' content |
+
+**Notable breakouts**
+- *20 Strangest Historical Coincidences*: **5.6M / 28.3K** (Epicano) · *The Forgotten Story of the Biggest Lottery Winner Ever*: **1.6M / 10.7K**
+- *The Story of Jonah* (animated): **1.2M / 13.7K** · *The Most Dangerous Man in the Bible: Benaiah*: **521K / 47.2K** (a lesser-known figure)
+- *The Biblical Horrors We Ignore*: **2.1M / 74.8K** · *Every Terrifying Creature from the Bible*: **1.4M / 50.6K** · *The Untold Story of the Nephilim* (animated): **813K / 13.2K**
+- *Church History: AD 33 to Present*: **4.1M / 34.5K**
+
+**"Rick's clips":** a search found mostly Rick and Morty, plus a tutorial titled as teaching "Ricks Clip" AI animation shorts for free, i.e. that style is already being taught and copied.
+
+## What scan 2 says
+
+1. **The same signal on both sides: lesser-known, strange, true stories win.** History breakouts are forgotten stories and coincidences; Bible breakouts are the obscure, dark or strange parts (Benaiah, the Nephilim, biblical horrors), not the famous Sunday-school stories.
+2. **Forgotten history is almost never animated (3%)** despite a 698K median, which is the clearest open lane in either scan.
+3. **Animated Bible stories are crowded** (97% animated, few channels, many AI-made). The opening there is *which* stories (the obscure ones) and *how* they're told, not animation itself.
+4. **Faith content has its own rules** *(note)*: an audience that cares about accuracy and respect, and an apocrypha corner that slides into conspiracy. Doable, but it needs care.
