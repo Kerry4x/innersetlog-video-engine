@@ -100,3 +100,15 @@ Run 2026-11-15. Searched by **the problem people have**, not by a category label
 2. **Labelling it "Bible wisdom" kills reach:** the label search has a median of just 14K. This confirms Kerry's point: lead with the problem, not the category.
 3. **The Bible-applied-to-life lane is served almost entirely by sermons, prayers and verse slideshows**, rarely by storytelling or animation. Small channels that frame it as *a surprising, practical answer to a real problem* break out to 1–3M views.
 4. **The opening:** take the self-help audience's exact problems ("Why you can't stop overthinking"), answer them with what the Bible actually says, and use storytelling (the Clayrified parable → "you" turn, proven in S06/S07) instead of a sermon.
+
+---
+
+# Spot check · "the hidden context behind a Bible verse"
+
+Quick free search, 2026-11-15 (top 8 results per query; no subscriber pass):
+- *Why the prodigal son's father ran*: one 330K video, then **a run of brand-new channels at 0–50 views with near-identical titles** ("Why the Father Ran", "the detail nobody explains", "That was a scandal"): template farming already underway.
+- *Turn the other cheek, real meaning*: covered by many channels (Bishop Barron/Big Think 354K, Sam Shamoun 215K, Johnny Chang 157K, and more), mostly talking heads.
+- *Eye of a needle*: covered, including myth-busting takes (Myron Golden 283K, The Hidden Scroll 38K).
+- *Cultural context explained*: BibleProject (1.8M) and InspiringPhilosophy own it.
+
+**Read:** the "what this verse really meant" angle is mid-demand and already templated. Not an open lane on its own.
