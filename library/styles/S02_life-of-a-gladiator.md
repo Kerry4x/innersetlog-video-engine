@@ -40,7 +40,9 @@ Roughly **one shot per sentence**. The cut usually lands with each new fact; the
 
 ## 2. Technique
 
-_Motion measurements below, once the technique pass finishes._
+- **2% hold · 49% local motion · 40% zoom** · 8% pan · 1% cut. **77 camera-zoom segments**, 1 pan.
+- **The camera almost never stops:** only 7 still holds ≥ 0.5 s in 8 minutes. Every shot is a slow cinematic push or drift. This is the opposite of S01/S05–S07, where holds are 30–46% of frames.
+- Few repeat-frame runs (19 × 2): true full-frame-rate 3D animation, not limited animation.
 
 ## 3. Look
 

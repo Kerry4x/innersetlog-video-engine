@@ -54,7 +54,17 @@ A new *idea* gets a new composition (often via a slow push-in to a new framing o
 
 ## 4. Audio
 
-_Filled in below once the audio layers finish._
+| Metric | Value |
+|---|---|
+| Voice share | 83% |
+| Music coverage | 100% (one bed, 2 cue changes at ~3:22 and ~6:19 → 0.2/min) |
+| Music vs voice | −13.9 dB |
+| Music rise in pauses | +0.8 dB |
+| Sound effects | **0 detected** (loud and soft thresholds) |
+
+Narration + one continuous music bed, nothing else. The cue changes line up with the turn to "how it hunts with sound" (~3:22) and with the "what would you do?" section (~6:19), i.e. music changes **mark act breaks**, not beats.
+
+*Stems leak a few dB; treat levels as about ±3 dB.*
 
 ## 5. What makes it work
 
