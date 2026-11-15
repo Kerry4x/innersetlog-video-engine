@@ -1,0 +1,5 @@
+video_analysis/
+*.mp4
+*.wav
+sep/
+__pycache__/
