@@ -54,7 +54,17 @@ Short declarative sentences ("Clean break. You stare at it.") read slowly, with 
 
 ## 4. Audio
 
-_Filled in once the audio layers finish._
+| Metric | Value |
+|---|---|
+| Voice share | 77% |
+| Music coverage | 93% (**10 segments**, 0.68 cue changes/min, the most of any reference) |
+| Music vs voice | −18.1 dB |
+| Music rise in pauses | +0.1 dB |
+| Sound effects | **~0.1/min** (almost none detected, even in the fights) |
+
+**Music is the storyteller's second voice:** cues change with the story phases (mundane, discovery, hero, villain, fight, aftermath) rather than staying one bed. Sound effects are nearly absent; the impacts are carried by score and visuals. *(Stem separation can fold some effects into "music"; treat the effect count as a floor.)*
+
+*Stems leak a few dB; treat levels as about ±3 dB.*
 
 ## 5. What makes it work
 

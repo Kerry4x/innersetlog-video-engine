@@ -17,8 +17,8 @@ All numbers come from the video-analyzer scripts (frames, Whisper, technique pas
 | Hold share | 29% | **2%** | 27% | 30% | 46% | 40% | 43% |
 | Zoom share (segments) | 23% (40) | **40% (77)** | 29% (62 + 16 pans) | 25% (39) | 3% (0) | 2% (0) | 5% (0) |
 | Animated on 2s/3s | some | no (full 3D) | **yes (heavy)** | yes | no (smooth gen-video look) | no | no |
-| Music vs voice | −13.9 dB, 1 bed | _pending_ | _pending_ | _pending_ (music-only) | −27.6 dB | −14.1 dB, 1 bed | −15.9 dB, 1 bed |
-| SFX / min (loud) | **0** | _pending_ | _pending_ | _pending_ | 5.4 | 4.5 | 2.4 |
+| Music vs voice | −13.9 dB, 1 bed | −26.1 dB, **ducked (+4.7 dB in gaps)** | −18.1 dB, **10 cues** | music-only, 3 movements | −27.6 dB | −14.1 dB, 1 bed | −15.9 dB, 1 bed |
+| SFX / min (loud) | **0** | 2.3 | ~0.1 | 2.4 | 5.4 | 4.5 | 2.4 |
 | Saturated / near-black | 6% / **59%** | 13% / 10% | 7% / 10% | 24% / 16% | 36% / 8% | 52% / 9% | 45% / 6% |
 | Grain (median) | 1.5 clean | 2.9 subtle | 3.1 subtle | 2.6 subtle | 3.8 subtle | 3.1 subtle | 3.4 subtle |
 | On-screen text | Short uppercase labels as jokes | Title card only | None seen | Credits only | **Word-by-word yellow serif captions** | same | same |
@@ -29,8 +29,8 @@ All numbers come from the video-analyzer scripts (frames, Whisper, technique pas
 1. **A repeatable title/premise template** (6 of 7): "Why you'd never want to meet ___" · "Life of a ___" · "What ___ would ACTUALLY feel like" · "[famous parable] + what it means for you". **Only S04 is a one-off.** Each template turns topic choice into filling in a blank.
 2. **Second person ("you") is the default engine** (S01, S03 throughout; S06/S07 after the pivot; S02 in places). The viewer is placed *inside* the situation.
 3. **Cold opens drop you in a sensation or a scene, not a topic** (S01 "you feel it", S03 "your back smashes", S02 12 s cinematic, S05 a knife in butter).
-4. **One continuous music bed under the voice at about −14 to −16 dB**, changing only at act breaks (S01, S06, S07; S05 even quieter). Music is not used to punctuate beats.
-5. **Sound effects are sparse** (0–5 per minute where measured). These channels are **voice-led**.
+4. **Music sits well under the voice** (−14 to −28 dB) and changes only at act breaks: one continuous bed for S01, S06, S07 (S05 even quieter). Two exceptions: **S02 ducks** (music swells +4.7 dB in each pause) and **S03 changes cue 10 times** to follow the story. Music is never used to punctuate individual beats.
+5. **Sound effects are sparse everywhere:** 0–5.4 per minute (S01: 0, S03: ~0). These channels are **voice-led**.
 6. **Callbacks / loop closure:** S01 returns to its opening "rule", S03's fight returns to the cold open, S06/S07 end on an imperative that answers the parable.
 7. **A twist or reversal near the end** (S01: humans are the danger; S02: gladiator unions; S03: loneliness after winning; S05: the accuser was the cheat).
 

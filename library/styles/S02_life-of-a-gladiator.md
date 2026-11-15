@@ -54,7 +54,18 @@ Roughly **one shot per sentence**. The cut usually lands with each new fact; the
 
 ## 4. Audio
 
-_Filled in once the audio layers finish._
+| Metric | Value |
+|---|---|
+| Voice share | 78% |
+| Music coverage | 98% (7 segments, 0.36 cue changes/min) |
+| Music vs voice | **−26.1 dB** under speech |
+| Music rise in pauses | **+4.7 dB** (the music swells in every gap) |
+| Sound effects | 2.3/min loud · 4.3/min soft · 74% under speech |
+| Effect level vs voice | −5.9 dB |
+
+**Classic ducking:** quiet music under the narration that comes up in each pause (the only reference that does this clearly), plus an epic score for the 15 s cold open. Effects are diegetic (crowd, clashes) under the voice, not on cuts.
+
+*Stems leak a few dB; treat levels as about ±3 dB.*
 
 ## 5. What makes it work
 

@@ -45,7 +45,15 @@ Action sequences cut extremely fast (several cuts per second, 4:41–4:47); quie
 
 ## 4. Audio
 
-_Filled in once the audio layers finish._
+| Metric | Value |
+|---|---|
+| Voice | **none** (separator found no voice stem) |
+| Music coverage | 97% (3 segments, 0.43 cue changes/min) |
+| Sound effects | 2.4/min loud · 5.4/min soft · 58% on a visual change |
+
+Score-driven: three long music movements carry the whole film, with effects (impacts, gore) landing on the cuts. *(Without a voice reference, the effect levels vs voice aren't meaningful.)*
+
+*Stems leak a few dB; treat levels as about ±3 dB.*
 
 ## 5. What makes it work (and why it's a different category)
 
