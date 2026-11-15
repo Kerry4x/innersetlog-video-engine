@@ -40,6 +40,7 @@ Action sequences cut extremely fast (several cuts per second, 4:41–4:47); quie
 ## 3. Look
 
 - **Studio-grade 2D**, anime/French-animation hybrid: strong line art, dramatic perspective, **red-dominant** palettes in the gore scenes (blood, red-skinned cannibals), sickly green/orange atmospheres.
+- **Palette:** dark overall (15.9% near-black) with **24.2% strongly saturated**, mostly blood reds (`#4D1E19`); top colors `#211A19`, `#31342F`, `#050404`. Subtle grain (median 2.60).
 - **Cinemascope framing** (1920×804) signals "film", not "YouTube explainer".
 
 ## 4. Audio

@@ -49,6 +49,7 @@ Short declarative sentences ("Clean break. You stare at it.") read slowly, with 
 ## 3. Look
 
 - **Hand-drawn 2D, rough and comedic:** simple egg-head characters with dot eyes and thick wobbly outlines, on painterly, muted, desaturated backgrounds (warehouse greys, concrete, overcast skies).
+- **Palette:** muted greys and browns; only **6.6% strongly saturated**, 4.6% near-white, 9.6% near-black. Top colors `#4A423D`, `#272324`, `#6C6860`, `#777A76`. Subtle grain (median 3.05).
 - The protagonist is a generic everyman (blue shirt or hi-vis vest) so the viewer can be "you". The villain gets a color accent (purple/magenta telekinesis glow).
 
 ## 4. Audio
