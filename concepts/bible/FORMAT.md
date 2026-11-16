@@ -28,13 +28,10 @@ Long-form can go deeper in either direction. Differences between the modern pack
 - Nothing misused: claims about the text and about studies must be accurate (label anything unverified).
 - Length is whatever the complete idea needs.
 
-## Translation: NIV (Kerry, 2026-11-16)
-- Scripts use the **NIV**. It is under copyright (Biblica), unlike the KJV.
-- Quote **short passages only** (a verse or two per video), and take the **exact wording from an authorized NIV source** (e.g. BibleGateway or a print NIV) at final draft. Never quote from memory; mark quotes in drafts as **[NIV quote: book ch:v]**.
-- Credit: include Biblica's NIV copyright notice where required (e.g. in the video description).
-- **Permission status (checked 2026-11-16, via search summaries of biblica.com/terms-of-use, biblica.com/permissions, harpercollinschristian.com):** up to 500 verses without written permission if not a complete book and under 25% of the work (HarperCollins adds: under 50% of any one book), with the full NIV notice. Biblica's terms describe this for **written** use; whether it covers **spoken/video** use on a monetized channel is unclear (sources conflict). **Action: ask Biblica Rights & Permissions in writing before publishing.**
-- Until then: narrate verses in our own words and show the reference on screen. Fallback if needed: a public-domain modern translation (believed: Berean Standard Bible, World English Bible; confirm status first).
-- Drafts 01–03 still quote the KJV; convert when they're reworked.
+## Translation: KJV (Kerry, 2026-11-16)
+- Scripts quote the **King James Version**: public domain in most of the world, so verses can be quoted in videos freely, no permission or notice needed. (Exception from memory: in the UK the Crown still holds rights to the KJV; rarely relevant for YouTube.)
+- NIV was considered and dropped: it is under copyright (Biblica), and whether its free 500-verse allowance covers spoken quotes in monetized videos is unclear (checked 2026-11-16).
+- Still quote exactly and give the reference; a misquoted verse is misuse.
 
 ## Hooks
 **No fixed hook template.** Each hook should come from what's most compelling in *that* story. Using the same opener every video becomes a pattern viewers (and copycats) spot.
