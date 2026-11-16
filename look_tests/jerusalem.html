@@ -1,0 +1,364 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Look test v5: Jerusalem and the acting pass</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Look test v5. World built from concepts/bible/world/JERUSALEM_c1000BC.md:
+// a small city on a narrow ridge, Kidron valley and Mount of Olives to the east, the palace (Large Stone
+// Structure) at the north top over the Stepped Stone Structure, terraced four-room houses with flat
+// parapeted roofs, courtyards, ladders and beam ends. Acting follows 2 Samuel 12: Nathan tells, David
+// judges in anger, Nathan says the line, David's anger drains.
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { createKit } from './kit/clay-kit.js';
+
+const W = 1080, H = 1920, DURATION = 16;
+const S = [0, 3.5, 7.8, 10.4, 12.2, 16]; // shot boundaries
+const K = createKit(12345), { C, mesh, blob, lumpy, clay, rand } = K;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const camera = new THREE.PerspectiveCamera(34, W / H, 0.05, 150);
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const ramp = (t, a, b) => ease((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const sig = x => 1 / (1 + Math.exp(-x));
+
+// =====================================================================================
+// SHOT 1 · the city on its ridge
+// =====================================================================================
+const city = new THREE.Scene();
+{
+  const c = document.createElement('canvas'); c.width = 4; c.height = 256; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#7b98c0'); gr.addColorStop(0.6, '#f0c48f'); gr.addColorStop(1, '#f6dcae');
+  g.fillStyle = gr; g.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; city.background = t;
+}
+city.fog = new THREE.Fog('#efc89a', 22, 70);
+// terrain: the City of David ridge (runs north–south, rising to the north), Kidron valley east, Mount of Olives beyond, western hill
+const hgt = (x, z) => {
+  const ridge = (1.35 + 0.12 * Math.max(-3, Math.min(5, -z))) * Math.exp(-x * x / 3.2) * sig((3.8 - z) * 1.6);
+  const olives = 2.6 * sig((x - 4.6) * 1.3), west = 2.0 * sig((-x - 4.4) * 1.1);
+  const north = 0.8 * sig((-z - 4.5) * 1.2) * Math.exp(-x * x / 8);
+  return ridge + olives + west + north;
+};
+{
+  const geo = new THREE.PlaneGeometry(90, 90, 220, 220); geo.rotateX(-Math.PI / 2);
+  const p = geo.attributes.position, col = new Float32Array(p.count * 3), dry = new THREE.Color('#c9a878'), green = new THREE.Color('#8c8f55'), cc = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), y = hgt(x, z) + (K.fbm(x * 0.8, 0, z * 0.8) - 0.5) * 0.1; p.setY(i, y);
+    const valley = Math.exp(-((x - 2.9) ** 2) / 0.5) * 0.8; // greener valley floor
+    cc.copy(dry).lerp(green, Math.min(1, valley + K.fbm(x * 0.4, 3, z * 0.4) * 0.35)); col.set([cc.r, cc.g, cc.b], i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals();
+  city.add(mesh(geo, clay('#ffffff', { vertexColors: true, bumpScale: 3 }), false));
+}
+// --- builder that merges thousands of small parts into a few meshes (fast, no flicker) ---
+const parts = { stone: [], wood: [], dark: [], cloth: [], terra: [], cedar: [] };
+const colorize = (geo, hex) => { const c = new THREE.Color(hex), n = geo.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) a.set([c.r, c.g, c.b], i * 3); geo.setAttribute('color', new THREE.BufferAttribute(a, 3)); return geo; };
+const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler();
+function put(key, geo, x, y, z, ry = 0, hex = '#ffffff', rx = 0, rz = 0) {
+  if (geo.index === null) geo = geo; colorize(geo, hex);
+  E.set(rx, ry, rz); Q.setFromEuler(E); M4.compose(V(x, y, z), Q, V(1, 1, 1)); geo.applyMatrix4(M4); parts[key].push(geo);
+}
+const box = (w, h, d, r = 0.015, lump = 0.006) => lumpy(new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2.2, h / 2.2, d / 2.2)), lump, 9);
+// place a local-space part relative to a house origin/rotation
+function rel(key, geo, ox, oy, oz, ry, lx, ly, lz, hex, rx = 0, rz = 0) {
+  const c = Math.cos(ry), s = Math.sin(ry);
+  put(key, geo, ox + lx * c + lz * s, oy + ly, oz - lx * s + lz * c, ry, hex, rx, rz);
+}
+const stoneTones = ['#cdb594', '#d8c4a3', '#c4a983', '#bfa27c', '#ddcdb0', '#c9ae8a'];
+const clothTones = ['#a9442f', '#365f8a', '#c99a32', '#6d7b3c', '#8a3f66', '#e3d8bf'];
+const people = [];
+function house(x, z, W, D, ry) {
+  // ground under the footprint: walls go down to the lowest corner (terraces on the slope)
+  const corners = [[-W / 2, -D / 2], [W / 2, -D / 2], [-W / 2, D / 2], [W / 2, D / 2]].map(([a, b]) => hgt(x + a * Math.cos(ry) + b * Math.sin(ry), z - a * Math.sin(ry) + b * Math.cos(ry)));
+  const g0 = Math.min(...corners) - 0.06, g1 = Math.max(...corners), H = 0.22 + rand() * 0.08, top = g1 + H, tone = stoneTones[Math.floor(rand() * stoneTones.length)];
+  const bd = D * 0.6, mainZ = -D / 2 + bd / 2, front = -D / 2 + bd;
+  rel('stone', box(W, top - g0, bd), x, (top + g0) / 2, z, ry, 0, 0, mainZ, tone);
+  // flat roof with a parapet (Deut 22:8)
+  for (const [w, d, lx, lz] of [[W, 0.025, 0, -D / 2 + 0.012], [W, 0.025, 0, front - 0.012], [0.025, bd, -W / 2 + 0.012, mainZ], [0.025, bd, W / 2 - 0.012, mainZ]]) rel('stone', box(w, 0.04, d, 0.008, 0.002), x, top + 0.02, z, ry, lx, 0, lz, tone);
+  // roof beam ends under the roofline, doorway
+  for (const lx of [-W * 0.3, 0, W * 0.3]) rel('wood', new THREE.CylinderGeometry(0.011, 0.011, 0.05, 6), x, top - 0.035, z, ry, lx, 0, front + 0.02, '#ffffff', Math.PI / 2);
+  rel('dark', new THREE.BoxGeometry(0.085, 0.15, 0.012), x, g1 + 0.075, z, ry, W * 0.15, 0, front + 0.004, '#ffffff');
+  // courtyard: low walls in front of the house
+  const cd = D - bd, yard = g1 + 0.045;
+  rel('stone', box(0.03, 0.09 + (g1 - g0), cd), x, (g1 - g0) / -2 + yard, z, ry, -W / 2 + 0.015, 0, front + cd / 2, tone);
+  rel('stone', box(0.03, 0.09 + (g1 - g0), cd), x, (g1 - g0) / -2 + yard, z, ry, W / 2 - 0.015, 0, front + cd / 2, tone);
+  rel('stone', box(W * 0.6, 0.09 + (g1 - g0), 0.03), x, (g1 - g0) / -2 + yard, z, ry, -W * 0.2, 0, D / 2 - 0.015, tone);
+  rel('stone', box(W, 0.02, cd, 0.005, 0.002), x, g1 + 0.005, z, ry, 0, 0, front + cd / 2, '#b9a080'); // packed-earth floor
+  // second storey on some houses
+  if (rand() < 0.35) { const w2 = W * 0.48, d2 = bd * 0.7, s2 = rand() < 0.5 ? -1 : 1; rel('stone', box(w2, 0.17, d2), x, top + 0.085, z, ry, s2 * (W - w2) / 2, 0, -D / 2 + d2 / 2, tone);
+    rel('dark', new THREE.BoxGeometry(0.05, 0.07, 0.012), x, top + 0.09, z, ry, s2 * (W - w2) / 2, 0, -D / 2 + d2 + 0.005, '#ffffff'); }
+  // ladder up to the roof
+  if (rand() < 0.35) { const lx = -W * 0.32; for (const dx of [-0.035, 0.035]) rel('wood', new THREE.CylinderGeometry(0.008, 0.008, H + 0.08, 5), x, g1 + (H + 0.08) / 2, z, ry, lx + dx, 0, front + 0.06, '#ffffff', -0.32);
+    for (let r = 1; r <= 3; r++) rel('wood', new THREE.CylinderGeometry(0.006, 0.006, 0.07, 5), x, g1 + r * H / 3.5, z, ry, lx, 0, front + 0.075 - r * 0.02, '#ffffff', 0, Math.PI / 2); }
+  // things on the roof and in the yard
+  if (rand() < 0.4) rel('cloth', box(W * 0.35, 0.012, bd * 0.35, 0.004, 0.002), x, top + 0.008, z, ry, (rand() - 0.5) * W * 0.3, 0, mainZ, clothTones[Math.floor(rand() * clothTones.length)]);
+  if (rand() < 0.5) rel('terra', lumpy(new THREE.SphereGeometry(0.03, 10, 8), 0.004, 20), x, g1 + 0.035, z, ry, W * 0.32, 0, front + cd * 0.7, '#b0603a');
+  if (rand() < 0.3) rel('terra', lumpy(new THREE.SphereGeometry(0.045, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), 0.004, 15), x, g1, z, ry, -W * 0.25, 0, front + cd * 0.55, '#a8774f'); // clay oven
+  // a person in the yard or on the roof
+  const r = rand();
+  if (r < 0.32) people.push({ x: x + (rand() - 0.5) * W * 0.5 * Math.cos(ry), y: g1, z: z + (front + cd * 0.5) * Math.cos(ry) * 0.9, ry: ry + (rand() - 0.5) * 2 });
+  else if (r < 0.45) people.push({ x, y: top, z: z + mainZ * Math.cos(ry), ry: ry + (rand() - 0.5) * 2 });
+}
+// houses on the ridge, south of the palace, terraced down both slopes; streets left as gaps
+for (let gz = -1.7; gz <= 3.2; gz += 0.6) for (let gx = -2.0; gx <= 2.0; gx += 0.62) {
+  const x = gx + (rand() - 0.5) * 0.16, z = gz + (rand() - 0.5) * 0.16;
+  if (Math.abs(x) < 0.16 || rand() < 0.1) continue; // the main street up the ridge
+  if (z > 3.0 - Math.abs(x) * 0.6) continue; // the ridge narrows to the south
+  house(x, z, 0.42 + rand() * 0.14, 0.44 + rand() * 0.14, (x > 0 ? Math.PI / 2 : -Math.PI / 2) + (rand() - 0.5) * 0.25);
+}
+// the palace (Large Stone Structure) at the north top, with cedar beams, and the Stepped Stone Structure below it
+{
+  const px = 0.15, pz = -2.9, base = hgt(px, pz) - 0.08, dressed = '#e2d2b2';
+  put('stone', box(2.0, 0.55, 1.3, 0.03, 0.004), px, base + 0.275, pz, 0.08, dressed);
+  put('stone', box(1.2, 0.36, 0.8, 0.03, 0.004), px - 0.2, base + 0.73, pz - 0.15, 0.08, dressed);
+  for (const [w, d, lx, lz] of [[2.0, 0.03, 0, 0.64], [2.0, 0.03, 0, -0.64], [0.03, 1.3, 0.99, 0], [0.03, 1.3, -0.99, 0]]) put('stone', box(w, 0.06, d, 0.01, 0.002), px + lx, base + 0.58, pz + lz, 0.08, dressed);
+  for (let i = 0; i < 9; i++) put('cedar', new THREE.CylinderGeometry(0.018, 0.018, 0.07, 6), px - 0.85 + i * 0.21, base + 0.5, pz + 0.66, 0.08, '#ffffff', Math.PI / 2);
+  for (let i = 0; i < 6; i++) put('cedar', new THREE.CylinderGeometry(0.016, 0.016, 0.06, 6), px - 0.7 + i * 0.2, base + 0.86, pz + 0.26, 0.08, '#ffffff', Math.PI / 2);
+  for (let i = 0; i < 5; i++) put('dark', new THREE.BoxGeometry(0.08, 0.13, 0.012), px - 0.8 + i * 0.4, base + 0.28, pz + 0.656, 0.08, '#ffffff');
+  put('dark', new THREE.BoxGeometry(0.16, 0.24, 0.012), px + 0.2, base + 0.13, pz + 0.656, 0.08, '#ffffff'); // gate
+  for (let i = 0; i < 8; i++) { const x0 = 1.15 + i * 0.17, top = base + 0.35 - i * 0.2, g = Math.min(hgt(x0, pz - 0.6), hgt(x0, pz + 0.6)) - 0.1;
+    if (top > g) put('stone', box(0.18, top - g, 1.25, 0.02, 0.01), x0, (top + g) / 2, pz, 0.08, '#d4c19f'); }
+  const lit = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.13), new THREE.MeshBasicMaterial({ color: '#ffd27e' })); lit.position.set(px + 0.42, base + 0.74, pz + 0.27); lit.rotation.y = 0.08; city.add(lit);
+}
+// a wall along both slopes (staging), and the Gihon spring in the Kidron valley
+for (const side of [-1, 1]) for (let z = -3.5; z <= 3.2; z += 0.42) {
+  const x = side * (2.3 - Math.max(0, z - 2.2) * 0.5), y = hgt(x, z), tower = Math.round((z + 3.5) / 0.42) % 5 === 0;
+  put('stone', box(tower ? 0.26 : 0.14, tower ? 0.42 : 0.24, tower ? 0.3 : 0.44, 0.02, 0.008), x, y + (tower ? 0.15 : 0.08), z, 0, '#c7ad87');
+}
+{ const pool = new THREE.Mesh(new THREE.CircleGeometry(0.22, 24), new THREE.MeshStandardMaterial({ color: '#4f7f86', roughness: 0.15, metalness: 0.3 })); pool.rotation.x = -Math.PI / 2; pool.position.set(2.85, hgt(2.85, -1.2) + 0.02, -1.2); city.add(pool);
+  for (let i = 0; i < 4; i++) people.push({ x: 2.6 + rand() * 0.5, y: hgt(2.75, -1.0), z: -1.5 + rand() * 0.6, ry: rand() * 6, jar: true }); }
+for (let i = 0; i < 5; i++) people.push({ x: (rand() - 0.5) * 0.18, y: hgt(0, 0.5 + i * 0.5), z: 0.4 + i * 0.5, ry: rand() * 6 });
+// merge everything into one mesh per material
+const mat = {
+  stone: clay('#ffffff', { vertexColors: true, bumpScale: 2.6 }), wood: C.wood, dark: new THREE.MeshStandardMaterial({ color: '#2a1a12', roughness: 1 }),
+  cloth: clay('#ffffff', { vertexColors: true }), terra: clay('#ffffff', { vertexColors: true }), cedar: clay('#7a3b22'),
+};
+for (const k in parts) if (parts[k].length) {
+  const m = mesh(mergeGeometries(parts[k].map(g => { g.deleteAttribute && !g.attributes.uv && g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2)); return g.index ? g : g; })), mat[k]); city.add(m);
+}
+// olive groves in rows on the Mount of Olives and the western hill, fields on the valley floor
+{
+  const oli = new THREE.InstancedMesh(lumpy(new THREE.SphereGeometry(0.16, 14, 10), 0.035, 7), clay('#ffffff'), 600), m = new THREE.Matrix4(); let k = 0;
+  const greens = ['#7d8a52', '#6f7d4a', '#8a9560', '#5f6e40'].map(c => new THREE.Color(c));
+  for (let x = 3.6; x < 16; x += 0.55) for (let z = -9; z < 8; z += 0.55) if (k < 450 && rand() < 0.75) { const xx = x + (rand() - 0.5) * 0.15, zz = z + (rand() - 0.5) * 0.15, s = 0.7 + rand() * 0.5;
+    m.compose(V(xx, hgt(xx, zz) + 0.1 * s, zz), new THREE.Quaternion(), V(s, s * 0.75, s)); oli.setMatrixAt(k, m); oli.setColorAt(k++, greens[k % 4]); }
+  for (let x = -4; x > -15; x -= 0.6) for (let z = -9; z < 8; z += 0.6) if (k < 600 && rand() < 0.5) { const xx = x + (rand() - 0.5) * 0.2, zz = z + (rand() - 0.5) * 0.2, s = 0.7 + rand() * 0.5;
+    m.compose(V(xx, hgt(xx, zz) + 0.1 * s, zz), new THREE.Quaternion(), V(s, s * 0.75, s)); oli.setMatrixAt(k, m); oli.setColorAt(k++, greens[k % 4]); }
+  oli.count = k; oli.castShadow = true; city.add(oli);
+  const fields = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.01, 1), clay('#ffffff'), 30); k = 0;
+  for (let z = -6; z < 6; z += 0.8) { const x = 2.9 + (rand() - 0.5) * 0.3; m.compose(V(x, hgt(x, z) + 0.01, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, (rand() - 0.5) * 0.3, 0)), V(0.55, 1, 0.65)); fields.setMatrixAt(k, m); fields.setColorAt(k++, new THREE.Color(['#9aa35a', '#b9a55a', '#7f9450'][k % 3])); }
+  fields.count = k; fields.receiveShadow = true; city.add(fields);
+}
+// townspeople: small clay figures that stay put (no sliding), with a gentle idle on 2s
+const PN = people.length;
+const pBody = new THREE.InstancedMesh(lumpy(new THREE.CylinderGeometry(0.018, 0.04, 0.12, 12, 3), 0.003, 30, 'radial'), clay('#ffffff'), PN);
+const pHead = new THREE.InstancedMesh(new THREE.SphereGeometry(0.026, 12, 10), C.skin, PN);
+const pCloth = new THREE.InstancedMesh(new THREE.SphereGeometry(0.03, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), clay('#ffffff'), PN);
+const pJar = new THREE.InstancedMesh(new THREE.SphereGeometry(0.022, 10, 8), clay('#b0603a'), PN);
+people.forEach((p, i) => { pBody.setColorAt(i, new THREE.Color(['#8a6a48', '#d9ccb0', '#6b5a48', '#9c5a3c', '#5c6b7a', '#b8a888'][i % 6])); pCloth.setColorAt(i, new THREE.Color(['#e9e0cc', '#c9b48a', '#7a5a3a', '#a9442f'][i % 4])); });
+for (const m of [pBody, pHead, pCloth, pJar]) { m.castShadow = true; city.add(m); }
+function updatePeople(t) {
+  const step = Math.floor(t * 12), m = new THREE.Matrix4(), q = new THREE.Quaternion(), hide = new THREE.Matrix4().makeScale(0, 0, 0);
+  people.forEach((p, i) => {
+    const sway = Math.sin(step * 0.35 + i * 1.7) * 0.06; q.setFromEuler(new THREE.Euler(0, p.ry + sway, Math.sin(step * 0.5 + i) * 0.03));
+    m.compose(V(p.x, p.y + 0.06, p.z), q, V(1, 1, 1)); pBody.setMatrixAt(i, m);
+    m.compose(V(p.x, p.y + 0.145, p.z), q, V(1, 1, 1)); pHead.setMatrixAt(i, m);
+    m.compose(V(p.x, p.y + 0.15, p.z), q, V(1, 1, 1)); pCloth.setMatrixAt(i, m);
+    if (p.jar) { m.compose(V(p.x, p.y + 0.19, p.z), q, V(1, 1.2, 1)); pJar.setMatrixAt(i, m); } else pJar.setMatrixAt(i, hide);
+  });
+  for (const m of [pBody, pHead, pCloth, pJar]) m.instanceMatrix.needsUpdate = true;
+}
+city.add(new THREE.HemisphereLight('#bfd0f5', '#6a4a2a', 0.5));
+{ const sun = new THREE.DirectionalLight('#ffc27a', 4.0); sun.position.set(-9, 6, 3); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 }); sun.shadow.bias = -0.0004; city.add(sun); }
+
+// =====================================================================================
+// SHOTS 2–5 · the room
+// =====================================================================================
+const room = new THREE.Scene();
+room.background = new THREE.Color('#3a2a1f'); room.fog = new THREE.Fog('#3a2a1f', 10, 20);
+{
+  const c = document.createElement('canvas'); c.width = c.height = 1024; const g = c.getContext('2d');
+  g.fillStyle = '#4e3b2c'; g.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { const v = 150 + rand() * 40; g.fillStyle = `rgb(${v},${v * 0.8},${v * 0.62})`; g.beginPath(); g.roundRect(i * 128 + 6 + rand() * 4, j * 128 + 6 + rand() * 4, 114, 114, 18); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3); t.colorSpace = THREE.SRGBColorSpace;
+  const floor = mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshPhysicalMaterial({ map: t, bumpMap: t, bumpScale: 3, roughness: 0.85, sheen: 0.2 }), false); floor.rotation.x = -Math.PI / 2; room.add(floor);
+  // a woven rug before the throne
+  const rc = document.createElement('canvas'); rc.width = 256; rc.height = 384; const r = rc.getContext('2d');
+  r.fillStyle = '#8a2f24'; r.fillRect(0, 0, 256, 384); r.strokeStyle = '#d8b25a'; r.lineWidth = 10; r.strokeRect(14, 14, 228, 356);
+  r.fillStyle = '#2f4f6f'; for (let y = 60; y < 340; y += 56) { r.beginPath(); r.moveTo(128, y - 22); r.lineTo(156, y); r.lineTo(128, y + 22); r.lineTo(100, y); r.fill(); }
+  const rt = new THREE.CanvasTexture(rc); rt.colorSpace = THREE.SRGBColorSpace;
+  const rug = mesh(new RoundedBoxGeometry(1.3, 0.02, 1.9, 2, 0.008), new THREE.MeshPhysicalMaterial({ map: rt, roughness: 0.95, sheen: 0.6, sheenColor: new THREE.Color('#ffd0a0'), bumpMap: K.bump, bumpScale: 1.5 }), false);
+  rug.position.set(0.1, 0.012, 0.55); rug.rotation.y = -0.15; room.add(rug);
+}
+const wall = mesh(lumpy(new THREE.BoxGeometry(12, 6, 0.3, 60, 30, 2), 0.03, 1.5), C.wall, false); wall.position.set(0, 3, -1.9); room.add(wall);
+{
+  const s = new THREE.Shape(); s.moveTo(-0.45, 0); s.lineTo(-0.45, 1.1); s.absarc(0, 1.1, 0.45, Math.PI, 0, true); s.lineTo(0.45, 0); s.lineTo(-0.45, 0);
+  const win = new THREE.Mesh(new THREE.ShapeGeometry(s, 24), new THREE.MeshBasicMaterial({ color: '#ffdca8' })); win.position.set(-1.1, 1.9, -1.74); room.add(win);
+  for (const x of [-0.15, 0.15]) { const bar = mesh(lumpy(new THREE.CapsuleGeometry(0.035, 1.5, 4, 8), 0.01, 6), C.wood); bar.position.set(-1.1 + x, 2.65, -1.7); room.add(bar); }
+  for (const x of [-2.4, 2.4]) { const col = mesh(lumpy(new THREE.CylinderGeometry(0.26, 0.3, 6, 32, 30), 0.03, 2.5, 'radial'), C.wall); col.position.set(x, 3, -1.5); room.add(col); }
+  // cedar ceiling beams (Hiram's cedar, 2 Sam 5:11)
+  for (let i = 0; i < 6; i++) { const b = mesh(lumpy(new RoundedBoxGeometry(0.22, 0.2, 5, 2, 0.04), 0.01, 3), clay('#7a3b22')); b.position.set(-2.5 + i, 3.4, 0); room.add(b); }
+  // David's lyre leaning by the wall (1 Sam 16:23)
+  const lyre = new THREE.Group(); lyre.position.set(1.55, 0, -1.5); lyre.rotation.set(-0.15, -0.4, 0.05); room.add(lyre);
+  const lb = mesh(lumpy(new RoundedBoxGeometry(0.42, 0.22, 0.1, 2, 0.04), 0.008, 6), C.wood); lb.position.y = 0.11; lyre.add(lb);
+  for (const s of [-1, 1]) { const arm = mesh(lumpy(new THREE.CapsuleGeometry(0.025, 0.55, 4, 8), 0.004, 10), C.wood); arm.position.set(0.15 * s, 0.5, 0); arm.rotation.z = -0.15 * s; lyre.add(arm); }
+  const yoke = mesh(lumpy(new THREE.CapsuleGeometry(0.025, 0.45, 4, 8), 0.004, 10), C.wood); yoke.rotation.z = Math.PI / 2; yoke.position.y = 0.82; lyre.add(yoke);
+  for (let i = 0; i < 6; i++) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.6, 4), new THREE.MeshStandardMaterial({ color: '#e8dcc0' })); st.position.set(-0.1 + i * 0.04, 0.52, 0.03); lyre.add(st); }
+}
+// throne: wood with lion armrests (regional royal imagery: Megiddo ivory, 1 Kings 10:19–20)
+const kingG = new THREE.Group(); kingG.position.set(0.55, 0, -0.1); kingG.rotation.y = -0.25; room.add(kingG);
+{
+  const seat = mesh(lumpy(new RoundedBoxGeometry(1.0, 0.45, 0.72, 4, 0.06), 0.012, 3), C.wood); seat.position.set(0, 0.225, -0.05); kingG.add(seat);
+  const cushion = mesh(lumpy(new RoundedBoxGeometry(0.82, 0.1, 0.62, 3, 0.04), 0.01, 5), C.throne); cushion.position.set(0, 0.48, -0.04); kingG.add(cushion);
+  const back = mesh(lumpy(new RoundedBoxGeometry(1.0, 1.65, 0.16, 4, 0.06), 0.015, 2.5), C.wood); back.position.set(0, 1.05, -0.42); kingG.add(back);
+  const backPad = mesh(lumpy(new RoundedBoxGeometry(0.72, 1.1, 0.06, 3, 0.03), 0.01, 4), C.throne); backPad.position.set(0, 1.0, -0.33); kingG.add(backPad);
+  for (const s of [-1, 1]) {
+    const arm = mesh(lumpy(new RoundedBoxGeometry(0.13, 0.14, 0.66, 3, 0.04), 0.008, 5), C.wood); arm.position.set(0.47 * s, 0.68, -0.08); kingG.add(arm);
+    const lion = blob(0.09, C.gold, 0.008, 18); lion.position.set(0.47 * s, 0.74, 0.3); kingG.add(lion);
+    const mane = mesh(lumpy(new THREE.TorusGeometry(0.085, 0.035, 8, 20), 0.008, 12), clay('#a8742e')); mane.position.set(0.47 * s, 0.74, 0.27); kingG.add(mane);
+    const snout = blob(0.04, C.gold, 0.004, 12); snout.position.set(0.47 * s, 0.72, 0.38); kingG.add(snout);
+    const leg = mesh(lumpy(new THREE.CapsuleGeometry(0.045, 0.45, 4, 10), 0.006, 8), C.wood); leg.position.set(0.47 * s, 0.32, 0.28); kingG.add(leg);
+  }
+  const stool = mesh(lumpy(new RoundedBoxGeometry(0.6, 0.1, 0.3, 3, 0.03), 0.008, 5), C.wood); stool.position.set(0, 0.05, 0.45); kingG.add(stool);
+  for (const s of [-1, 1]) {
+    const thigh = mesh(lumpy(new THREE.CapsuleGeometry(0.1, 0.22, 6, 12), 0.008, 8), C.kingRobe); thigh.rotation.x = Math.PI / 2; thigh.position.set(0.13 * s, 0.57, 0.18); kingG.add(thigh);
+    const shin = mesh(lumpy(new THREE.CapsuleGeometry(0.09, 0.26, 6, 12), 0.008, 8), C.kingRobe); shin.position.set(0.13 * s, 0.33, 0.36); kingG.add(shin);
+    const foot = blob(0.08, C.wood, 0.006, 14); foot.scale.set(1, 0.6, 1.5); foot.position.set(0.13 * s, 0.13, 0.45); kingG.add(foot);
+  }
+}
+const king = K.character({ robeMat: C.kingRobe, robeH: 0.72, robeR: 0.33, hair: C.hairDark, crown: true, mantle: clay('#8b2c3a'), beard: [[0, -0.29, 0.12, 0.1], [0.1, -0.24, 0.12, 0.075], [-0.1, -0.24, 0.12, 0.075]] });
+king.g.position.y = 0.5; kingG.add(king.g);
+const [kL, kR] = king.P.arms;
+const nathan = K.character({ robeMat: clay('#cdb48e'), robeH: 1.12, robeR: 0.36, hair: C.hairGray, mustache: true, mantle: clay('#7a5a3c'),
+  beard: [[0, -0.31, 0.15, 0.13], [0.11, -0.25, 0.15, 0.09], [-0.11, -0.25, 0.15, 0.09], [0, -0.42, 0.11, 0.1]] });
+nathan.g.position.set(-0.55, 0, 0.3); nathan.g.rotation.y = 0.5; room.add(nathan.g);
+const [nL, nR] = nathan.P.arms;
+// the parable as a paper cutout
+const memMat = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  g.beginPath(); for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2, r = 228 + (rand() - 0.5) * 14; g[i ? 'lineTo' : 'moveTo'](256 + Math.cos(a) * r, 256 + Math.sin(a) * r); }
+  g.closePath(); g.fillStyle = '#efe1c2'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#4a3020'; g.stroke();
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 6; g.strokeStyle = '#2e1d12';
+  g.beginPath(); g.moveTo(80, 405); g.quadraticCurveTo(256, 385, 430, 405); g.stroke();
+  g.fillStyle = '#9a7650'; g.beginPath(); g.moveTo(180, 400); g.lineTo(212, 250); g.lineTo(262, 250); g.lineTo(290, 400); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#d6a074'; g.beginPath(); g.arc(237, 212, 36, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#fbf6ea'; for (const [x, y, r] of [[300, 290, 30], [328, 280, 26], [276, 280, 24], [302, 262, 24], [326, 304, 22]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke(); }
+  g.fillStyle = '#2e1d12'; g.beginPath(); g.ellipse(360, 270, 17, 13, 0.3, 0, 7); g.fill();
+  g.beginPath(); g.moveTo(258, 300); g.quadraticCurveTo(300, 330, 330, 300); g.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+})();
+const memory = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.0), memMat); memory.position.set(-0.1, 2.15, 0.6); room.add(memory);
+room.add(new THREE.HemisphereLight('#ffe7cc', '#3a281c', 0.55));
+{
+  const key = new THREE.SpotLight('#fff0dc', 70, 14, Math.PI / 5, 0.9, 1.5); key.position.set(-2.2, 3.8, 3.8); key.target.position.set(0.1, 1.0, 0);
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0003; room.add(key, key.target);
+  const sun = new THREE.SpotLight('#ffc77a', 140, 14, Math.PI / 8, 0.7, 1.6); sun.position.set(-2.4, 4.4, -3.4); sun.target.position.set(0.2, 0, 0.6);
+  sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); room.add(sun, sun.target);
+  const rim = new THREE.DirectionalLight('#9ab8ff', 0.9); rim.position.set(3, 3, -3); room.add(rim);
+  const from = V(-1.1, 2.4, -1.7), to = V(0.25, 0, 0.7), len = from.distanceTo(to);
+  for (const [r1, r2, op] of [[0.4, 0.95, 0.06], [0.25, 0.65, 0.05]]) {
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, len, 24, 1, true), new THREE.MeshBasicMaterial({ color: '#ffcf8a', transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    shaft.position.copy(from).lerp(to, 0.5); shaft.quaternion.setFromUnitVectors(V(0, -1, 0), to.clone().sub(from).normalize()); room.add(shaft);
+  }
+}
+
+// =====================================================================================
+// post
+// =====================================================================================
+const composer = new EffectComposer(renderer); composer.setSize(W, H);
+const renderPass = new RenderPass(city, camera); composer.addPass(renderPass);
+const bokeh = new BokehPass(city, camera, { focus: 6, aperture: 0.0022, maxblur: 0.006 }); composer.addPass(bokeh);
+composer.addPass(new OutputPass());
+const useScene = s => { renderPass.scene = s; bokeh.scene = s; };
+
+// =====================================================================================
+// direction
+// =====================================================================================
+function act(t) {
+  const ts = K.stepTime(t);
+  // ---- Nathan: tells the story with his hands, steps in, says the line, holds still ----
+  const telling = ramp(ts, 3.6, 3.9) * (1 - ramp(ts, 7.6, 7.9)), cup = ramp(ts, 5.0, 5.4) * (1 - ramp(ts, 7.3, 7.7));
+  const explain = Math.sin(ts * 3.1) * 0.12 * telling * (1 - cup);
+  nR.pose({ fwd: lerp(0.1, 0.55, telling) + lerp(0, 0.05, cup) + explain, out: lerp(0.12, 0.35, telling * (1 - cup)) + lerp(0, -0.25, cup), bend: lerp(0.15, 1.0, telling) + 0.35 * cup, twist: 0.3 * cup });
+  nL.pose({ fwd: lerp(0.35, 0.6, cup), out: lerp(0.18, -0.2, cup), bend: lerp(0.45, 1.35, cup), twist: -0.3 * cup });
+  const lean = ramp(ts, 5.0, 5.6) * (1 - ramp(ts, 7.5, 8));
+  nathan.g.rotation.x = 0.06 * lean;
+  const pointK = ramp(ts, 10.6, 11.0);
+  if (ts > 10.4) { nR.pose({ fwd: lerp(0.3, -1.2, pointK), out: lerp(0.3, 2.0, pointK), bend: lerp(0.6, 0.05, pointK), point: pointK > 0.5 }); /* up and across, at David's face */ nL.pose({ fwd: 0.2, out: 0.15, bend: 0.3 }); }
+  nathan.g.position.x = -0.55 + 0.05 * ramp(ts, 10.3, 10.6);
+  const nTalk = (ts > 3.6 && ts < 7.6) ? nathan.P.talk(ts, 0.8) : (ts > 10.7 && ts < 11.6) ? nathan.P.talk(ts, 0.55) : 0;
+  nathan.P.express({ lid: lerp(0.4, 0.15, ramp(ts, 10.2, 10.6)), open: nTalk, sad: 0.25 * ramp(ts, 11.6, 12.2), lookX: 0.6, lookY: -0.1 });
+  nathan.P.head.rotation.y = 0.25 + 0.12 * Math.sin(ts * 1.3) * telling;
+  nathan.P.head.rotation.x = 0.08 * cup;
+  // ---- David: comfortable → drawn in → anger and judgement → frozen → the anger drains ----
+  const drawnIn = ramp(ts, 4.2, 6.5), anger = ramp(ts, 7.9, 8.4) * (1 - ramp(ts, 12.8, 13.8)), judge = ramp(ts, 8.4, 8.8) * (1 - ramp(ts, 10.9, 11.7)); // the arm freezes, then drops as the line lands
+  const fist = ramp(ts, 8.1, 8.4) * (1 - ramp(ts, 8.6, 8.8)), drain = ramp(ts, 12.9, 14.6), bow = ramp(ts, 14.0, 15.2);
+  kingG.position.y = 0;
+  king.g.rotation.x = 0.06 * drawnIn + 0.12 * anger - 0.08 * drain;
+  king.g.position.y = 0.5 - 0.03 * drain;
+  // judges with the hand nearest Nathan; the other fist clenches on the lion armrest
+  kL.pose({ fwd: lerp(lerp(0.55, 1.2, fist), 1.1, judge) * (1 - drain) + 0.55 * drain, out: lerp(0.28, 0.6, judge) * (1 - drain) + 0.28 * drain, bend: lerp(lerp(0.75, 1.5, fist), 0.1, judge) * (1 - drain) + 0.75 * drain, point: judge > 0.5 && drain < 0.5 });
+  kR.pose({ fwd: 0.55 + 0.15 * anger, out: 0.28, bend: 0.75 + 0.3 * anger });
+  const dTalk = (ts > 8.1 && ts < 10.2) ? king.P.talk(ts, 1) : 0;
+  king.P.express({ lid: lerp(0.5, 0.35, drawnIn) + 0.45 * bow, anger, sad: 0.8 * drain, open: Math.max(dTalk, 0.18 * ramp(ts, 12.3, 12.6) * (1 - drain)), lookX: -0.5 * (1 - bow), lookY: -0.9 * bow });
+  king.P.head.rotation.x = -0.05 * ramp(ts, 12.2, 12.5) * (1 - drain) + 0.32 * bow;
+  king.P.head.rotation.z = 0.06 * drawnIn * (1 - anger);
+  const mi = ramp(ts, 4.6, 5.1) * (1 - ramp(ts, 7.2, 7.6)); memMat.opacity = mi; memory.rotation.z = 0.04 * Math.sin(ts * 3); memory.position.y = 2.15 + 0.03 * Math.sin(ts * 2);
+  // breathing + boil
+  const br = Math.sin(ts * 2.2) * 0.01; king.P.body.scale.y = 1 + br; nathan.P.body.scale.y = 1 - br;
+  kingG.rotation.z = 0.003 * K.boil(t, 1); nathan.g.rotation.z = 0.003 * K.boil(t, 2);
+}
+function update(t) {
+  let pos, tgt, focusPt, aperture = 0.0022, maxblur = 0.006;
+  if (t < S[1]) {
+    useScene(city); updatePeople(t);
+    const k = ease(t / S[1]);
+    pos = V(7.5, 5.8, 8.5).lerp(V(4.4, 3.8, 2.7), k); tgt = V(0, 1.0, 0).lerp(V(0.2, 1.75, -2.7), k);
+    focusPt = V(0.2, 1.8, -2.6); aperture = 0.004; maxblur = 0.01;
+  } else {
+    useScene(room); act(t);
+    const k = (a, b) => (t - a) / (b - a);
+    if (t < S[2]) { const u = k(S[1], S[2]); pos = V(-0.3, 1.65, 6.4).lerp(V(0.35, 1.55, 5.7), u); tgt = V(0, 1.3, 0); focusPt = V(0, 1.2, 0.1); }
+    else if (t < S[3]) { const u = k(S[2], S[3]); pos = V(1.75, 1.5, 2.75).lerp(V(1.5, 1.5, 2.45), u); tgt = V(0.25, 1.25, 0); focusPt = V(0.55, 1.35, 0); }
+    else if (t < S[4]) { const u = k(S[3], S[4]); pos = V(0.2, 1.5, 4.3).lerp(V(0.05, 1.5, 3.95), u); tgt = V(-0.1, 1.3, 0.2); focusPt = V(-0.45, 1.35, 0.3); }
+    else { const u = k(S[4], S[5]); pos = V(0.85, 1.52, 2.35).lerp(V(0.68, 1.48, 2.0), u); tgt = V(0.5, 1.38, 0); focusPt = V(0.52, 1.4, 0.05); }
+  }
+  if (window.CAM) { pos = V(...window.CAM[0]); tgt = V(...window.CAM[1]); }
+  camera.position.copy(pos); camera.lookAt(tgt);
+  bokeh.uniforms.focus.value = camera.position.distanceTo(focusPt); bokeh.uniforms.aperture.value = aperture; bokeh.uniforms.maxblur.value = maxblur;
+}
+const out = document.getElementById('out'), o = out.getContext('2d');
+function caption(t) {
+  if (t < 1.7) return 'Around 1000 BC,'; if (t < S[1]) return 'a prophet went to the king';
+  if (t < S[2]) return 'with a story about\na stolen lamb.';
+  if (t < S[3]) return '"The man that hath done\nthis thing shall surely die."';
+  if (t < S[4] + 0.6) return '"Thou art the man."';
+  return '';
+}
+window.drawFrame = (t) => {
+  update(t); composer.render();
+  o.drawImage(renderer.domElement, 0, 0, W, H);
+  const g = o.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.78); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.45)');
+  o.fillStyle = g; o.fillRect(0, 0, W, H);
+  o.textAlign = 'center'; o.font = '600 58px Georgia, serif'; o.lineJoin = 'round';
+  caption(t).split('\n').forEach((line, i) => { if (!line) return; const y = 1680 + i * 72; o.lineWidth = 9; o.strokeStyle = 'rgba(10,6,4,0.85)'; o.strokeText(line, W / 2, y); o.fillStyle = '#f7ead2'; o.fillText(line, W / 2, y); });
+  return out.toDataURL('image/jpeg', 0.9);
+};
+window.DURATION = DURATION; window.STRIP = [10, 70, 150, 205, 265, 300, 375];
+window.READY = true;
+</script></body></html>
