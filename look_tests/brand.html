@@ -75,7 +75,7 @@ if (DIR === 'char') {
   scene.background = gradientBG('#f2b867', '#c86f3a');
   lights();
   const p = preacher(); scene.add(p.root); p.setFace({ lid: 0.2, look: [0.25, 0.05] }); p.setHead({ turn: -0.08, tilt: 0.03 });
-  p.setArm('R', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5 }); p.setArm('L', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5, twist: 0.3 }); p.solve();
+  p.setArm('R', { fwd: 0.1, out: 0.13, bend: 0.2, curl: 0.45 }); p.setArm('L', { fwd: 0.1, out: 0.13, bend: 0.2, curl: 0.45 }); p.solve(); /* arms resting at his sides */
   const s = sun(0.55); s.position.set(0, 1.95, -1.4); scene.add(s);
   if (KIND === 'pfp') { camera.fov = 26; camera.position.set(0.05, 1.82, 3.3); camera.lookAt(0, 1.72, 0); }
   else {
