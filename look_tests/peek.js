@@ -9,6 +9,6 @@ const s = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split('?
   await p.goto(`http://127.0.0.1:${s.address().port}/${PAGE}`); if (process.env.CAM) await p.evaluate(c => window.CAM = JSON.parse(c), process.env.CAM); await p.waitForFunction(() => window.READY, null, { timeout: 120000 });
   const files = [];
   for (const t of TIMES) { const d = await p.evaluate(t => window.drawFrame(t), t); const f = path.join(OUT, `${NAME}_${t}.jpg`); fs.writeFileSync(f, Buffer.from(d.split(',')[1], 'base64')); files.push(f); }
-  execFileSync('ffmpeg', ['-y', '-v', 'error', ...files.flatMap(f => ['-i', f]), '-filter_complex', files.map((_, i) => `[${i}]`).join('') + `hstack=inputs=${files.length},scale=${300 * files.length}:-1`, path.join(OUT, `${NAME}_strip.jpg`)]);
+  execFileSync('ffmpeg', ['-y', '-v', 'error', ...files.flatMap(f => ['-i', f]), '-filter_complex', files.map((_, i) => `[${i}]`).join('') + (files.length > 1 ? `hstack=inputs=${files.length},` : `null,`) + `scale=${300 * files.length}:-1`, path.join(OUT, `${NAME}_strip.jpg`)]);
   await b.close(); s.close(); console.log('ok');
 });

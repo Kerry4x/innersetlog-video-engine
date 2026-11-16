@@ -1,0 +1,289 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Look test v6: look development</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Look test v6: look development on the throne-room shots. Goals from Kerry's notes:
+// characters less stiff, no eyelid glitches, a world with real detail, a handmade clay feel.
+// New: kit v2 (mottled clay, thumbprints, folds, sculpted hair, rolled lids, fingers, blinks),
+// ambient occlusion, soft shadows, practical lamp light, film grain, a dressed set.
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { createKit } from './kit/clay-kit.js';
+
+const W = 1080, H = 1920, T0 = 3.5, DURATION = 12.5; // this file covers the room shots of the 16 s beat
+const S = [3.5, 7.8, 10.4, 12.2, 16];
+const K = createKit(12345), { C, mesh, blob, lumpy, clay, rand, props, lathe } = K;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = new URLSearchParams(location.search).has('pcf') ? THREE.PCFSoftShadowMap : THREE.VSMShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const camera = new THREE.PerspectiveCamera(34, W / H, 0.05, 60);
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const ramp = (t, a, b) => ease((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+
+const room = new THREE.Scene();
+room.background = new THREE.Color('#2a1d15'); room.fog = new THREE.Fog('#2a1d15', 9, 18);
+
+// ---------- textures: coursed stone with plaster, floor slabs ----------
+function stoneTex(base, mortar, rows = 9, plaster = true) {
+  const c = document.createElement('canvas'), b = document.createElement('canvas'); c.width = c.height = b.width = b.height = 1024;
+  const g = c.getContext('2d'), h = b.getContext('2d'); g.fillStyle = mortar; g.fillRect(0, 0, 1024, 1024); h.fillStyle = '#303030'; h.fillRect(0, 0, 1024, 1024);
+  const bc = new THREE.Color(base); let y = 0;
+  for (let r = 0; r < rows; r++) {
+    const rh = 1024 / rows; let x = -rand() * 80;
+    while (x < 1024) { const w = 90 + rand() * 140, v = 0.85 + rand() * 0.25, cc = bc.clone().multiplyScalar(v);
+      g.fillStyle = `#${cc.getHexString()}`; g.beginPath(); g.roundRect(x + 4, y + 4, w - 8, rh - 8, 14); g.fill();
+      h.fillStyle = `rgb(${170 + rand() * 60 | 0},${170 + rand() * 60 | 0},${170 + rand() * 60 | 0})`; h.beginPath(); h.roundRect(x + 5, y + 5, w - 10, rh - 10, 16); h.fill(); x += w; }
+    y += rh;
+  }
+  if (plaster) for (let i = 0; i < 14; i++) { const px = rand() * 1024, py = rand() * 1024, pr = 60 + rand() * 160;
+    const gr = g.createRadialGradient(px, py, 0, px, py, pr); gr.addColorStop(0, 'rgba(214,190,152,0.75)'); gr.addColorStop(0.7, 'rgba(214,190,152,0.5)'); gr.addColorStop(1, 'rgba(214,190,152,0)'); g.fillStyle = gr; g.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+    const gh = h.createRadialGradient(px, py, 0, px, py, pr); gh.addColorStop(0, 'rgba(200,200,200,0.8)'); gh.addColorStop(1, 'rgba(200,200,200,0)'); h.fillStyle = gh; h.fillRect(px - pr, py - pr, pr * 2, pr * 2); }
+  const map = new THREE.CanvasTexture(c), bm = new THREE.CanvasTexture(b); map.colorSpace = THREE.SRGBColorSpace;
+  for (const t of [map, bm]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; }
+  return { map, bm };
+}
+const wallT = stoneTex('#b48f68', '#5e4834', 10), floorT = stoneTex('#a88a68', '#4a3828', 7, false);
+wallT.map.repeat.set(3, 1.6); wallT.bm.repeat.copy(wallT.map.repeat); floorT.map.repeat.set(2.5, 2.5); floorT.bm.repeat.copy(floorT.map.repeat);
+const wallMat = clay('#ffffff', { map: wallT.map, bumpMap: wallT.bm, bumpScale: 6, mottle: 0.1, mfreq: 2 });
+const floorMat = clay('#ffffff', { map: floorT.map, bumpMap: floorT.bm, bumpScale: 5, mottle: 0.1, mfreq: 2 });
+{ const floor = mesh(new THREE.PlaneGeometry(12, 12), floorMat, false); floor.rotation.x = -Math.PI / 2; room.add(floor); }
+{ const wall = mesh(lumpy(new THREE.BoxGeometry(12, 6, 0.3, 60, 30, 2), 0.02, 1.5), wallMat, false); wall.position.set(0, 3, -1.9); room.add(wall);
+  const side = mesh(lumpy(new THREE.BoxGeometry(0.3, 6, 8, 2, 30, 40), 0.02, 1.5), wallMat, false); side.position.set(-3.2, 3, 2); room.add(side); }
+// window + bars, columns, cedar beams
+{
+  const s = new THREE.Shape(); s.moveTo(-0.45, 0); s.lineTo(-0.45, 1.1); s.absarc(0, 1.1, 0.45, Math.PI, 0, true); s.lineTo(0.45, 0); s.lineTo(-0.45, 0);
+  const win = new THREE.Mesh(new THREE.ShapeGeometry(s, 24), new THREE.MeshBasicMaterial({ color: '#ffe2b4' })); win.position.set(-1.1, 1.9, -1.74); room.add(win);
+  const sill = mesh(lumpy(new RoundedBoxGeometry(1.1, 0.1, 0.25, 2, 0.03), 0.008, 5), C.stoneLight); sill.position.set(-1.1, 1.85, -1.68); room.add(sill);
+  for (const x of [-0.15, 0.15]) { const bar = mesh(lumpy(new THREE.CapsuleGeometry(0.035, 1.5, 4, 8), 0.008, 6), C.wood); bar.position.set(-1.1 + x, 2.65, -1.7); room.add(bar); }
+  for (const x of [-2.4, 2.4]) { const col = lathe([[0, 0], [0.36, 0], [0.36, 0.16], [0.3, 0.2], [0.29, 5.6], [0.34, 5.7], [0.34, 6], [0, 6]], wallMat, { seg: 40, lump: 0.01 }); col.position.set(x, 0, -1.5); room.add(col); }
+  for (let i = 0; i < 6; i++) { const b = mesh(lumpy(new RoundedBoxGeometry(0.22, 0.2, 5, 2, 0.04), 0.008, 3), clay('#7a3b22', { mottle: 0.2 })); b.position.set(-2.5 + i, 3.4, 0); room.add(b); }
+}
+// wall niches with pottery
+for (const [x, y] of [[1.35, 1.45], [2.0, 1.45]]) {
+  const niche = mesh(new THREE.BoxGeometry(0.42, 0.5, 0.12), new THREE.MeshStandardMaterial({ color: '#2b1e15', roughness: 1 }), false); niche.position.set(x, y, -1.74); room.add(niche);
+  const j = props.jar(0.28, rand() < 0.5 ? C.terra : C.terraDark); j.position.set(x, y - 0.24, -1.72); room.add(j);
+}
+// woven hanging behind the throne
+{
+  const c = document.createElement('canvas'); c.width = 256; c.height = 512; const g = c.getContext('2d');
+  g.fillStyle = '#6b2430'; g.fillRect(0, 0, 256, 512);
+  for (let y = 0; y < 512; y += 64) { g.fillStyle = '#c99a3a'; g.fillRect(0, y + 26, 256, 10); g.fillStyle = '#2d4a6a'; for (let x = 16; x < 256; x += 48) { g.beginPath(); g.moveTo(x, y + 8); g.lineTo(x + 16, y + 22); g.lineTo(x, y + 36); g.lineTo(x - 16, y + 22); g.fill(); } }
+  for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(0,0,0,${rand() * 0.12})`; g.fillRect(rand() * 256, rand() * 512, 2, 1); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const geo = new THREE.PlaneGeometry(1.1, 2.0, 40, 40), p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i); p.setZ(i, 0.025 * Math.sin(x * 18 + K.fbm(x * 3, y, 0) * 2) * (0.4 + 0.6 * (1 - (y + 1) / 2))); }
+  geo.computeVertexNormals();
+  const hang = mesh(geo, clay('#ffffff', { map: t, bumpScale: 1.5, mottle: 0.08, side: THREE.DoubleSide })); hang.position.set(0.55, 1.75, -1.72); room.add(hang);
+  const rod = mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.3, 10), C.wood); rod.rotation.z = Math.PI / 2; rod.position.set(0.55, 2.77, -1.7); room.add(rod);
+}
+// rug
+{
+  const rc = document.createElement('canvas'); rc.width = 256; rc.height = 384; const r = rc.getContext('2d');
+  r.fillStyle = '#8a2f24'; r.fillRect(0, 0, 256, 384); r.strokeStyle = '#d8b25a'; r.lineWidth = 10; r.strokeRect(14, 14, 228, 356);
+  r.fillStyle = '#2f4f6f'; for (let y = 60; y < 340; y += 56) { r.beginPath(); r.moveTo(128, y - 22); r.lineTo(156, y); r.lineTo(128, y + 22); r.lineTo(100, y); r.fill(); }
+  for (let i = 0; i < 5000; i++) { r.fillStyle = `rgba(0,0,0,${rand() * 0.1})`; r.fillRect(rand() * 256, rand() * 384, 2, 1); }
+  const rt = new THREE.CanvasTexture(rc); rt.colorSpace = THREE.SRGBColorSpace;
+  const rug = mesh(lumpy(new RoundedBoxGeometry(1.3, 0.02, 1.9, 2, 0.008), 0.004, 4), clay('#ffffff', { map: rt, bumpScale: 1.6, mottle: 0.06 }), false);
+  rug.position.set(0.1, 0.012, 0.55); rug.rotation.y = -0.15; room.add(rug);
+}
+// storage jars, a basket of figs, bread on a low table, floor cushions
+{
+  for (const [x, z, h] of [[1.85, -1.25, 0.75], [2.15, -1.05, 0.62], [1.6, -1.45, 0.55]]) { const j = props.jar(h); j.position.set(x, 0, z); j.rotation.y = rand() * 6; room.add(j); }
+  const table = mesh(lumpy(new RoundedBoxGeometry(0.75, 0.06, 0.45, 2, 0.02), 0.006, 6), C.wood); table.position.set(-1.75, 0.34, -0.8); room.add(table);
+  for (const [x, z] of [[-0.3, -0.18], [0.3, -0.18], [-0.3, 0.18], [0.3, 0.18]]) { const l = mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.32, 8), C.wood); l.position.set(-1.75 + x, 0.16, -0.8 + z); room.add(l); }
+  const bk = props.basket(); bk.position.set(-1.9, 0.37, -0.82); room.add(bk);
+  for (const [x, z] of [[-1.55, -0.75], [-1.5, -0.9]]) { const b = props.bread(); b.position.set(x, 0.39, z); b.rotation.y = rand() * 3; room.add(b); }
+  const bowl = props.bowl(0.09); bowl.position.set(-1.62, 0.37, -0.62); room.add(bowl);
+  for (const [x, z, m] of [[-2.3, -1.2, C.throne], [-2.7, -0.7, clay('#2d4a6a')]]) { const c = props.cushion(0.55, m); c.position.set(x, 0.09, z); c.rotation.y = rand(); room.add(c); }
+  const lyre = new THREE.Group(); lyre.position.set(1.4, 0, -1.35); lyre.rotation.set(-0.15, -0.4, 0.05); room.add(lyre);
+  const lb = mesh(lumpy(new RoundedBoxGeometry(0.42, 0.22, 0.1, 2, 0.04), 0.006, 6), C.wood); lb.position.y = 0.11; lyre.add(lb);
+  for (const s of [-1, 1]) { const arm = mesh(lumpy(new THREE.CapsuleGeometry(0.025, 0.55, 4, 8), 0.004, 10), C.wood); arm.position.set(0.15 * s, 0.5, 0); arm.rotation.z = -0.15 * s; lyre.add(arm); }
+  const yoke = mesh(lumpy(new THREE.CapsuleGeometry(0.025, 0.45, 4, 8), 0.004, 10), C.wood); yoke.rotation.z = Math.PI / 2; yoke.position.y = 0.82; lyre.add(yoke);
+  for (let i = 0; i < 6; i++) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.6, 4), new THREE.MeshStandardMaterial({ color: '#e8dcc0' })); st.position.set(-0.1 + i * 0.04, 0.52, 0.03); lyre.add(st); }
+}
+// oil lamps on stands either side of the throne: practical light that flickers on 2s
+const lamps = [];
+for (const [x, z] of [[-0.25, -0.75], [1.45, -0.6]]) {
+  const stand = lathe([[0, 0], [0.16, 0], [0.12, 0.06], [0.04, 0.1], [0.035, 1.05], [0.12, 1.1], [0.12, 1.14], [0, 1.14]], C.wood, { seg: 24, lump: 0.006 }); stand.position.set(x, 0, z); room.add(stand);
+  const l = props.lamp(); l.position.set(x, 1.14, z); room.add(l);
+  const pl = new THREE.PointLight('#ffb35c', 2.2, 4.5, 1.6); pl.position.set(x + 0.06, 1.25, z); room.add(pl); lamps.push({ l, pl });
+}
+
+// ---------- throne ----------
+const kingG = new THREE.Group(); kingG.position.set(0.55, 0, -0.1); kingG.rotation.y = -0.25; room.add(kingG);
+{
+  const seat = mesh(lumpy(new RoundedBoxGeometry(1.0, 0.45, 0.72, 4, 0.06), 0.01, 3), C.wood); seat.position.set(0, 0.225, -0.05); kingG.add(seat);
+  const cushion = props.cushion(0.85, C.throne); cushion.position.set(0, 0.5, -0.04); kingG.add(cushion);
+  const back = mesh(lumpy(new RoundedBoxGeometry(1.0, 1.65, 0.16, 4, 0.06), 0.012, 2.5), C.wood); back.position.set(0, 1.05, -0.42); kingG.add(back);
+  const backPad = mesh(lumpy(new RoundedBoxGeometry(0.72, 1.1, 0.06, 3, 0.03), 0.008, 4), C.throne); backPad.position.set(0, 1.0, -0.33); kingG.add(backPad);
+  for (const s of [-1, 1]) {
+    const arm = mesh(lumpy(new RoundedBoxGeometry(0.13, 0.14, 0.66, 3, 0.04), 0.006, 5), C.wood); arm.position.set(0.47 * s, 0.68, -0.08); kingG.add(arm);
+    const lion = blob(0.09, C.gold, 0.008, 20); lion.position.set(0.47 * s, 0.74, 0.3); kingG.add(lion);
+    const mane = mesh(K.grooves(new THREE.TorusGeometry(0.085, 0.04, 12, 28), 0.006, 20), clay('#a8742e')); mane.position.set(0.47 * s, 0.74, 0.27); kingG.add(mane);
+    const snout = blob(0.04, C.gold, 0.004, 12); snout.position.set(0.47 * s, 0.72, 0.38); kingG.add(snout);
+    for (const e of [-1, 1]) { const eye = blob(0.012, C.pupil, 0.001, 8); eye.position.set(0.47 * s + 0.03 * e, 0.78, 0.375); kingG.add(eye); }
+    const leg = mesh(lumpy(new THREE.CapsuleGeometry(0.045, 0.45, 4, 10), 0.006, 8), C.wood); leg.position.set(0.47 * s, 0.32, 0.28); kingG.add(leg);
+  }
+  const stool = mesh(lumpy(new RoundedBoxGeometry(0.6, 0.1, 0.3, 3, 0.03), 0.006, 5), C.wood); stool.position.set(0, 0.05, 0.45); kingG.add(stool);
+  for (const s of [-1, 1]) {
+    const thigh = lathe([[0, -0.2], [0.11, -0.18], [0.115, 0.05], [0.1, 0.2], [0, 0.22]], C.kingRobe, { seg: 40, lump: 0.005, fold: 0.004, nFold: 7 }); thigh.rotation.x = Math.PI / 2; thigh.position.set(0.13 * s, 0.57, 0.18); kingG.add(thigh);
+    const shin = lathe([[0, -0.18], [0.1, -0.16], [0.095, 0.12], [0.085, 0.16], [0, 0.17]], C.kingRobe, { seg: 40, lump: 0.005, fold: 0.004, nFold: 7 }); shin.position.set(0.13 * s, 0.33, 0.36); kingG.add(shin);
+    const foot = blob(0.08, C.wood, 0.006, 16); foot.scale.set(1, 0.6, 1.5); foot.position.set(0.13 * s, 0.13, 0.45); kingG.add(foot);
+  }
+}
+const king = K.character({ robeMat: C.kingRobe, robeH: 0.72, robeR: 0.33, hair: C.hairDark, hairBand: [0.0, 0.6], crown: true, mantle: clay('#8b2c3a'),
+  beardMass: { y: -0.25, r: 0.15, sx: 1.15, sy: 0.85, sz: 0.75, z: 0.12 } });
+king.g.position.y = 0.5; kingG.add(king.g);
+const [kL, kR] = king.P.arms;
+const nathan = K.character({ robeMat: clay('#cdb48e'), robeH: 1.12, robeR: 0.36, hair: C.hairGray, hairBand: [0.36, 0.26], mustache: true, mantle: clay('#7a5a3c'),
+  beardMass: { y: -0.29, r: 0.165, sx: 1.1, sy: 1.15, sz: 0.8, z: 0.12 } });
+nathan.g.position.set(-0.55, 0, 0.3); nathan.g.rotation.y = 0.5; room.add(nathan.g);
+const [nL, nR] = nathan.P.arms;
+const staff = lathe([[0, 0], [0.03, 0], [0.032, 0.9], [0.028, 1.7], [0.04, 1.75], [0, 1.78]], C.wood, { seg: 12, lump: 0.006 }); staff.position.set(-0.95, 0, 0.45); staff.rotation.z = 0.04; room.add(staff);
+
+// the parable: a paper cutout
+const memMat = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  g.beginPath(); for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2, r = 228 + (rand() - 0.5) * 14; g[i ? 'lineTo' : 'moveTo'](256 + Math.cos(a) * r, 256 + Math.sin(a) * r); }
+  g.closePath(); g.fillStyle = '#efe1c2'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#4a3020'; g.stroke();
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 6; g.strokeStyle = '#2e1d12';
+  g.beginPath(); g.moveTo(80, 405); g.quadraticCurveTo(256, 385, 430, 405); g.stroke();
+  g.fillStyle = '#9a7650'; g.beginPath(); g.moveTo(180, 400); g.lineTo(212, 250); g.lineTo(262, 250); g.lineTo(290, 400); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#d6a074'; g.beginPath(); g.arc(237, 212, 36, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#fbf6ea'; for (const [x, y, r] of [[300, 290, 30], [328, 280, 26], [276, 280, 24], [302, 262, 24], [326, 304, 22]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke(); }
+  g.fillStyle = '#2e1d12'; g.beginPath(); g.ellipse(360, 270, 17, 13, 0.3, 0, 7); g.fill();
+  g.beginPath(); g.moveTo(258, 300); g.quadraticCurveTo(300, 330, 330, 300); g.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+})();
+const memory = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.0), memMat); memory.position.set(-0.1, 2.2, 0.6); room.add(memory);
+
+// ---------- light ----------
+room.add(new THREE.HemisphereLight('#ffe2c0', '#2a1c12', 0.35));
+{
+  const key = new THREE.SpotLight('#fff0dc', 55, 14, Math.PI / 5, 0.9, 1.5); key.position.set(-2.2, 3.8, 3.8); key.target.position.set(0.1, 1.0, 0);
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 7; key.shadow.blurSamples = 16; key.shadow.bias = -0.0004; room.add(key, key.target);
+  const sun = new THREE.SpotLight('#ffc77a', 150, 14, Math.PI / 8, 0.7, 1.6); sun.position.set(-2.4, 4.4, -3.4); sun.target.position.set(0.2, 0, 0.6);
+  sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.radius = 4; sun.shadow.blurSamples = 12; room.add(sun, sun.target);
+  const rim = new THREE.DirectionalLight('#9ab8ff', 0.8); rim.position.set(3, 3, -3); room.add(rim);
+  const from = V(-1.1, 2.4, -1.7), to = V(0.25, 0, 0.7), len = from.distanceTo(to);
+  // soft god ray: fades at both ends and toward its silhouette, so it never shows a hard edge
+  const rayMat = op => new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    uniforms: { color: { value: new THREE.Color('#ffcf8a') }, op: { value: op } },
+    vertexShader: 'varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform vec3 color; uniform float op; varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(abs(dot(vN, vV)), 2.0); float a = op * f * smoothstep(0.0, 0.45, vUv.y) * smoothstep(1.0, 0.75, vUv.y); gl_FragColor = vec4(color * a, a); }' });
+  for (const [r1, r2, op] of [[0.4, 0.95, 0.09], [0.25, 0.65, 0.08]]) {
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, len, 48, 1, true), rayMat(op));
+    shaft.position.copy(from).lerp(to, 0.5); shaft.quaternion.setFromUnitVectors(V(0, -1, 0), to.clone().sub(from).normalize()); room.add(shaft);
+  }
+}
+const dust = (() => {
+  const N = 350, pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { const k = rand(); pos[i * 3] = lerp(-1.1, 0.25, k) + (rand() - 0.5) * 0.8; pos[i * 3 + 1] = lerp(2.4, 0.1, k); pos[i * 3 + 2] = lerp(-1.7, 0.7, k) + (rand() - 0.5) * 0.8; }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const p = new THREE.Points(geo, new THREE.PointsMaterial({ color: '#ffe2b0', size: 0.01, transparent: true, opacity: 0.55, depthWrite: false })); room.add(p); return p;
+})();
+
+// ---------- post: contact shadows (GTAO), depth of field ----------
+const composer = new EffectComposer(renderer); composer.setSize(W, H);
+composer.addPass(new RenderPass(room, camera));
+const ao = new GTAOPass(room, camera, W, H); ao.output = GTAOPass.OUTPUT.Default; ao.blendIntensity = 1.0;
+ao.updateGtaoMaterial({ radius: 0.35, distanceExponent: 1.5, thickness: 1.2, scale: 1.2, samples: 16, distanceFallOff: 1 });
+ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+if (!new URLSearchParams(location.search).has('noao')) composer.addPass(ao);
+const bokeh = new BokehPass(room, camera, { focus: 4, aperture: 0.0022, maxblur: 0.006 }); composer.addPass(bokeh);
+composer.addPass(new OutputPass());
+
+// ---------- acting (2 Samuel 12) ----------
+function act(t) {
+  const ts = K.stepTime(t), back = K.back;
+  // NATHAN — tells, cradles the lamb, looks up, steps in, points, then holds still
+  const telling = ramp(ts, 3.6, 3.95) * (1 - ramp(ts, 7.5, 7.9)), cup = ramp(ts, 5.0, 5.45) * (1 - ramp(ts, 7.2, 7.6));
+  const beat = Math.sin(ts * 3.3) * 0.13 * telling * (1 - cup);
+  nR.pose({ fwd: lerp(0.1, 0.6, telling) + beat - 0.15 * cup, out: lerp(0.12, 0.38, telling) * (1 - cup) - 0.3 * cup, bend: lerp(0.2, 1.05, telling) + 0.6 * cup, curl: lerp(0.4, 0.15, telling) + 0.25 * cup, twist: 0.4 * cup });
+  nL.pose({ fwd: lerp(0.25, 0.45, cup), out: lerp(0.2, -0.25, cup), bend: lerp(0.5, 1.6, cup), curl: lerp(0.6, 0.35, cup), twist: -0.4 * cup });
+  const antic = ramp(ts, 10.3, 10.55) * (1 - ramp(ts, 10.55, 10.75)), pointK = back((ts - 10.55) / 0.4);
+  if (ts > 10.25) {
+    nR.pose({ fwd: lerp(0.5 + 0.2 * antic, -1.2, pointK), out: lerp(0.35 - 0.15 * antic, 2.0, pointK), bend: lerp(1.2 + 0.3 * antic, 0.05, pointK), point: pointK > 0.4, shrug: 0.4 * antic });
+    nL.pose({ fwd: 0.2, out: 0.15, bend: 0.35, curl: 0.55 });
+  }
+  nathan.g.position.x = -0.55 + 0.06 * ramp(ts, 10.3, 10.6);
+  nathan.g.rotation.x = 0.06 * ramp(ts, 5.0, 5.6) * (1 - ramp(ts, 7.5, 8)) - 0.03 * antic;
+  nathan.g.rotation.y = 0.5 + 0.08 * Math.sin(ts * 0.9) * telling + 0.12 * ramp(ts, 10.3, 10.7);
+  nathan.g.rotation.z = 0.012 * Math.sin(ts * 1.1) + 0.003 * K.boil(t, 2);
+  const nTalk = (ts > 3.6 && ts < 7.5) ? nathan.P.talk(ts, 0.8) : (ts > 10.75 && ts < 11.5) ? nathan.P.talk(ts, 0.55) : 0;
+  const lookAtHands = cup * (1 - ramp(ts, 6.4, 6.8)); // looks down at the lamb in his arms, then up to the king
+  nathan.P.express({ lid: lerp(0.45, 0.2, ramp(ts, 10.2, 10.6)) + 0.25 * lookAtHands, open: nTalk, sad: 0.3 * ramp(ts, 11.6, 12.2) + 0.25 * lookAtHands, lookX: 0.55 * (1 - lookAtHands), lookY: -0.1 - 0.8 * lookAtHands, blink: ts > 10.5 && ts < 12 ? 0 : K.blinkAt(t, 2) });
+  nathan.P.head.rotation.y = 0.22 + 0.1 * Math.sin(ts * 1.3) * telling;
+  nathan.P.head.rotation.x = 0.04 * Math.sin(ts * 7) * (nTalk > 0 ? 1 : 0) + 0.18 * lookAtHands - 0.04 * ramp(ts, 10.4, 10.7);
+  // DAVID — at ease, chin on hand → drawn in → anger, judgement → frozen → the anger drains
+  const ease0 = 1 - ramp(ts, 4.8, 5.4), drawnIn = ramp(ts, 4.6, 6.6), anger = ramp(ts, 7.85, 8.3) * (1 - ramp(ts, 12.8, 13.8));
+  const fist = ramp(ts, 8.0, 8.3) * (1 - ramp(ts, 8.45, 8.65)), judge = back((ts - 8.45) / 0.35) * (1 - ramp(ts, 10.9, 11.7)), drain = ramp(ts, 12.9, 14.6), bow = ramp(ts, 14.0, 15.2);
+  king.g.rotation.x = 0.07 * drawnIn + 0.12 * anger - 0.08 * drain;
+  king.g.rotation.y = -0.12 * anger;
+  king.g.position.y = 0.5 - 0.03 * drain;
+  kL.pose({ fwd: lerp(lerp(0.55, 1.2, fist), 1.1, judge) * (1 - drain) + 0.55 * drain, out: lerp(0.28, 0.6, judge) * (1 - drain) + 0.28 * drain, bend: lerp(lerp(0.75, 1.5, fist), 0.1, judge) * (1 - drain) + 0.75 * drain,
+    point: judge > 0.4 && drain < 0.5, curl: fist > 0.3 ? 1 : lerp(0.35, 0.15, drain), shrug: 0.6 * anger * (1 - drain) });
+  kR.pose({ fwd: lerp(0.55, 1.05, ease0) + 0.15 * anger, out: lerp(0.28, 0.12, ease0), bend: lerp(0.75 + 0.3 * anger, 2.15, ease0), curl: lerp(0.35 + 0.65 * anger, 0.5, ease0) * (1 - drain) + 0.15 * drain, shrug: 0.6 * anger * (1 - drain) });
+  const dTalk = (ts > 8.1 && ts < 10.2) ? king.P.talk(ts, 1) : 0;
+  king.P.express({ lid: lerp(0.55, 0.38, drawnIn) + 0.45 * bow, anger, sad: 0.8 * drain, open: Math.max(dTalk, 0.15 * ramp(ts, 12.3, 12.6) * (1 - drain)), lookX: -0.5 * (1 - bow), lookY: -0.9 * bow,
+    blink: (ts > 15.0 && ts < 15.6) ? Math.sin((ts - 15.0) / 0.6 * Math.PI) * 0.9 : (ts > 10.6 && ts < 12.6 ? 0 : K.blinkAt(t, 1)) });
+  king.P.head.rotation.x = -0.05 * ramp(ts, 12.2, 12.5) * (1 - drain) + 0.32 * bow + 0.05 * Math.sin(ts * 8) * (dTalk > 0 ? 1 : 0);
+  king.P.head.rotation.z = 0.08 * drawnIn * (1 - anger) * (1 - drain);
+  king.P.head.rotation.y = -0.1 * anger;
+  const mi = ramp(ts, 4.7, 5.15) * (1 - ramp(ts, 7.2, 7.6)); memMat.opacity = mi; memory.rotation.z = 0.04 * Math.sin(ts * 3); memory.position.y = 2.2 + 0.03 * Math.sin(ts * 2);
+  const br = Math.sin(ts * 2.2) * 0.012; king.P.body.scale.y = 1 + br + 0.01 * anger; nathan.P.body.scale.y = 1 - br;
+  kingG.rotation.z = 0.003 * K.boil(t, 1);
+  lamps.forEach(({ l, pl }, i) => { const f = 0.85 + 0.3 * K.hash(Math.floor(t * 12), i, 4); pl.intensity = 2.2 * f; l.userData.flame.scale.set(0.8, 1.6 + 0.5 * f, 0.8); l.userData.glow.material.opacity = 0.18 + 0.12 * f; });
+  dust.rotation.y = t * 0.03;
+}
+function update(tl) {
+  const t = tl + T0; act(t);
+  let pos, tgt, focusPt;
+  const k = (a, b) => (t - a) / (b - a);
+  if (t < S[1]) { const u = k(S[0], S[1]); pos = V(-0.3, 1.65, 6.4).lerp(V(0.35, 1.55, 5.7), u); tgt = V(0, 1.3, 0); focusPt = V(0, 1.2, 0.1); }
+  else if (t < S[2]) { const u = k(S[1], S[2]); pos = V(1.75, 1.5, 2.75).lerp(V(1.5, 1.5, 2.45), u); tgt = V(0.25, 1.25, 0); focusPt = V(0.55, 1.35, 0); }
+  else if (t < S[3]) { const u = k(S[2], S[3]); pos = V(0.2, 1.5, 4.3).lerp(V(0.05, 1.5, 3.95), u); tgt = V(-0.1, 1.3, 0.2); focusPt = V(-0.45, 1.35, 0.3); }
+  else { const u = k(S[3], S[4]); pos = V(0.85, 1.52, 2.35).lerp(V(0.68, 1.48, 2.0), u); tgt = V(0.5, 1.38, 0); focusPt = V(0.52, 1.4, 0.05); }
+  if (window.CAM) { pos = V(...window.CAM[0]); tgt = V(...window.CAM[1]); }
+  camera.position.copy(pos); camera.lookAt(tgt);
+  bokeh.uniforms.focus.value = camera.position.distanceTo(focusPt);
+  return t;
+}
+// ---------- composite: grade, grain, captions ----------
+const out = document.getElementById('out'), o = out.getContext('2d');
+const grains = Array.from({ length: 6 }, () => { const c = document.createElement('canvas'); c.width = 360; c.height = 640; const g = c.getContext('2d'), d = g.createImageData(360, 640);
+  for (let i = 0; i < d.data.length; i += 4) { const v = 128 + (rand() - 0.5) * 90; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; } g.putImageData(d, 0, 0); return c; });
+function caption(t) {
+  if (t < S[1]) return 'with a story about\na stolen lamb.';
+  if (t < S[2]) return '"The man that hath done\nthis thing shall surely die."';
+  if (t < S[3] + 0.6) return '"Thou art the man."';
+  return '';
+}
+window.drawFrame = (tl) => {
+  const t = update(tl); composer.render();
+  o.globalCompositeOperation = 'source-over'; o.drawImage(renderer.domElement, 0, 0, W, H);
+  o.globalCompositeOperation = 'soft-light'; o.fillStyle = 'rgba(255,170,100,0.18)'; o.fillRect(0, 0, W, H);
+  o.globalCompositeOperation = 'overlay'; o.globalAlpha = 0.16; o.drawImage(grains[Math.floor(t * 12) % 6], 0, 0, W, H); o.globalAlpha = 1;
+  o.globalCompositeOperation = 'source-over';
+  const g = o.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.78); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.5)'); o.fillStyle = g; o.fillRect(0, 0, W, H);
+  o.textAlign = 'center'; o.font = '600 58px Georgia, serif'; o.lineJoin = 'round';
+  caption(t).split('\n').forEach((line, i) => { if (!line) return; const y = 1680 + i * 72; o.lineWidth = 9; o.strokeStyle = 'rgba(10,6,4,0.85)'; o.strokeText(line, W / 2, y); o.fillStyle = '#f7ead2'; o.fillText(line, W / 2, y); });
+  return out.toDataURL('image/jpeg', 0.9);
+};
+window.DURATION = DURATION; window.STRIP = [24, 70, 140, 175, 210, 290];
+window.READY = true;
+</script></body></html>
