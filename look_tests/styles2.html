@@ -1,0 +1,209 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Style options v2</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Style options v2: genuinely different directions. Each one changes proportions, rendering technique,
+// palette, lighting, camera and set. Same story beat (Nathan confronts David), staged per style.
+//   ?style=toon | painterly | cinematic | halftone | dollhouse
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920, STYLE = new URLSearchParams(location.search).get('style') || 'toon';
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+let seed = 11; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(35, W / H, 0.05, 200);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+const tex = (w, h, draw, srgb = true, rep = [1, 1]) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); return t; };
+let MAT = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }); // replaced per style
+let OUTLINE = 0;
+const outlineMat = (w) => new THREE.ShaderMaterial({ side: THREE.BackSide, uniforms: { w: { value: w } },
+  vertexShader: 'uniform float w; void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position + normal * w, 1.0); }',
+  fragmentShader: 'void main(){ gl_FragColor = vec4(0.06, 0.04, 0.05, 1.0); }' });
+function mesh(geo, color, parent) {
+  const m = new THREE.Mesh(geo, typeof color === 'string' ? MAT(color) : color); m.castShadow = m.receiveShadow = true;
+  if (OUTLINE) m.add(new THREE.Mesh(geo, outlineMat(OUTLINE)));
+  if (parent) parent.add(m); return m;
+}
+const lathe = (pts, seg = 48) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg);
+
+// ---------- one figure builder, driven by proportions (chibi → realistic → elongated) ----------
+// H: standing height; hr: head radius. Realistic adults ≈ 7.5 heads tall; chibi ≈ 2–3.
+function figure({ H = 1.75, hr = 0.115, robe, robe2 = null, skin = '#c98b62', hair = '#3a2416', bald = false, beard = 0, crown = false, seated = false, face = true, slim = 1 }) {
+  const g = new THREE.Group(), P = {};
+  const shoulderY = H - 2.15 * hr, bodyR = (0.11 + hr * 0.6) * slim;
+  const baseY = seated ? H * 0.27 : 0, bodyTop = shoulderY - baseY;
+  const bodyPts = seated ? [[0, 0], [bodyR * 1.15, 0], [bodyR * 1.1, bodyTop * 0.3], [bodyR * 0.95, bodyTop * 0.75], [bodyR * 0.75, bodyTop], [0, bodyTop + 0.02]]
+    : [[0, 0], [bodyR * 1.45, 0], [bodyR * 1.3, bodyTop * 0.3], [bodyR * 1.0, bodyTop * 0.72], [bodyR * 0.85, bodyTop * 0.95], [bodyR * 0.5, bodyTop + 0.02], [0, bodyTop + 0.03]];
+  P.body = mesh(lathe(bodyPts), robe, g); P.body.position.y = baseY;
+  if (robe2) { const m = mesh(lathe(bodyPts.map(([x, y]) => [x * 1.06, y]).filter((_, i) => i > 0 && i < bodyPts.length - 1).concat([[bodyR * 0.55, bodyTop + 0.03]]), 40), robe2, g); m.position.y = baseY; m.material.side = THREE.DoubleSide; }
+  if (seated) for (const s of [-1, 1]) { const th = mesh(new THREE.CapsuleGeometry(bodyR * 0.45, H * 0.2, 8, 16), robe, g); th.rotation.x = Math.PI / 2; th.position.set(bodyR * 0.5 * s, baseY + bodyR * 0.3, H * 0.12);
+    const sh = mesh(new THREE.CapsuleGeometry(bodyR * 0.4, H * 0.17, 8, 16), robe, g); sh.position.set(bodyR * 0.5 * s, baseY * 0.5, H * 0.24); }
+  const neck = mesh(new THREE.CylinderGeometry(hr * 0.42, hr * 0.5, hr * 0.6, 16), skin, g); neck.position.y = shoulderY + hr * 0.2;
+  P.head = new THREE.Group(); P.head.position.y = H - hr; g.add(P.head);
+  const skull = mesh(new THREE.SphereGeometry(hr, 48, 36), skin, P.head); skull.scale.set(0.92, 1.05, 0.98);
+  if (face) {
+    const nose = mesh(new THREE.SphereGeometry(hr * 0.2, 16, 12), skin, P.head); nose.scale.set(0.8, 1, 1.2); nose.position.set(0, -hr * 0.1, hr * 0.95);
+    for (const s of [-1, 1]) { const e = mesh(new THREE.SphereGeometry(hr * 0.11, 16, 12), '#1a120c', P.head); e.position.set(hr * 0.33 * s, hr * 0.12, hr * 0.86); e.scale.z = 0.6;
+      const b = mesh(new THREE.BoxGeometry(hr * 0.36, hr * 0.07, hr * 0.08), hair, P.head); b.position.set(hr * 0.33 * s, hr * 0.33, hr * 0.88); b.rotation.z = -0.18 * s; }
+  }
+  if (!bald) { const cap = mesh(new THREE.SphereGeometry(hr * 1.06, 40, 24, 0, Math.PI * 2, 0, Math.PI * 0.5), hair, P.head); cap.rotation.x = -0.45; }
+  else { const f = mesh(new THREE.TorusGeometry(hr * 0.92, hr * 0.22, 12, 40, Math.PI * 1.2), hair, P.head); f.rotation.set(Math.PI / 2, 0, Math.PI * 1.4); f.scale.z = 1.4; }
+  if (beard) { const b = mesh(new THREE.SphereGeometry(hr * 0.62, 32, 24), hair, P.head); b.scale.set(1.1, 1.0 + beard, 0.7); b.position.set(0, -hr * (0.62 + beard * 0.35), hr * 0.5); }
+  if (crown) { const c = mesh(new THREE.CylinderGeometry(hr * 0.8, hr * 0.78, hr * 0.38, 10, 1, true), '#d9a83f', P.head); c.material.side = THREE.DoubleSide; c.position.y = hr * 0.95; }
+  P.arms = [-1, 1].map(s => { const sh = new THREE.Group(); sh.position.set((bodyR * 0.95 + hr * 0.1) * s, shoulderY - 0.02, 0); g.add(sh);
+    const L = (H - hr * 2) * 0.42, ar = Math.max(0.03, hr * 0.32) * slim;
+    const a = mesh(new THREE.CapsuleGeometry(ar, L * 0.85, 8, 16), robe2 || robe, sh); a.position.y = -L * 0.48;
+    const hand = mesh(new THREE.SphereGeometry(ar * 1.05, 16, 12), skin, sh); hand.position.y = -L; return { sh }; });
+  return { g, P };
+}
+const pose = (f, side, fwd, out) => { const a = f.P.arms[side === 'R' ? 1 : 0], s = side === 'R' ? 1 : -1; a.sh.rotation.set(-fwd, 0, out * s); };
+
+// ======================================================================================
+const BUILD = {};
+
+// A · TOON / INK OUTLINE — cel shading with bold outlines, standard proportions (~5 heads), noon courtyard, low hero angle
+BUILD.toon = () => {
+  const grad = new THREE.DataTexture(new Uint8Array([70, 70, 70, 255, 160, 160, 160, 255, 255, 255, 255, 255]), 3, 1); grad.minFilter = grad.magFilter = THREE.NearestFilter; grad.needsUpdate = true;
+  MAT = c => new THREE.MeshToonMaterial({ color: c, gradientMap: grad }); OUTLINE = 0.012;
+  scene.background = new THREE.Color('#7ec8f2');
+  const ground = mesh(new THREE.PlaneGeometry(40, 40), '#e8c98e', scene); ground.rotation.x = -Math.PI / 2;
+  for (const [x, z, w, h] of [[-3, -4, 4, 3], [2.5, -5, 5, 4], [6, -1, 1.5, 3]]) { const b = mesh(new THREE.BoxGeometry(w, h, 1.5), '#f4ead6', scene); b.position.set(x, h / 2, z); }
+  const awn = mesh(new THREE.BoxGeometry(3.2, 0.06, 1.6), '#d9472f', scene); awn.position.set(0.6, 2.4, -1.4); awn.rotation.x = 0.15;
+  for (const x of [-0.9, 2.1]) { const p = mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 10), '#8a5a34', scene); p.position.set(x, 1.2, -0.7); }
+  const palm = mesh(new THREE.CylinderGeometry(0.08, 0.12, 3.2, 8), '#8a5a34', scene); palm.position.set(-2.4, 1.6, -1.6);
+  for (let i = 0; i < 7; i++) { const l = mesh(new THREE.ConeGeometry(0.18, 1.4, 4), '#3f9a4a', scene); l.position.set(-2.4, 3.2, -1.6); l.rotation.set(1.2, i / 7 * 6.28, 0); l.translateY(0.6); }
+  const throne = mesh(new RoundedBoxGeometry(0.9, 0.5, 0.7, 2, 0.05), '#e0b13e', scene); throne.position.set(0.6, 0.25, -0.5);
+  const back = mesh(new RoundedBoxGeometry(0.9, 1.3, 0.12, 2, 0.05), '#e0b13e', scene); back.position.set(0.6, 0.9, -0.82);
+  const david = figure({ H: 1.6, hr: 0.16, robe: '#6b3fb5', robe2: '#c4302b', hair: '#2b1a10', beard: 0.3, crown: true, seated: true }); david.g.position.set(0.6, 0.05, -0.45); david.g.rotation.y = -0.5; scene.add(david.g);
+  pose(david, 'L', 0.9, 0.5); pose(david, 'R', 0.3, 0.25); david.P.head.rotation.set(0.0, -0.2, 0.06);
+  const nathan = figure({ H: 1.75, hr: 0.16, robe: '#f2e3c2', robe2: '#8a5a34', hair: '#ffffff', bald: true, beard: 0.6 }); nathan.g.position.set(-0.7, 0, 0.2); nathan.g.rotation.y = 1.0; scene.add(nathan.g);
+  pose(nathan, 'R', 1.5, 0.2); pose(nathan, 'L', 0.2, 0.15);
+  scene.add(new THREE.HemisphereLight('#ffffff', '#c9a070', 1.2)); const sun = new THREE.DirectionalLight('#fff6e0', 2.8); sun.position.set(3, 6, 4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5 }); scene.add(sun);
+  camera.fov = 40; camera.updateProjectionMatrix(); camera.position.set(-0.4, 0.55, 3.6); camera.lookAt(0.1, 1.15, -0.3);
+  renderer.toneMapping = THREE.NoToneMapping;
+  return { dof: 0 };
+};
+
+// B · PAINTERLY — brush-stroke textures, elongated figures (~8 heads), dusk indigo + amber lamp, wide shot with a lot of space
+BUILD.painterly = () => {
+  const brush = (base, spread = 0.12) => tex(512, 512, (g) => { const c = new THREE.Color(base); g.fillStyle = base; g.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 1400; i++) { const cc = c.clone().offsetHSL((rand() - 0.5) * 0.04, (rand() - 0.5) * spread, (rand() - 0.5) * spread); g.strokeStyle = `#${cc.getHexString()}`; g.globalAlpha = 0.5; g.lineWidth = 6 + rand() * 14; g.lineCap = 'round';
+      const x = rand() * 512, y = rand() * 512, a = rand() * 0.8 - 0.4 + Math.PI / 2 * (rand() < 0.3 ? 1 : 0); g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * (20 + rand() * 40), y + Math.sin(a) * (20 + rand() * 40)); g.stroke(); } }, true, [2, 2]);
+  const cache = {}; MAT = c => cache[c] || (cache[c] = new THREE.MeshLambertMaterial({ map: brush(c) }));
+  scene.background = new THREE.Color('#1b1f3a'); scene.fog = new THREE.Fog('#1b1f3a', 6, 16);
+  const floor = mesh(new THREE.PlaneGeometry(30, 30), '#3a3150', scene); floor.rotation.x = -Math.PI / 2;
+  const wall = mesh(new THREE.PlaneGeometry(30, 12), '#2e3a66', scene); wall.position.set(0, 6, -4);
+  for (const x of [-3.2, -1.2, 1.2, 3.2]) { const arch = mesh(new THREE.TorusGeometry(0.75, 0.16, 12, 32, Math.PI), '#4a5590', scene); arch.position.set(x, 3.3, -3.9);
+    const c1 = mesh(new THREE.CylinderGeometry(0.16, 0.18, 3.3, 16), '#4a5590', scene); c1.position.set(x - 0.75, 1.65, -3.9); const c2 = c1.clone(); c2.position.x = x + 0.75; scene.add(c2); }
+  const moon = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), new THREE.MeshBasicMaterial({ color: '#f3e7c4' })); moon.position.set(1.2, 3.6, -3.95); scene.add(moon);
+  const throne = mesh(new RoundedBoxGeometry(0.8, 0.5, 0.6, 2, 0.05), '#6a3a2a', scene); throne.position.set(1.0, 0.25, -1.2);
+  const back = mesh(new RoundedBoxGeometry(0.8, 1.6, 0.1, 2, 0.04), '#6a3a2a', scene); back.position.set(1.0, 1.0, -1.48);
+  const david = figure({ H: 2.0, hr: 0.11, robe: '#5a3a8a', robe2: '#8a2a3a', hair: '#1a1210', beard: 0.4, crown: true, seated: true, slim: 0.85 }); david.g.position.set(1.0, 0.0, -1.15); david.g.rotation.y = -0.6; scene.add(david.g);
+  pose(david, 'L', 0.5, 0.3); pose(david, 'R', 0.4, 0.3); david.P.head.rotation.set(0.35, -0.2, 0); // head bowed
+  const nathan = figure({ H: 2.1, hr: 0.11, robe: '#b8a888', robe2: '#5a4a3a', hair: '#e8e2d6', bald: true, beard: 0.9, slim: 0.85 }); nathan.g.position.set(-0.9, 0, -0.6); nathan.g.rotation.y = 0.9; scene.add(nathan.g);
+  pose(nathan, 'R', 1.55, 0.15); pose(nathan, 'L', 0.1, 0.1);
+  const lampL = new THREE.PointLight('#ffb050', 6, 6, 1.6); lampL.position.set(0.0, 1.4, -0.6); scene.add(lampL);
+  const flame = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), new THREE.MeshBasicMaterial({ color: '#ffd27a' })); flame.position.copy(lampL.position); scene.add(flame);
+  const stand = mesh(new THREE.CylinderGeometry(0.03, 0.08, 1.35, 10), '#4a3020', scene); stand.position.set(0, 0.67, -0.6);
+  scene.add(new THREE.HemisphereLight('#7f8fd8', '#1a1430', 0.9)); const moonL = new THREE.DirectionalLight('#9fb4ff', 1.2); moonL.position.set(1, 4, -4); moonL.castShadow = true; scene.add(moonL);
+  camera.fov = 38; camera.updateProjectionMatrix(); camera.position.set(0.2, 2.6, 6.5); camera.lookAt(0.0, 1.3, -1.0);
+  return { dof: 0.0012, focus: V(0, 1.2, -0.9) };
+};
+
+// C · CINEMATIC — realistic proportions (~7.5 heads), physical materials, torch-lit night, fog, over-the-shoulder framing
+BUILD.cinematic = () => {
+  MAT = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85 });
+  scene.background = new THREE.Color('#07070a'); scene.fog = new THREE.FogExp2('#0d0b0a', 0.11);
+  const stone = tex(512, 512, (g) => { g.fillStyle = '#5a4a3c'; g.fillRect(0, 0, 512, 512); for (let r = 0; r < 8; r++) for (let x = -rand() * 60; x < 512; x += 80 + rand() * 60) { const v = 70 + rand() * 40; g.fillStyle = `rgb(${v + 20},${v + 8},${v - 6})`; g.fillRect(x + 3, r * 64 + 3, 74 + rand() * 40, 58); } }, true, [4, 2]);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshStandardMaterial({ color: '#2a221c', roughness: 0.6, metalness: 0.0 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(20, 10), new THREE.MeshStandardMaterial({ map: stone, roughness: 0.95 })); wall.position.set(0, 5, -3); wall.receiveShadow = true; scene.add(wall);
+  const throne = mesh(new RoundedBoxGeometry(0.9, 0.5, 0.7, 2, 0.04), '#3a2418', scene); throne.position.set(0.4, 0.25, -1.4);
+  const back = mesh(new RoundedBoxGeometry(0.9, 1.7, 0.12, 2, 0.04), '#3a2418', scene); back.position.set(0.4, 1.0, -1.72);
+  const david = figure({ H: 1.78, hr: 0.115, robe: '#3a2350', robe2: '#5a1a22', hair: '#1a120c', beard: 0.35, crown: true, seated: true }); david.g.position.set(0.4, 0.0, -1.35); david.g.rotation.y = -0.25; scene.add(david.g);
+  pose(david, 'L', 0.55, 0.35); pose(david, 'R', 0.45, 0.3); david.P.head.rotation.set(0.12, -0.25, 0);
+  const nathan = figure({ H: 1.75, hr: 0.115, robe: '#8a7a64', robe2: '#4a3a2c', hair: '#bdb6aa', bald: true, beard: 0.8 }); nathan.g.position.set(-0.75, 0, 0.75); nathan.g.rotation.y = Math.PI - 0.55; scene.add(nathan.g);
+  pose(nathan, 'R', 1.45, -0.1); pose(nathan, 'L', 0.15, 0.1);
+  for (const [x, z] of [[-1.2, -2.8], [1.9, -2.8]]) { const t = new THREE.PointLight('#ff8a3a', 9, 7, 1.5); t.position.set(x, 2.1, z); t.castShadow = true; scene.add(t);
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), new THREE.MeshBasicMaterial({ color: '#ffc070' })); f.scale.y = 1.6; f.position.copy(t.position); scene.add(f);
+    const h = mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.5, 8), '#2a1a10', scene); h.position.set(x, 1.8, z); }
+  const moon = new THREE.SpotLight('#9fb4e8', 55, 12, Math.PI / 9, 0.6, 1.4); moon.position.set(2.5, 6, 2); moon.target.position.set(0.3, 1, -1.3); moon.castShadow = true; scene.add(moon, moon.target);
+  scene.add(new THREE.AmbientLight('#20242e', 0.4));
+  camera.fov = 30; camera.updateProjectionMatrix(); camera.position.set(-1.35, 1.6, 2.6); camera.lookAt(0.2, 1.25, -1.3);
+  renderer.toneMappingExposure = 1.9;
+  return { dof: 0.004, focus: V(0.4, 1.4, -1.3) };
+};
+
+// D · HALFTONE COMIC — flat pop colours, screen-space halftone dots for shade, heavy ink lines, dramatic top-down angle
+BUILD.halftone = () => {
+  OUTLINE = 0.016;
+  MAT = c => { const m = new THREE.MeshLambertMaterial({ color: c });
+    m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', `
+      float lum = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114)) / max(0.001, dot(diffuse, vec3(0.299, 0.587, 0.114)));
+      vec2 cell = fract(gl_FragCoord.xy / 11.0) - 0.5; float r = clamp(1.0 - lum, 0.0, 1.0) * 0.75;
+      float d = step(length(cell), r); gl_FragColor.rgb = mix(diffuse, diffuse * 0.18, d);
+      #include <dithering_fragment>`); }; return m; };
+  scene.background = new THREE.Color('#f7d23e');
+  const floor = mesh(new THREE.PlaneGeometry(30, 30), '#f2e6c8', scene); floor.rotation.x = -Math.PI / 2;
+  for (let i = 0; i < 9; i++) { const t = mesh(new THREE.BoxGeometry(1, 0.02, 1), i % 2 ? '#e24a3a' : '#f2e6c8', scene); t.position.set(-2 + (i % 3) * 1.4, 0.01, -1.5 + Math.floor(i / 3) * 1.4); }
+  const throne = mesh(new RoundedBoxGeometry(0.9, 0.5, 0.7, 2, 0.05), '#2b6fb0', scene); throne.position.set(0.55, 0.25, -0.4);
+  const back = mesh(new RoundedBoxGeometry(0.9, 1.4, 0.12, 2, 0.05), '#2b6fb0', scene); back.position.set(0.55, 0.9, -0.72);
+  const david = figure({ H: 1.4, hr: 0.2, robe: '#7a3ec8', robe2: '#e24a3a', hair: '#1a1210', beard: 0.3, crown: true, seated: true }); david.g.position.set(0.55, 0.05, -0.35); david.g.rotation.y = -0.6; scene.add(david.g);
+  pose(david, 'L', 0.9, 0.9); pose(david, 'R', 0.9, 0.9); david.P.head.rotation.set(-0.25, -0.3, 0); // recoiling, hands up
+  const nathan = figure({ H: 1.55, hr: 0.2, robe: '#f2e6c8', robe2: '#3a8a6a', hair: '#ffffff', bald: true, beard: 0.6 }); nathan.g.position.set(-0.75, 0, 0.35); nathan.g.rotation.y = 0.9; scene.add(nathan.g);
+  pose(nathan, 'R', 1.6, 0.1); pose(nathan, 'L', 0.2, 0.15);
+  scene.add(new THREE.HemisphereLight('#ffffff', '#b09060', 0.9)); const sun = new THREE.DirectionalLight('#ffffff', 2.4); sun.position.set(-3, 5, 2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4 }); scene.add(sun);
+  camera.fov = 42; camera.updateProjectionMatrix(); camera.position.set(-0.2, 4.6, 2.6); camera.lookAt(0.0, 0.6, -0.2);
+  renderer.toneMapping = THREE.NoToneMapping;
+  return { dof: 0 };
+};
+
+// E · DOLLHOUSE CROSS-SECTION — the whole palace cut open like a dollhouse, tiny figures, tilt-shift, world first
+BUILD.dollhouse = () => {
+  MAT = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75 });
+  scene.background = new THREE.Color('#e9d3ae');
+  const table = mesh(new THREE.PlaneGeometry(40, 40), '#8a6a4a', scene); table.rotation.x = -Math.PI / 2;
+  const S = 1; // the palace: three floors, cut open at the front
+  const shell = (w, h, d, x, y, z, c) => { const b = mesh(new THREE.BoxGeometry(w, h, d), c, scene); b.position.set(x, y, z); return b; };
+  for (let f = 0; f < 3; f++) { const y = f * 1.2;
+    shell(4.2, 0.1, 2, 0, y + 0.05, 0, '#cbb08a');
+    shell(4.2, 1.2, 0.1, 0, y + 0.6, -1, f === 1 ? '#a8423a' : '#e6d4b4');
+    for (const x of [-2.1, 2.1]) shell(0.1, 1.2, 2, x, y + 0.6, 0, '#d9c29c');
+    shell(0.08, 1.2, 2, f === 1 ? 0.9 : -0.6, y + 0.6, 0, '#d9c29c'); }
+  shell(4.4, 0.12, 2.2, 0, 3.66, 0, '#b98a5a');
+  for (let i = 0; i < 9; i++) shell(0.1, 0.08, 0.1, -2 + i * 0.5, 3.76, 1.0, '#7a3b22'); // parapet posts
+  const tiny = (o, x, y, z, ry) => { const f = figure(o); f.g.scale.setScalar(0.42); f.g.position.set(x, y, z); f.g.rotation.y = ry; scene.add(f.g); return f; };
+  // middle floor: the throne room with the confrontation
+  shell(0.5, 0.3, 0.35, 0.3, 1.35, -0.7, '#e0b13e'); shell(0.5, 0.7, 0.06, 0.3, 1.55, -0.86, '#e0b13e');
+  const d = tiny({ H: 1.6, hr: 0.16, robe: '#6b3fb5', robe2: '#c4302b', beard: 0.3, crown: true, seated: true }, 0.3, 1.25, -0.62, -0.4); pose(d, 'L', 0.6, 0.4);
+  const n = tiny({ H: 1.75, hr: 0.16, robe: '#f2e3c2', robe2: '#8a5a34', hair: '#ffffff', bald: true, beard: 0.6 }, -0.5, 1.25, -0.2, 0.9); pose(n, 'R', 1.5, 0.15);
+  // other rooms: servants, a scribe, a guard, the roof terrace
+  tiny({ H: 1.7, hr: 0.16, robe: '#6a7a4a' }, -1.4, 0.1, -0.3, 0.3); tiny({ H: 1.65, hr: 0.16, robe: '#9a5a3a' }, -1.0, 0.1, -0.5, -0.6);
+  shell(0.6, 0.25, 0.4, -1.2, 0.22, -0.6, '#7a5232');
+  tiny({ H: 1.7, hr: 0.16, robe: '#3a4a6a' }, 1.6, 1.25, 0.0, -0.4);
+  tiny({ H: 1.7, hr: 0.16, robe: '#a08a6a' }, 1.2, 2.45, -0.4, 0.2); shell(0.7, 0.04, 0.4, 1.2, 2.75, -0.95, '#c99a3a');
+  for (let i = 0; i < 6; i++) { const j = mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.22, 12), '#b0643c', scene); j.position.set(1.0 + (i % 3) * 0.16, 0.21, -0.75 + Math.floor(i / 3) * 0.16); }
+  for (let i = 0; i < 4; i++) { const p = mesh(new THREE.SphereGeometry(0.18, 14, 10), '#6f7d4a', scene); p.position.set(-1.6 + i * 1.0, 3.9, -0.6); p.scale.y = 0.6; }
+  scene.add(new THREE.HemisphereLight('#fff4e0', '#a08060', 1.0)); const sun = new THREE.DirectionalLight('#ffe6c0', 2.6); sun.position.set(-4, 6, 6); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5 }); scene.add(sun);
+  for (const y of [0.9, 2.1, 3.3]) { const l = new THREE.PointLight('#ffc070', 1.2, 3, 1.5); l.position.set(0, y, 0.2); scene.add(l); }
+  camera.fov = 30; camera.updateProjectionMatrix(); camera.position.set(1.4, 3.4, 9.5); camera.lookAt(0, 1.8, 0);
+  return { dof: 0.006, maxblur: 0.014, focus: V(0, 1.4, -0.4) };
+};
+
+const opts = BUILD[STYLE]();
+const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
+if (opts.dof) composer.addPass(new BokehPass(scene, camera, { focus: camera.position.distanceTo(opts.focus), aperture: opts.dof, maxblur: opts.maxblur || opts.dof * 2.5 }));
+composer.addPass(new OutputPass());
+const out = document.getElementById('out'), o = out.getContext('2d');
+window.drawFrame = () => { composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H); return out.toDataURL('image/jpeg', 0.92); };
+window.READY = true;
+</script></body></html>
