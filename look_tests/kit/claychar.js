@@ -95,13 +95,27 @@ function buildHand(skin, s) {
   H.set(); return H;
 }
 
-export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, ...h }) {
+export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, seated = false, ...h }) {
   const root = new THREE.Group(), R = { root };
   R.body = new THREE.Group(); root.add(R.body); // pivot at the feet: lean, sway, bob
   const tm = clay(tunic);
   const T = [[0, 0.04], [0.3, 0.04], [0.31, 0.1], [0.28, 0.35], [0.235, 0.6], [0.222, 0.72], [0.232, 0.86], [0.238, 1.02], [0.238, 1.14], [0.22, 1.23], [0.13, 1.29], [0.08, 1.31], [0, 1.31]]; /* cinched at the belt so arms can hang */
-  R.robe = M(folds(lathe(T, 72), 0.012, 9, 0.05, 0.7), tm, R.body);
-  R.feet = [-1, 1].map(s => { const ft = M(new THREE.SphereGeometry(0.075, 24, 16), clay('#6a4426'), root); ft.scale.set(0.85, 0.5, 1.5); ft.position.set(0.1 * s, 0.035, 0.22); return ft; });
+  if (!seated) {
+    R.robe = M(folds(lathe(T, 72), 0.012, 9, 0.05, 0.7), tm, R.body);
+    R.feet = [-1, 1].map(s => { const ft = M(new THREE.SphereGeometry(0.075, 24, 16), clay('#6a4426'), root); ft.scale.set(0.85, 0.5, 1.5); ft.position.set(0.1 * s, 0.035, 0.22); return ft; });
+  } else {
+    /* seated: the robe's upper body sits on the seat at y = 0.55; the skirt drapes over the thighs and down the shins.
+       Place the root so y = 0.55 is the seat top; the feet land 0.5 below it. */
+    R.robe = M(folds(lathe([[0, 0.5], [0.27, 0.5], [0.275, 0.56], [0.235, 0.62], ...T.filter(([, y]) => y > 0.62)], 72), 0.008, 9, 0.5, 0.75), tm, R.body);
+    for (const sd of [-1, 1]) {
+      const th = M(new THREE.CapsuleGeometry(0.12, 0.34, 10, 24), tm, R.body); th.rotation.x = Math.PI / 2; th.position.set(0.12 * sd, 0.6, 0.2);
+      const sh = M(lathe([[0, 0], [0.13, 0], [0.12, 0.25], [0.105, 0.48], [0, 0.5]], 40, 0, Math.PI * 2), tm, R.body); sh.position.set(0.12 * sd, 0.05, 0.39);
+    }
+    /* the robe falls from the knees to the ankles as one skirt in front of both shins (no trouser legs) */
+    const skirt = M(folds(lathe([[0.3, 0.0], [0.285, 0.2], [0.26, 0.45], [0.24, 0.6], [0.2, 0.66]], 56, -Math.PI / 2, Math.PI), 0.014, 9, 0, 0.6), clay(tunic, { side: THREE.DoubleSide }), R.body); skirt.scale.set(1, 1, 0.75); skirt.position.set(0, 0.03, 0.36);
+    const lapDrape = M(folds(lathe([[0, 0.0], [0.29, 0.0], [0.28, 0.1], [0.25, 0.14], [0, 0.15]], 56), 0.01, 8, 0, 0.15), tm, R.body); lapDrape.scale.set(1, 1, 1.5); lapDrape.position.set(0, 0.56, 0.12);
+    R.feet = [-1, 1].map(sd => { const ft = M(new THREE.SphereGeometry(0.075, 24, 16), clay('#6a4426'), root); ft.scale.set(0.85, 0.5, 1.5); ft.position.set(0.12 * sd, 0.04, 0.47); return ft; });
+  }
   const neck = M(new THREE.CylinderGeometry(0.1, 0.12, 0.1, 28), clay(skin), R.body); neck.position.y = 1.33;
   const col = M(new THREE.TorusGeometry(0.12, 0.024, 14, 40), clay(trim), R.body); col.rotation.x = Math.PI / 2 + 0.25; col.position.set(0, 1.3, 0.015);
   const belt = M(new THREE.TorusGeometry(0.232, 0.028, 14, 56), clay(sash), R.body); belt.rotation.x = Math.PI / 2; belt.position.y = 0.72;
