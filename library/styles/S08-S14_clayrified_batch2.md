@@ -71,7 +71,19 @@ Faster narration than batch 1 (≈200–218 wpm vs 165–200), but **calmer cutt
 
 ## 4. Audio
 
-See the numbers appended below once the demucs split finishes; batch 1 had one continuous music bed at −14 to −28 dB and sparse effects on cuts.
+| | Voice share | Music coverage | Music cues | Music vs voice | Rise in pauses | Effects/min |
+|---|---|---|---|---|---|---|
+| S08 | 85% | 100% | 1 | −13.6 dB | +0.4 dB | 0.0 |
+| S09 | 85% | 100% | 1 | −12.8 dB | +0.3 dB | 1.8 |
+| S10 | 85% | 100% | 1 | −14.8 dB | −0.2 dB | 1.7 |
+| S11 | 85% | 100% | 1 | −12.9 dB | +0.2 dB | 1.7 |
+| S12 | 86% | 100% | 1 | −14.6 dB | +0.4 dB | 1.5 |
+| S13 | 81% | 98% | 2 | −17.9 dB | +0.1 dB | 1.5 |
+| S14 | 80% | 99% | 2 | −15.4 dB | −0.6 dB | 5.0 |
+
+- **One music bed, start to finish**, about 13–18 dB under the voice, never ducked or raised in pauses (two cues only in the longest two).
+- **Almost no sound effects** (0–5 a minute). The voice carries everything: there is essentially no dead air.
+- *Stems leak a few dB; treat levels as about ±3 dB.*
 
 ## 5. How it is most likely made (evidence, not confirmed)
 
