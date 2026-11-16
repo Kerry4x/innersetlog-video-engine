@@ -1,0 +1,115 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Movement test reel</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Movement test reel for the approved characters. Six 4-second tests, posed on 2s (12 poses/s, stop motion).
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { buildCharacter, clay, M } from './kit/claychar.js';
+
+const W = 1080, H = 1920, SEG = 4, TESTS = ['1 · Idle: breathing, blinks, glances', '2 · Talking with gestures', '3 · Emotions: calm → suspicious → angry → shocked → sad', '4 · Point: wind-up, point, hold', '5 · Walking', '6 · Hands: open, fist, point, offer'];
+const DURATION = SEG * TESTS.length;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#cdb08a');
+const cyc = M(new THREE.CylinderGeometry(9, 9, 9, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5), clay('#d4b892', { side: THREE.BackSide, bumpScale: 0.3 })); cyc.position.set(0, 4.5, 5.5); scene.add(cyc);
+const floor = M(new THREE.PlaneGeometry(30, 30), clay('#c9ab84', { bumpScale: 0.3 })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const N = buildCharacter({ tunic: '#d9c7a3', trim: '#a8865a', mantle: '#7a5536', sash: '#8a6a44', hair: '#ece7dc', browC: '#ece7dc', bald: true, beard: '#ece7dc', beardLen: 0.12, lidTop: 0.36 });
+const D = buildCharacter({ tunic: '#5b3591', trim: '#d6a640', mantle: '#8b2c3a', sash: '#c99a32', hair: '#3a2416', browC: '#3a2416', bald: false, beard: '#3a2416', beardLen: 0.02, crown: true, lidTop: 0.3 });
+scene.add(N.root, D.root);
+scene.add(new THREE.HemisphereLight('#ffe9cf', '#7a5a3a', 0.75));
+const key = new THREE.DirectionalLight('#ffe8cc', 2.8); key.position.set(-2.2, 4, 4); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -2 }); scene.add(key);
+const rim = new THREE.DirectionalLight('#cfe0ff', 1.4); rim.position.set(2.5, 3, -3); scene.add(rim);
+const camera = new THREE.PerspectiveCamera(30, W / H, 0.05, 60);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(W, H, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
+const ao = new GTAOPass(scene, camera, W, H); ao.updateGtaoMaterial({ radius: 0.2, samples: 16 }); composer.addPass(ao); composer.addPass(new OutputPass());
+
+// ---------- timing helpers ----------
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const ramp = (t, a, b) => ease((t - a) / (b - a));
+const back = x => { x = Math.max(0, Math.min(1, x)); const c = 1.7; return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2; };
+const lerp = (a, b, k) => a + (b - a) * k;
+const hash = (a, b) => { const h = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return h - Math.floor(h); };
+const blinkAt = (t, k) => { const P = 2.3 + hash(k, 1) * 1.4, ph = (t + hash(k, 2) * P) % P; return ph < 0.17 ? Math.sin(ph / 0.17 * Math.PI) : 0; };
+const talk = (t, amt = 1) => amt * (0.25 + 0.75 * Math.abs(Math.sin(Math.floor(t * 12) * 2.1 + hash(Math.floor(t * 12), 5) * 2.5)));
+const cam = (p, l) => { camera.position.set(...p); camera.lookAt(...l); };
+
+function pose(t) {
+  const seg = Math.min(TESTS.length - 1, Math.floor(t / SEG)), u = t - seg * SEG, ts = Math.floor(u * 12) / 12; // stepped on 2s
+  for (const C of [N, D]) { C.setBody({ breathe: Math.sin(ts * 2.4) }); C.setHead(); C.setFace({ blink: blinkAt(t, C === N ? 1 : 2) }); C.setArm('L'); C.setArm('R'); C.walk(0, 0); C.root.visible = true; }
+  N.root.position.set(-0.5, 0, 0); N.root.rotation.y = 0.45; D.root.position.set(0.5, 0, 0); D.root.rotation.y = -0.45;
+  if (seg === 0) { // IDLE
+    N.setFace({ blink: blinkAt(t, 1), look: ts < 1.3 ? [0.6, 0] : ts < 2.6 ? [-0.2, 0.3] : [0.6, -0.1] }); N.setHead({ turn: ts < 2.6 ? 0.1 : 0.25, tilt: 0.04 });
+    D.setFace({ blink: blinkAt(t, 2), look: ts < 2 ? [-0.6, 0] : [0.3, -0.4], lid: ts > 2 ? 0.15 : 0 }); D.setHead({ turn: ts < 2 ? -0.15 : 0.05, nod: ts > 2 ? 0.1 : 0 });
+    N.setArm('R', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5 }); N.setArm('L', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5, twist: 0.3 }); // hands folded at the belt
+    cam([0, 1.45, 6.4], [0, 1.05, 0]);
+  }
+  if (seg === 1) { // TALKING: Nathan explains, David listens
+    const o = talk(ts, 0.8) * (ts > 0.3 && ts < 3.7 ? 1 : 0), beat = Math.sin(ts * 4.2);
+    N.setFace({ blink: blinkAt(t, 1), open: o, look: [0.55, 0], raise: 0.3 + 0.3 * Math.max(0, beat) }); N.setHead({ nod: 0.06 * beat, turn: 0.15, tilt: 0.05 * Math.sin(ts * 1.7) });
+    N.setArm('R', { fwd: 0.7 + 0.15 * beat, out: 0.35, bend: 1.2 - 0.25 * beat, curl: 0.15, twist: -0.3, wrist: 0.2 * beat });
+    N.setArm('L', { fwd: 0.45, out: 0.2, bend: 1.1, curl: 0.3, twist: 0.5, wrist: -0.3 });
+    N.setBody({ breathe: Math.sin(ts * 2.4), lean: 0.03 * beat });
+    D.setFace({ blink: blinkAt(t, 2), look: [-0.55, 0], lid: 0.1 }); D.setHead({ nod: ts > 2 && ts < 2.5 ? 0.12 : 0, turn: -0.1 });
+    D.setArm('R', { fwd: 0.3, bend: 1.4, curl: 0.6, out: 0.05 }); D.setArm('L', { fwd: 0.3, bend: 1.4, curl: 0.6, out: 0.05, twist: 0.3 });
+    cam([0, 1.5, 6.0], [0, 1.15, 0]);
+  }
+  if (seg === 2) { // EMOTIONS: David only, medium close
+    N.root.visible = false; D.root.position.set(0, 0, 0); D.root.rotation.y = -0.15;
+    const k = [ramp(ts, 0.7, 0.95), ramp(ts, 1.5, 1.75), ramp(ts, 2.3, 2.5), ramp(ts, 3.1, 3.4)]; // susp, angry, shock, sad
+    const sus = k[0] * (1 - k[1]), ang = k[1] * (1 - k[2]), sho = k[2] * (1 - k[3]), sad = k[3];
+    D.setFace({ blink: ts > 2.3 && ts < 3.1 ? 0 : blinkAt(t, 2), lid: 0.3 * sus + 0.2 * ang - 0.55 * sho + 0.5 * sad, squint: 0.6 * sus + 0.5 * ang, browL: 0.8 * sus, angry: ang, raise: 1.0 * sho, sad, open: 0.2 * ang * Math.abs(Math.sin(ts * 9)) + 0.9 * sho + 0.1 * sad, look: [0.35 * sus, -0.6 * sad] });
+    D.setHead({ tilt: 0.12 * sus, nod: 0.12 * ang - 0.12 * sho + 0.32 * sad, turn: -0.15 * sus });
+    D.setBody({ breathe: Math.sin(ts * 2.4), lean: 0.06 * ang - 0.05 * sho + 0.03 * sad });
+    D.setArm('R', { fwd: lerp(0.12, 0.9, ang) * (1 - sho) + 0.6 * sho + 0.35 * sad, out: 0.12 + 0.4 * sho, bend: lerp(0.35, 1.6, ang) + 0.9 * sho + 1.2 * sad, curl: lerp(0.35, 1, ang) * (1 - sho) + 0.05 * sho + 0.4 * sad, twist: 0.3 * sad });
+    D.setArm('L', { fwd: 0.12 + 0.6 * sho + 0.35 * sad, out: 0.12 + 0.4 * sho, bend: 0.35 + 0.9 * sho + 1.2 * sad, curl: 0.35 * (1 - sho), twist: 0.3 * sad });
+    cam([0.1, 1.65, 3.1], [0, 1.55, 0]);
+  }
+  if (seg === 3) { // POINT: anticipation, point with overshoot, hold; David recoils
+    const an = ramp(ts, 0.8, 1.2) * (1 - ramp(ts, 1.2, 1.35)), pk = back((ts - 1.3) / 0.45);
+    N.setArm('R', { fwd: lerp(0.3 + 0.2 * an, 1.45, pk), out: lerp(0.2 - 0.1 * an, 0.25, pk), bend: lerp(0.8 + 0.6 * an, 0.05, pk), point: pk > 0.3, curl: 0.5 });
+    N.setBody({ breathe: Math.sin(ts * 2.4), lean: -0.04 * an + 0.05 * pk, twist: -0.08 * an + 0.1 * pk });
+    N.setFace({ blink: ts > 1.2 ? 0 : blinkAt(t, 1), look: [0.6, 0], lid: lerp(0.1, 0.35, ramp(ts, 1.2, 1.6)), angry: 0.4 * ramp(ts, 1.2, 1.6), open: ts > 1.5 && ts < 2.3 ? talk(ts, 0.6) : 0 });
+    N.setHead({ nod: -0.06 * an + 0.04 * pk, turn: 0.2 });
+    const re = ramp(ts, 1.55, 1.85);
+    D.setFace({ blink: ts > 1.5 ? 0 : blinkAt(t, 2), look: [-0.6, 0], lid: -0.45 * re, raise: 0.8 * re, open: 0.5 * re });
+    D.setHead({ nod: -0.12 * re, turn: -0.2 }); D.setBody({ breathe: Math.sin(ts * 2.4), lean: -0.07 * re });
+    D.setArm('R', { fwd: 0.12 + 0.5 * re, bend: 0.35 + 0.9 * re, curl: 0.2, out: 0.15 }); D.setArm('L', { fwd: 0.12 + 0.5 * re, bend: 0.35 + 0.9 * re, curl: 0.2, out: 0.15 });
+    cam([0, 1.45, 6.2], [0, 1.05, 0]);
+  }
+  if (seg === 4) { // WALK: Nathan crosses the frame
+    D.root.visible = false;
+    const phase = ts / 1.0, w = N.walk(phase, 1);
+    N.root.position.set(-1.6 + ts * 0.8, 0, 0); N.root.rotation.y = Math.PI / 2 - 0.35;
+    N.setBody({ bob: w.bob, sway: w.sway, breathe: 0, lean: 0.04 });
+    N.setArm('R', { fwd: w.swing, out: 0.1, bend: 0.4 }); N.setArm('L', { fwd: -w.swing, out: 0.1, bend: 0.4 });
+    N.setHead({ nod: 0.03 * Math.sin(phase * Math.PI * 4), turn: ts > 2.5 ? -0.3 : 0 }); N.setFace({ blink: blinkAt(t, 1), look: ts > 2.5 ? [-0.6, 0] : [0, -0.1] });
+    cam([0, 1.3, 5.6], [0, 1.0, 0]);
+  }
+  if (seg === 5) { // HANDS: close-up on Nathan's right hand
+    N.root.position.set(0, 0, 0); N.root.rotation.y = 0.2; D.root.visible = false;
+    const s1 = ramp(ts, 0.7, 0.9), s2 = ramp(ts, 1.6, 1.8), s3 = ramp(ts, 2.6, 2.85);
+    N.setArm('R', { fwd: 0.95 + 0.2 * s3, out: 0.25, bend: 1.2 - 0.5 * s3, twist: -0.5 - 1.2 * s3, curl: lerp(lerp(0.05, 1, s1), 0.4, s2) * (1 - s3), point: s2 > 0.5 && s3 < 0.5, wrist: 0.25 * s3 });
+    N.setFace({ blink: blinkAt(t, 1), look: [0.2, -0.6] }); N.setHead({ nod: 0.22 });
+    cam([0.45, 1.25, 1.75], [0.25, 1.05, 0.4]);
+  }
+}
+
+const out = document.getElementById('out'), o = out.getContext('2d');
+window.drawFrame = (t) => {
+  pose(t); composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H);
+  const seg = Math.min(TESTS.length - 1, Math.floor(t / SEG));
+  o.fillStyle = 'rgba(30,20,12,0.82)'; o.fillRect(0, 0, W, 120); o.fillStyle = '#f6ead6'; o.font = '600 40px Georgia, serif'; o.fillText(TESTS[seg], 36, 72);
+  o.font = '26px Georgia, serif'; o.fillStyle = 'rgba(246,234,214,0.7)'; o.fillText('posed on 2s (12 poses per second)', 36, 108);
+  return out.toDataURL('image/jpeg', 0.9);
+};
+window.DURATION = DURATION; window.STRIP = [36, 130, 190, 228, 340, 430, 530];
+window.READY = true;
+</script></body></html>
