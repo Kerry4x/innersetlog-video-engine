@@ -52,3 +52,31 @@ Pick on: does the KJV line sound natural, not costume-like; does the hook pull y
 
 ## 7. For No New Thing
 Section 6 is for reference only (Kerry, 2026-11-16): we don't copy their setup. Our profile picture, covers and bio get designed from our own concept when we get there.
+
+## 8. Ecclesiastes 1:9 in context (does the name fit?)
+- **Text (KJV, checked):** v9 "The thing that hath been, it is that which shall be; and that which is done is that which shall be done: and there is no new thing under the sun." v11 "There is no remembrance of former things; neither shall there be any remembrance of things that are to come with those that shall come after."
+- **Speaker:** "the Preacher, the son of David, king in Jerusalem" (1:1), traditionally Solomon, David's son. (recalled)
+- **Setting:** chapter 1 opens with "Vanity of vanities; all is vanity" (1:2) and lists endless cycles: the sun rises and sets, the wind circles, rivers run to a sea that is never full (1:4-7). v9 says human life repeats the same way; v11 says people forget what came before. (recalled except v9, v11)
+- **The book's own ending:** "Fear God, and keep his commandments: for this is the whole duty of man." (12:13, recalled)
+- **Fit:** yes. v9 is about human life and deeds repeating, v11 about forgetting the past, which is exactly the page: the old stories already happened, we forgot them, they keep happening in a new package.
+- **One nuance to keep honest:** in context the verse is a sober observation (part of "all is vanity"), not a cheerful slogan. Use it as "this has happened before", not "nothing can ever change".
+
+## 9. Bios (drafts)
+**Instagram** (150 max)
+- A (111): "Bible stories, then the same story today. / The thing that hath been, it is that which shall be. Ecclesiastes 1:9"
+- B (92): "Old stories. Today's people. / The Bible, told story first, then shown in your life now. 📖 KJV"
+
+**TikTok** (80 max)
+- A (50): "Bible stories, then the same story today. Eccl 1:9"
+- B (30): "Old stories. Today's people. 📖"
+
+**YouTube description**
+"The thing that hath been, it is that which shall be; and that which is done is that which shall be done: and there is no new thing under the sun. (Ecclesiastes 1:9, KJV)
+
+No New Thing tells stories from the Bible, then shows the same story happening today. People haven't changed. Only the package has. Every story is quoted from the King James Version.
+
+New stories every week."
+
+## 10. Image specs
+- Profile picture: one image for all platforms, made at 1080x1080, designed to read inside a small circle (Instagram shows it at about 110 px).
+- YouTube banner: 2560x1440; everything important inside the centre 1546x423 (what shows on phones), the rest is decoration for TV and desktop.
