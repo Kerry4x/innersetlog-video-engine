@@ -1,0 +1,235 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Look test v3: clay</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Look test v3: clay stop-motion look (original characters) + a flat 2D paper cutout inside the 3D set.
+// Everything is seeded, so the same code always renders the same frames.
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#3a2a1f');
+scene.fog = new THREE.Fog('#3a2a1f', 10, 20);
+const camera = new THREE.PerspectiveCamera(34, W / H, 0.05, 40);
+
+// ---------- seeded randomness + noise ----------
+let seed = 12345; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const hash = (x, y, z) => { const h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return h - Math.floor(h); };
+const sm = t => t * t * (3 - 2 * t);
+function vnoise(x, y, z) {
+  const X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z), fx = sm(x - X), fy = sm(y - Y), fz = sm(z - Z); let r = 0;
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) for (let k = 0; k < 2; k++) r += hash(X + i, Y + j, Z + k) * (i ? fx : 1 - fx) * (j ? fy : 1 - fy) * (k ? fz : 1 - fz);
+  return r;
+}
+const fbm = (x, y, z) => vnoise(x, y, z) * 0.65 + vnoise(x * 2.3 + 5, y * 2.3, z * 2.3) * 0.35;
+let lumpSeed = 0;
+// push each vertex in/out along its direction from the centre (or the axis): hand-pressed, uneven clay
+function lumpy(geo, amp, freq, mode = 'sphere') {
+  const s = (lumpSeed += 3.7), p = geo.attributes.position, v = new THREE.Vector3(), d = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i); mode === 'sphere' ? d.copy(v) : d.set(v.x, 0, v.z);
+    const L = d.length(); if (L < 1e-5) continue; d.divideScalar(L);
+    v.addScaledVector(d, (fbm(v.x * freq + s, v.y * freq, v.z * freq) - 0.5) * 2 * amp); p.setXYZ(i, v.x, v.y, v.z);
+  }
+  geo.computeVertexNormals(); return geo;
+}
+
+// ---------- clay surface: thumb smudges + fine grain as a bump map ----------
+function smudgeTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  g.fillStyle = '#808080'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 700; i++) {
+    const x = rand() * 512, y = rand() * 512, r = 6 + rand() * 26, light = rand() > 0.5;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, light ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'); gr.addColorStop(1, 'rgba(128,128,128,0)');
+    g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, r, r * (0.5 + rand() * 0.5), rand() * 3.14, 0, 6.29); g.fill();
+  }
+  for (let i = 0; i < 6000; i++) { g.fillStyle = `rgba(${rand() > 0.5 ? 255 : 0},${0},${0},0.06)`.replace(',0,0', rand() > 0.5 ? ',255,255' : ',0,0'); g.fillRect(rand() * 512, rand() * 512, 1.5, 1.5); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+const bump = smudgeTexture();
+const clay = (color, o = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.78, sheen: 0.35, sheenRoughness: 0.7, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.35), bumpMap: bump, bumpScale: 2.2, ...o });
+const C = {
+  skin: clay('#d39a72'), kingRobe: clay('#5b3591'), sash: clay('#c9a13e'), prophetRobe: clay('#8a6544'), hairDark: clay('#3b2618'), hairGray: clay('#d8d2c6'),
+  eyeWhite: clay('#f7f3ea', { bumpScale: 0.3, roughness: 0.4 }), pupil: clay('#16100c', { bumpScale: 0, roughness: 0.25, sheen: 0 }), mouth: clay('#240a0a', { bumpScale: 0.3, sheen: 0 }),
+  gold: clay('#d7a63f', { metalness: 0.25, roughness: 0.5 }), throne: clay('#7a2a22'), wood: clay('#5a3b25'), wall: clay('#a5835f'),
+};
+const mesh = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; return m; };
+const blob = (r, mat, amp = 0.012, seg = 32) => mesh(lumpy(new THREE.SphereGeometry(r, seg, Math.round(seg * 0.75)), amp, 9), mat);
+
+// ---------- set ----------
+function tileTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 1024; const g = c.getContext('2d');
+  g.fillStyle = '#4e3b2c'; g.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+    const v = 150 + rand() * 40; g.fillStyle = `rgb(${v},${v * 0.8},${v * 0.62})`;
+    g.beginPath(); g.roundRect(i * 128 + 6 + rand() * 4, j * 128 + 6 + rand() * 4, 114, 114, 18); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const tiles = tileTexture();
+const floor = mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshPhysicalMaterial({ map: tiles, bumpMap: tiles, bumpScale: 3, roughness: 0.85, sheen: 0.2 }), false);
+floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const wall = mesh(lumpy(new THREE.BoxGeometry(12, 6, 0.3, 60, 30, 2), 0.03, 1.5), C.wall, false); wall.position.set(0, 3, -1.9); scene.add(wall);
+const winShape = new THREE.Shape(); winShape.moveTo(-0.45, 0); winShape.lineTo(-0.45, 1.1); winShape.absarc(0, 1.1, 0.45, Math.PI, 0, true); winShape.lineTo(0.45, 0); winShape.lineTo(-0.45, 0);
+const win = new THREE.Mesh(new THREE.ShapeGeometry(winShape, 24), new THREE.MeshBasicMaterial({ color: '#ffdca8' })); win.position.set(-1.1, 1.9, -1.74); scene.add(win);
+for (const x of [-0.15, 0.15]) { const bar = mesh(lumpy(new THREE.CapsuleGeometry(0.035, 1.5, 4, 8), 0.01, 6), C.wood); bar.position.set(-1.1 + x, 2.65, -1.7); scene.add(bar); }
+for (const x of [-2.4, 2.4]) { const col = mesh(lumpy(new THREE.CylinderGeometry(0.26, 0.3, 6, 32, 30), 0.03, 2.5, 'radial'), C.wall); col.position.set(x, 3, -1.5); scene.add(col); }
+
+// ---------- character kit ----------
+function character({ robeMat, robeH, robeR, hair, beard, crown }) {
+  const g = new THREE.Group(), P = {};
+  const pts = [[0, 0], [robeR, 0], [robeR * 1.03, robeH * 0.15], [robeR * 0.86, robeH * 0.6], [robeR * 0.62, robeH * 0.9], [robeR * 0.3, robeH], [0, robeH]].map(([x, y]) => new THREE.Vector2(x, y));
+  P.body = mesh(lumpy(new THREE.LatheGeometry(pts, 48), 0.022, 3.2, 'radial'), robeMat); g.add(P.body);
+  // head group (so the whole face can tilt together)
+  const hr = 0.27; P.head = new THREE.Group(); P.head.position.y = robeH + hr * 0.82; g.add(P.head);
+  P.head.add(blob(hr, C.skin, 0.008, 48));
+  P.nose = blob(0.06, C.skin, 0.006, 20); P.nose.scale.set(0.9, 0.85, 1); P.nose.position.set(0, -0.03, 0.27); P.head.add(P.nose);
+  for (const s of [-1, 1]) { const ear = blob(0.06, C.skin, 0.005, 16); ear.scale.set(0.45, 1, 0.8); ear.position.set(0.26 * s, 0, -0.01); P.head.add(ear); }
+  P.eyes = [-1, 1].map(s => {
+    const e = new THREE.Group(); e.position.set(0.095 * s, 0.045, 0.215); P.head.add(e);
+    const white = mesh(new THREE.SphereGeometry(0.066, 24, 18), C.eyeWhite, false); e.add(white);
+    const pupil = mesh(new THREE.SphereGeometry(0.032, 16, 12), C.pupil, false); pupil.scale.z = 0.5; pupil.position.z = 0.058; e.add(pupil);
+    const lid = mesh(new THREE.SphereGeometry(0.072, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), C.skin, false); e.add(lid);
+    return { e, white, pupil, lid };
+  });
+  P.brows = [-1, 1].map(s => { const b = mesh(lumpy(new THREE.CapsuleGeometry(0.02, 0.085, 4, 8), 0.004, 20), hair); b.rotation.z = Math.PI / 2; b.position.set(0.1 * s, 0.14, 0.235); P.head.add(b); return b; });
+  P.mouth = mesh(new THREE.SphereGeometry(0.07, 24, 12), C.mouth, false); P.mouth.scale.set(1, 0.14, 0.4); P.mouth.position.set(0, -0.125, 0.235); P.mouth.rotation.x = -0.35; P.head.add(P.mouth);
+  // hair: a ring of blobs around the back and sides
+  for (let i = 0; i < 9; i++) { const a = Math.PI * (1.05 + i / 8 * 0.9); const h = blob(0.1 + rand() * 0.03, hair, 0.01, 16); h.position.set(Math.cos(a) * 0.22, 0.06 + rand() * 0.06, Math.sin(a) * 0.22 - 0.03); P.head.add(h); }
+  if (beard) beard.forEach(([x, y, z, r]) => { const b = blob(r, hair, 0.012, 18); b.position.set(x, y, z); P.head.add(b); });
+  if (crown) {
+    const band = mesh(lumpy(new THREE.CylinderGeometry(0.2, 0.19, 0.11, 32, 4, true), 0.008, 10, 'radial'), C.gold); band.position.y = 0.24; P.head.add(band);
+    for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; const sp = blob(0.04, C.gold, 0.004, 12); sp.scale.y = 1.6; sp.position.set(Math.cos(a) * 0.195, 0.33, Math.sin(a) * 0.195); P.head.add(sp); }
+  }
+  // arms: shoulder pivot → sleeve → hand
+  P.arms = [-1, 1].map(s => {
+    const sh = new THREE.Group(); sh.position.set(robeR * 0.55 * s, robeH * 0.86, 0.02); g.add(sh);
+    const sleeve = mesh(lumpy(new THREE.CapsuleGeometry(0.075, 0.34, 6, 16), 0.01, 7), robeMat); sleeve.position.y = -0.22; sh.add(sleeve);
+    const hand = blob(0.07, C.skin, 0.006, 16); hand.position.y = -0.46; sh.add(hand);
+    return { sh, hand };
+  });
+  return { g, P };
+}
+
+// King David, seated on the throne (right)
+const kingG = new THREE.Group(); kingG.position.set(0.55, 0, -0.1); kingG.rotation.y = -0.25; scene.add(kingG);
+const seat = mesh(lumpy(new RoundedBoxGeometry(0.95, 0.45, 0.7, 4, 0.08), 0.015, 3), C.throne); seat.position.set(0, 0.225, -0.05); kingG.add(seat);
+const tback = mesh(lumpy(new RoundedBoxGeometry(0.95, 1.75, 0.18, 4, 0.07), 0.02, 2.5), C.throne); tback.position.set(0, 0.875 + 0.2, -0.42); kingG.add(tback);
+for (const s of [-1, 1]) { const k = blob(0.08, C.gold, 0.006, 16); k.position.set(0.42 * s, 2.0, -0.42); kingG.add(k); }
+const king = character({ robeMat: C.kingRobe, robeH: 0.72, robeR: 0.33, hair: C.hairDark, crown: true, beard: [[0, -0.29, 0.12, 0.1], [0.1, -0.24, 0.12, 0.075], [-0.1, -0.24, 0.12, 0.075]] });
+king.g.position.y = 0.45; kingG.add(king.g);
+const sash = mesh(lumpy(new THREE.TorusGeometry(0.29, 0.03, 10, 40), 0.006, 8), C.sash); sash.rotation.x = Math.PI / 2; sash.position.y = 0.42; king.g.add(sash);
+for (const s of [-1, 1]) { // legs + feet
+  const thigh = mesh(lumpy(new THREE.CapsuleGeometry(0.1, 0.22, 6, 12), 0.008, 8), C.kingRobe); thigh.rotation.x = Math.PI / 2; thigh.position.set(0.13 * s, 0.52, 0.2); kingG.add(thigh);
+  const shin = mesh(lumpy(new THREE.CapsuleGeometry(0.09, 0.3, 6, 12), 0.008, 8), C.kingRobe); shin.position.set(0.13 * s, 0.27, 0.36); kingG.add(shin);
+  const foot = blob(0.08, C.wood, 0.006, 14); foot.scale.set(1, 0.6, 1.5); foot.position.set(0.13 * s, 0.05, 0.43); kingG.add(foot);
+}
+king.P.arms.forEach((a, i) => { a.sh.rotation.x = -0.75; a.sh.rotation.z = (i ? 1 : -1) * 0.18; });
+
+// Nathan, standing (left)
+const nathan = character({ robeMat: C.prophetRobe, robeH: 1.12, robeR: 0.36, hair: C.hairGray, beard: [[0, -0.2, 0.17, 0.14], [0.1, -0.15, 0.17, 0.1], [-0.1, -0.15, 0.17, 0.1], [0, -0.32, 0.12, 0.11]] });
+nathan.g.position.set(-0.55, 0, 0.3); nathan.g.rotation.y = 0.5; scene.add(nathan.g);
+nathan.P.mouth.visible = false;
+const [nL, nR] = nathan.P.arms; nL.sh.rotation.set(-0.45, 0, -0.2);
+const staff = mesh(lumpy(new THREE.CylinderGeometry(0.03, 0.035, 1.75, 12, 20), 0.008, 6, 'radial'), C.wood); staff.position.set(-0.33, 0.87, 0.3); nathan.g.add(staff);
+const finger = blob(0.025, C.skin, 0.003, 10); finger.scale.y = 2.4; finger.position.y = -0.55; nR.sh.add(finger);
+
+// ---------- the parable as a flat paper cutout inside the clay world ----------
+function cutout() {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  g.beginPath(); for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2, r = 228 + (rand() - 0.5) * 14; g[i ? 'lineTo' : 'moveTo'](256 + Math.cos(a) * r, 256 + Math.sin(a) * r); }
+  g.closePath(); g.fillStyle = '#efe1c2'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#4a3020'; g.stroke();
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 6; g.strokeStyle = '#2e1d12';
+  g.beginPath(); g.moveTo(80, 405); g.quadraticCurveTo(256, 385, 430, 405); g.stroke(); // ground
+  g.fillStyle = '#9a7650'; g.beginPath(); g.moveTo(180, 400); g.lineTo(212, 250); g.lineTo(262, 250); g.lineTo(290, 400); g.closePath(); g.fill(); g.stroke(); // poor man robe
+  g.fillStyle = '#d6a074'; g.beginPath(); g.arc(237, 212, 36, 0, 7); g.fill(); g.stroke(); // head
+  g.fillStyle = '#fbf6ea'; for (const [x, y, r] of [[300, 290, 30], [328, 280, 26], [276, 280, 24], [302, 262, 24], [326, 304, 22]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke(); } // lamb held close
+  g.fillStyle = '#2e1d12'; g.beginPath(); g.ellipse(360, 270, 17, 13, 0.3, 0, 7); g.fill();
+  g.beginPath(); g.moveTo(258, 300); g.quadraticCurveTo(300, 330, 330, 300); g.stroke(); // arm around the lamb
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const memMat = new THREE.MeshBasicMaterial({ map: cutout(), transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+const memory = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.15), memMat); memory.position.set(-0.02, 2.2, 0.55); scene.add(memory);
+
+// ---------- light: soft studio key, warm window, cool rim (a miniature set) ----------
+scene.add(new THREE.HemisphereLight('#ffe7cc', '#3a281c', 0.55));
+const key = new THREE.SpotLight('#fff0dc', 70, 14, Math.PI / 5, 0.9, 1.5); key.position.set(-2.2, 3.8, 3.8); key.target.position.set(0.1, 1.0, 0);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0003; scene.add(key, key.target);
+const sun = new THREE.SpotLight('#ffc77a', 120, 14, Math.PI / 8, 0.7, 1.6); sun.position.set(-2.4, 4.4, -3.4); sun.target.position.set(0.2, 0, 0.6);
+sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); scene.add(sun, sun.target);
+const rim = new THREE.DirectionalLight('#9ab8ff', 0.9); rim.position.set(3, 3, -3); scene.add(rim);
+
+// ---------- post: shallow depth of field (the miniature look) ----------
+const composer = new EffectComposer(renderer); composer.setSize(W, H);
+composer.addPass(new RenderPass(scene, camera));
+const bokeh = new BokehPass(scene, camera, { focus: 6, aperture: 0.0022, maxblur: 0.006 }); composer.addPass(bokeh);
+composer.addPass(new OutputPass());
+
+// ---------- animation: poses step at 12/s (stop motion); camera moves smoothly ----------
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const ramp = (t, a, b) => ease((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const jit = (step, k) => hash(step, k, 7.3) - 0.5; // the "boil" between hand-moved poses
+
+function update(t) {
+  const step = Math.floor(t * 12), ts = step / 12;
+  // listening, then the turn
+  const breath = Math.sin(ts * 2.2) * 0.012;
+  king.P.body.scale.y = 1 + breath; nathan.P.body.scale.y = 1 - breath;
+  nathan.P.head.rotation.y = 0.15 * Math.sin(ts * 1.4) * (1 - ramp(ts, 3.8, 4.2));
+  king.P.head.rotation.z = 0.06 * ramp(ts, 1.8, 2.6) * (1 - ramp(ts, 4.4, 4.7)); // tilts in, absorbed by the story
+  // Nathan points
+  const pt = ramp(ts, 4.0, 4.5);
+  nR.sh.rotation.set(lerp(-0.1, -0.35, pt), 0, lerp(0.15, 1.45, pt));
+  nathan.P.head.rotation.x = lerp(0, -0.05, pt);
+  // David: calm, half-lidded → shock
+  const r = ramp(ts, 4.7, 5.1);
+  king.P.eyes.forEach(({ white, pupil, lid }) => { lid.rotation.x = lerp(0.55, -0.9, r); white.scale.setScalar(1 + 0.12 * r); pupil.scale.set(1 - 0.3 * r, 1 - 0.3 * r, 0.5); });
+  king.P.brows.forEach((b, i) => { b.position.y = 0.14 + 0.05 * r; b.rotation.y = 0; b.rotation.x = 0; b.rotation.z = Math.PI / 2 + (i ? 1 : -1) * 0.3 * r; });
+  king.P.mouth.scale.set(lerp(1, 0.7, r), lerp(0.14, 0.75, r), 0.4); king.P.mouth.position.y = -0.125 - 0.02 * r;
+  king.P.head.rotation.x = -0.14 * r; king.g.rotation.x = -0.05 * r;
+  king.P.arms.forEach((a, i) => { a.sh.rotation.x = lerp(-0.75, -1.1, r); a.sh.rotation.z = (i ? 1 : -1) * lerp(0.18, 0.35, r); });
+  // the parable cutout: fades in, wobbles like paper on a wire, fades out
+  const mi = ramp(ts, 1.8, 2.3) * (1 - ramp(ts, 3.7, 4.1));
+  memMat.opacity = mi; memory.rotation.z = 0.04 * Math.sin(ts * 3); memory.position.y = 2.2 + 0.03 * Math.sin(ts * 2);
+  // boil
+  king.g.rotation.z = 0.004 * jit(step, 1); nathan.g.rotation.z = 0.004 * jit(step, 2);
+  king.P.head.position.x = 0.002 * jit(step, 3); nathan.P.head.position.x = 0.002 * jit(step, 4);
+  // camera: wide → slow drift → push into David's face; focus follows
+  const c1 = ramp(t, 0, 4), c2 = ramp(t, 4.0, 5.6);
+  const pos = V(0, 1.45, 6.6).lerp(V(0.15, 1.5, 6.0), c1).lerp(V(0.62, 1.5, 2.05), c2);
+  const tgt = V(0, 1.25, 0).lerp(V(0.05, 1.3, 0), c1).lerp(V(0.5, 1.47, 0), c2);
+  camera.position.copy(pos); camera.lookAt(tgt);
+  const focusPt = V(0.0, 1.2, 0.1).lerp(V(0.55, 1.42, 0.05), c2);
+  bokeh.uniforms.focus.value = camera.position.distanceTo(focusPt);
+}
+
+// ---------- composite + caption ----------
+const out = document.getElementById('out'), o = out.getContext('2d');
+function caption(t) { return t < 2 ? 'A prophet came to the king\nwith a story.' : t < 4 ? "A poor man's only lamb…" : '"Thou art the man."'; }
+window.drawFrame = (t) => {
+  update(t); composer.render();
+  o.drawImage(renderer.domElement, 0, 0, W, H);
+  const g = o.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.78); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.5)');
+  o.fillStyle = g; o.fillRect(0, 0, W, H);
+  o.textAlign = 'center'; o.font = '600 62px Georgia, serif'; o.lineJoin = 'round';
+  caption(t).split('\n').forEach((line, i) => { const y = 1700 + i * 76; o.lineWidth = 9; o.strokeStyle = 'rgba(10,6,4,0.85)'; o.strokeText(line, W / 2, y); o.fillStyle = '#f7ead2'; o.fillText(line, W / 2, y); });
+  return out.toDataURL('image/jpeg', 0.9);
+};
+window.READY = true;
+</script></body></html>
