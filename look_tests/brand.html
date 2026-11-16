@@ -21,7 +21,8 @@ import { buildCharacter, clay, M, lathe } from './kit/claychar.js';
 
 const q = new URLSearchParams(location.search), KIND = q.get('kind') || 'pfp', DIR = q.get('dir') || 'char';
 const W = KIND === 'pfp' ? 1080 : 2560, H = KIND === 'pfp' ? 1080 : 1440;
-const out = document.getElementById('out'); out.width = W; out.height = H;
+const SS = +(q.get('ss') || 2), RW = W * SS, RH = H * SS; /* render bigger, then shrink: sharp edges when zoomed */
+const out = document.getElementById('out'); out.width = RW; out.height = RH;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 let seed = 3; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const font = await new Promise(r => new FontLoader().load('./node_modules/three/examples/fonts/gentilis_bold.typeface.json', r));
@@ -111,11 +112,11 @@ if (DIR === 'letter') {
 }
 camera.aspect = W / H; camera.updateProjectionMatrix();
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(W, H, false);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(RW, RH, false);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0; renderer.outputColorSpace = THREE.SRGBColorSpace;
-const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(RW, RH, { samples: 4, type: THREE.HalfFloatType })); composer.setSize(RW, RH); composer.addPass(new RenderPass(scene, camera));
 composer.addPass(new OutputPass());
 const o = out.getContext('2d');
-window.drawFrame = () => { composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H); return out.toDataURL('image/png'); };
+window.drawFrame = () => { composer.render(); o.drawImage(renderer.domElement, 0, 0, RW, RH); return out.toDataURL('image/png'); };
 window.READY = true;
 </script></body></html>
