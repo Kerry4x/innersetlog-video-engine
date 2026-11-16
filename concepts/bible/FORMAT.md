@@ -5,15 +5,22 @@ The Bible isn't a storybook; it is the living word of God and has always applied
 
 *Wording note:* say "human nature hasn't changed" / "same problems, new package", not "humans haven't evolved" (that invites biology objections and isn't the claim).
 
-## How every video works (the reversal)
-Everyone else starts with a Bible story and tries to make it relevant. This channel starts where people already are:
+## Two directions, one thesis
+Either direction works; what matters is that the **mechanism** connects then and now.
 
-1. **The package:** something modern people recognize (a psychology finding, a habit, a cultural moment, a common struggle).
+**A. Story-first (Bible → now)**: the default for **shorts** (like the Clayrified parable → "you" structure):
+1. **The story:** a Bible moment, told accurately and in context.
+2. **The mechanism:** what that moment reveals about people.
+3. **Now:** the same mechanism in a situation people live today (one connected situation, not a list).
+4. **What it reveals:** the point the story makes about us. Not forced into advice.
+
+**B. Package-first (now → Bible)**: works well for **long-form** and for modern hooks:
+1. **The package:** something modern people recognize (a psychology finding, a habit, a cultural moment).
 2. **The mechanism:** what's actually driving it, stated precisely.
-3. **The original:** where scripture shows the same mechanism, quoted accurately and in context.
-4. **What it reveals:** what the modern package misses and the text sees (often the cause, or the way out). Not forced into advice.
+3. **The original:** where scripture shows the same mechanism.
+4. **What it reveals:** what the modern package misses and the text sees.
 
-Differences between the package and the biblical account are **part of the point** (different package, same mechanism), so both must be stated exactly.
+Long-form can go deeper in either direction. Differences between the modern package and the biblical account are **part of the point** (different package, same mechanism), so both must be stated exactly.
 
 ## Script standards (Kerry, 2026-11-16)
 - Judge a script by whether it makes sense and captures the whole idea, not by voice or runtime.
