@@ -25,6 +25,13 @@ ENTRIES=(
   "S05|1PavOKNjhgTJrDZhNvKgl3r6n4Zu5vDB7|s_a5bd|--whisper-model small"
   "S06|1Fd-MSqc_UAJ0R7HCG9quhM9K7D8IAau4|s_de34|--whisper-model small"
   "S07|1iRCSHDgUaU4-IBuLqoEctKzOhWKMG8HO|s_2bdf|--whisper-model small"
+  "S08|1yR-eEBZ17ge05RslF1mfUGMyQfm3EsAU|s08|--whisper-model small"
+  "S09|1-9mqpIuFBSLA67vRpx-ALjwcGEIPBAq-|s09|--whisper-model small"
+  "S10|1BvnftHVMGV8Z4FqNcIGcNHKcHEYq0YV9|s10|--whisper-model small"
+  "S11|1j35ffFO0TVS1QedYtPwvup4fH85mUyZx|s11|--whisper-model small"
+  "S12|1S3XbOPhLXvZ1GDUOadJ46ZsSis3HXNQ8|s12|--whisper-model small"
+  "S13|1ifhAlOjaH0sW_1hg1t_kyhdDG8ebL-zL|s13|--whisper-model small"
+  "S14|1NzJGuJ3O5e13pGFWidoKJZpV6fl_27Ym|s14|--whisper-model small"
 )
 
 want=("$@")

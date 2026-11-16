@@ -25,6 +25,7 @@ Every analyzed video has its own file: script breakdown (timestamped beats, shor
 | S05 | [The farmer's butter](styles/S05_clayrified_butter-and-bread-parable.md) | @clayrified | 68 s · 9:16 · clay look | Famous parable + twist, a shot per clause, word-by-word captions |
 | S06 | [Two monks and the woman](styles/S06_clayrified_two-monks-parable.md) | @clayrified | 82 s · 9:16 · clay look | Parable → "You see, in life…" → modern examples in the same world |
 | S07 | [The golden Buddha](styles/S07_clayrified_golden-buddha-parable.md) | @clayrified | 78 s · 9:16 · clay look | Story → "you did the same thing" → the metaphor becomes a character; color as meaning |
+| S08–S14 | [Seven more parable shorts](styles/S08-S14_clayrified_batch2.md) | @clayrified | 62–85 s · 9:16 · photoreal clay (likely AI-generated) | Macro object opener → story → "In life," → 3 specific modern examples → callback imperative; on-2s motion, locked camera per shot |
 
 ## Getting the raw material back
 
