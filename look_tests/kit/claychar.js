@@ -3,6 +3,7 @@
 // Rig: body (lean/sway/bob), head (nod/turn/tilt), eyes (look), upper+lower lids (blink/squint/widen),
 // brows (raise/angry/sad), jaw (talk; carries the beard), arms (shoulder/elbow/wrist), fingers (curl/point), feet (walk).
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 let seed = 5; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -62,9 +63,16 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, crown, lidT
   }
   if (beard) {
     const t = 0.03, pts = []; for (let y = 0.0; y <= 0.04; y += 0.01) pts.push([hr(y) + t, y]); pts.unshift([hr(0) * 0.6 + t, -0.02]);
-    const band = M(grooves(lathe(pts, 144, Math.PI * 0.5 - 1.75, 3.5), 0.005, 16), clay(beard, { side: THREE.DoubleSide }), R.jaw); R.beardMeshes = [band]; band.scale.z = SZ * 1.04; band.position.y = -0.2;
-    const mass = M(grooves(new THREE.SphereGeometry(0.15, 96, 64), 0.007, 11), clay(beard), R.jaw); R.beardMeshes.push(mass);
-    mass.scale.set(1.25, 0.8 + beardLen * 5, 0.85); mass.position.set(0, 0.03 - beardLen * 0.9 - 0.2, surf(0, 0.05) - 0.08);
+    /* one sculpted piece: the jaw band and the mass under the chin are merged, then ONE strand pattern is cut into both */
+    const bandG = lathe(pts, 144, Math.PI * 0.5 - 1.75, 3.5); bandG.applyMatrix4(new THREE.Matrix4().compose(V(0, -0.2, 0), new THREE.Quaternion(), V(1, 1, SZ * 1.04)));
+    const massG = new THREE.SphereGeometry(0.15, 96, 64); massG.applyMatrix4(new THREE.Matrix4().compose(V(0, 0.03 - beardLen * 0.9 - 0.2, surf(0, 0.05) - 0.08), new THREE.Quaternion(), V(1.25, 0.8 + beardLen * 5, 0.85)));
+    const bg = mergeGeometries([bandG, massG]); bg.computeVertexNormals(); const nb = bg.attributes.normal.array.slice(); /* smooth, indexed */
+    /* strands are stored separately from the shape, so draping can move the shape and the strands are cut back in afterwards */
+    const base = bg.attributes.position.array.slice(), n = base.length / 3, gx = new Float32Array(n), gz = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = base[i * 3], y = base[i * 3 + 1], z = base[i * 3 + 2], r = Math.hypot(x, z); if (r < 1e-4) continue;
+      const k = 0.006 * Math.sin(Math.atan2(x, z) * 26 + y * 9 + Math.sin(y * 23) * 0.8); gx[i] = x / r * k; gz[i] = z / r * k; }
+    const beardM = M(bg, clay(beard, { side: THREE.DoubleSide, bumpScale: 0.25 }), R.jaw); R.beardMeshes = [beardM]; R.beardStrands = { base, gx, gz, nb };
+    { const p = bg.attributes.position; for (let i = 0; i < n; i++) p.setXYZ(i, base[i * 3] + gx[i], base[i * 3 + 1], base[i * 3 + 2] + gz[i]); bg.computeVertexNormals(); }
     for (const s of [-1, 1]) { sausage(V(hr(0.3) * 0.95 * s, 0.29, 0.0), V(hr(0.07) * 0.98 * s, 0.05, 0.06), 0.032, clay(beard), g);
       sausage(V(0.015 * s, n1.y - 0.07, n1.z - 0.06), V(0.1 * s, mY + 0.03, surf(0.1, mY + 0.03) + 0.004), 0.026, clay(beard), g); }
   }
@@ -149,8 +157,7 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, ..
     let worst = 0; a.front = false; const test = (obj, [x, y, z], rad) => { P.set(x, y, z).applyMatrix4(obj.matrixWorld).applyMatrix4(inv); if (P.y < 0.05 || P.y > 1.36) return;
       const d = surfaceR(P.x, P.y, P.z) + rad - Math.hypot(P.x, P.z); if (d > worst) { worst = d; a.front = Math.abs(Math.atan2(P.x, P.z)) < Math.PI * 0.3; } };
     armSamples.forEach(sm => test(a.sh, sm, sm[2])); foreSamples.forEach(sm => test(a.el, sm, sm[2])); test(a.el, handSample, handSample[2]); return worst; };
-  const beardRest = R.beardMeshes ? R.beardMeshes.map(m => m.geometry.attributes.position.array.slice()) : [];
-  R.solve = ({ on = true } = {}) => {
+    R.solve = ({ on = true } = {}) => {
     R.root.updateMatrixWorld(true); inv.copy(R.body.matrixWorld).invert();
     let report = 0;
     for (const a of R.arms) { // push the arm outward until it clears the body (at most ~0.6 rad)
@@ -158,13 +165,17 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, ..
       while (on && pen > 0.003 && k < 15) { if (a.front) a.sh.rotation.x -= 0.04; else a.sh.rotation.z += 0.04 * a.s; /* hands in front come forward; arms at the side move out */ a.sh.updateMatrixWorld(true); pen = armPen(a); k++; }
       report = Math.max(report, pen);
     }
-    (R.beardMeshes || []).forEach((m, mi) => { // drape: beard vertices inside the robe are moved onto its surface
-      const pos = m.geometry.attributes.position, rest = beardRest[mi]; pos.array.set(rest);
-      if (on) { const toBody = new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld), back = new THREE.Matrix4().copy(toBody).invert();
-        for (let i = 0; i < pos.count; i++) { P.fromBufferAttribute(pos, i).applyMatrix4(toBody);
-          if (P.y < 1.36 && P.z > -0.08) { const Rb = surfaceR(P.x, P.y, P.z) + 0.006; if (Math.abs(P.x) < Rb) { const zs = Math.sqrt(Rb * Rb - P.x * P.x); if (P.z < zs) { P.z = zs; P.applyMatrix4(back); pos.setXYZ(i, P.x, P.y, P.z); } } /* lie flat on the chest: push forward only, keep its width */ } }
-        pos.needsUpdate = true; m.geometry.computeVertexNormals(); }
-      if (!on) { pos.needsUpdate = true; m.geometry.computeVertexNormals(); }
+    (R.beardMeshes || []).forEach((m) => { /* drape the SHAPE onto the chest, then cut the strands back in so the texture is the same everywhere */
+      const pos = m.geometry.attributes.position, { base, gx, gz, nb } = R.beardStrands, Nn = new THREE.Vector3();
+      const toBody = new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld), back = new THREE.Matrix4().copy(toBody).invert();
+      for (let i = 0; i < pos.count; i++) {
+        P.set(base[i * 3], base[i * 3 + 1], base[i * 3 + 2]);
+        if (on) { P.applyMatrix4(toBody);
+          if (P.y < 1.36 && P.z > -0.08) { const Rb = surfaceR(P.x, P.y, P.z) + 0.012; if (Math.abs(P.x) < Rb) { const zs = Math.sqrt(Rb * Rb - P.x * P.x); if (P.z < zs) { Nn.set(nb[i * 3], nb[i * 3 + 1], nb[i * 3 + 2]).transformDirection(toBody); P.z = zs + (Nn.z > 0 ? 0.012 : 0); } } } /* front surface stays ahead of the back surface: no flicker */
+          P.applyMatrix4(back); }
+        pos.setXYZ(i, P.x + gx[i], P.y, P.z + gz[i]);
+      }
+      pos.needsUpdate = true; m.geometry.computeVertexNormals();
     });
     return report; // remaining arm penetration in metres (the clip checker)
   };
