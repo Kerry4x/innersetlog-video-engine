@@ -28,6 +28,12 @@ Long-form can go deeper in either direction. Differences between the modern pack
 - Nothing misused: claims about the text and about studies must be accurate (label anything unverified).
 - Length is whatever the complete idea needs.
 
+## Translation: NIV (Kerry, 2026-11-16)
+- Scripts use the **NIV**. It is under copyright (Biblica), unlike the KJV.
+- Quote **short passages only** (a verse or two per video), and take the **exact wording from an authorized NIV source** (e.g. BibleGateway or a print NIV) at final draft. Never quote from memory; mark quotes in drafts as **[NIV quote: book ch:v]**.
+- Credit: include Biblica's NIV copyright notice where required (e.g. in the video description). **Confirm Biblica's current permission terms and exact notice wording before publishing** (not yet verified).
+- Drafts 01–03 still quote the KJV; convert when they're reworked.
+
 ## Hooks
 **No fixed hook template.** Each hook should come from what's most compelling in *that* story. Using the same opener every video becomes a pattern viewers (and copycats) spot.
 

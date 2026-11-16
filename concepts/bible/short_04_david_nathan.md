@@ -1,7 +1,7 @@
 # Short 04 · David and Nathan: the blind spot (story-first)
 
 **Direction:** A, story-first (Bible → now) · **Mechanism:** we judge other people's wrongs clearly and our own badly; distance lets the truth in
-**Status:** draft 1, written to the script standards in `FORMAT.md` (one connected idea, no filler, nothing beyond the text, no length target)
+**Translation:** NIV (quotes marked **[NIV quote: ref]** are filled with exact wording from an authorized NIV source at final draft) · **Status:** draft 1, written to the script standards in `FORMAT.md` (one connected idea, no filler, nothing beyond the text, no length target)
 
 ## Title options
 1. King David Judged a Thief. He Didn't Know It Was Himself.
@@ -18,11 +18,11 @@
 >
 > A rich man with huge flocks had a guest to feed. Instead of using one of his own animals, he took his poor neighbor's only lamb: a lamb the poor man had raised with his children, that ate from his plate and slept in his arms like a daughter.
 >
-> David was furious. *"As the Lord liveth, the man that hath done this thing shall surely die."* And he ruled that the man must repay the lamb four times over, which is exactly what the law required for a stolen sheep.
+> David was furious. He swore that the man who did this deserved to die **[NIV quote: 2 Samuel 12:5]**. And he ruled that the man must repay the lamb four times over, which is exactly what the law required for a stolen sheep.
 >
 > The king who had taken a wife and arranged a death could judge a stolen lamb perfectly.
 >
-> Then Nathan said four words: *"Thou art the man."*
+> Then Nathan said **[NIV quote: 2 Samuel 12:7a, "You are the man!"; confirm exact wording]**.
 >
 > David hadn't lost his sense of right and wrong. He had lost the ability to aim it at himself.
 >
@@ -40,14 +40,14 @@
 | The lamb | The parable, with the detail that makes it hurt (raised like a daughter) | …David's reaction |
 | David's verdict | Shows he's a sharp judge (even the exact legal penalty) | …the contrast line |
 | Contrast line | Names the gap: perfect judgment of others, blindness to self | …the reveal |
-| "Thou art the man" | Payoff of the hook's question | …the mechanism |
+| Nathan's four-word line | Payoff of the hook's question | …the mechanism |
 | Mechanism | States what was actually wrong: not ignorance, aim | …"that hasn't changed" |
 | Now | One connected modern situation, the same mechanism in a new package | …why Nathan's method worked |
 | Reveal | The way the text shows out of the blind spot (distance first) | ends; the hook's question and the method are both resolved |
 
 Nothing is repeated: the "four words" line sets up the quote, the contrast line and the mechanism line say different things (what he did vs why), and the study is left for the long-form version so the short carries one idea.
 
-## Accuracy notes (KJV, public domain)
+## Accuracy notes (verse references; wording checked against KJV during research, final quotes to be NIV)
 - **"Around 1000 BC":** David's reign is traditionally dated c. 1010–970 BC (standard approximation; recalled, not freshly checked). **"Went to":** Nathan "came unto him" (12:1); the text doesn't say "palace", so the hook doesn't either.
 - **The wrong:** David takes Bathsheba, "the wife of Uriah the Hittite" (2 Samuel 11:3–4). She conceives (11:5). David writes to Joab: "Set ye Uriah in the forefront of the hottest battle… that he may be smitten, and die" (11:15). Uriah dies (11:17). David marries her and she bears a son (11:27). "Months earlier" is fair: a child had been born by the time Nathan came (12:14).
 - **The parable:** 2 Samuel 12:1–4. The lamb "grew up together with him, and with his children; it did eat of his own meat, and drank of his own cup, and lay in his bosom, and was unto him as a daughter" (12:3).
