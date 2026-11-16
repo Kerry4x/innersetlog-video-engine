@@ -28,12 +28,15 @@ Long-form can go deeper in either direction. Differences between the modern pack
 - Nothing misused: claims about the text and about studies must be accurate (label anything unverified).
 - Length is whatever the complete idea needs.
 
-## Hook pattern (from Kerry's pick, short 01)
-Open with **a date + a specific, unexpected person or detail + a high-stakes place or person + an action**, not a summary. Example: "Around 760 BC, a fig farmer walked into the king's own temple…"
-- The date signals *this really happened*.
-- The unexpected person creates tension against the high-stakes setting.
-- It must stay accurate: only stage what the text actually says (the Amos hook overreached here; David's version uses "went to" because the text says Nathan "came unto him").
-- Open the question; don't give away how it resolves.
+## Hooks
+**No fixed hook template.** Each hook should come from what's most compelling in *that* story. Using the same opener every video becomes a pattern viewers (and copycats) spot.
+
+What a hook has to do, whatever its form:
+- Open the story's real question without giving away how it resolves.
+- Start in something concrete (a scene, a detail, a moment), not a summary or a lesson.
+- Stay accurate: only stage what the text actually says (the Amos hook overreached here).
+
+One example that worked (Kerry liked it, short 01): "Around 760 BC, a fig farmer walked into the king's own temple…": a date, an unexpected person, a high-stakes place, an action. One good option among many, not the rule.
 
 ## Production approach
 - Research and write the **long-form** version of an idea first (room for the full mechanism).
