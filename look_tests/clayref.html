@@ -1,0 +1,146 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Character study: reference clay design</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Study: David and Nathan built in the character design language of the clay reference videos
+// (tall egg heads, long droopy nose, close-set eyeballs in thick rolled lids, worm brows, small low mouth,
+// C ears, slim adult bodies with real clothing structure, chunky hands). For evaluation, not a final design.
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920, V = (x, y, z) => new THREE.Vector3(x, y, z);
+let seed = 5; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const print = (() => { const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d'); g.fillStyle = '#808080'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 30; i++) { const x = rand() * 512, y = rand() * 512, R = 14 + rand() * 18, rot = rand() * 3; for (let k = 1; k < 8; k++) { g.strokeStyle = k % 2 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(x, y, R * k / 7, R * k / 7 * 0.7, rot, 0.4, 5.8); g.stroke(); } }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2); return t; })();
+const cache = {};
+const clay = (c, o = {}) => { const k = c + JSON.stringify(o); return cache[k] || (cache[k] = new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.58, bumpMap: print, bumpScale: 0.8, sheen: 0.06, ...o })); };
+const M = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; if (parent) parent.add(m); return m; };
+const lathe = (pts, seg = 64, p0 = 0, pl = Math.PI * 2) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg, p0, pl);
+function folds(geo, amp, n, y0, y1) { const p = geo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue; const t = Math.max(0, Math.min(1, (y1 - y) / (y1 - y0))); const k = amp * t * Math.sin(Math.atan2(x, z) * n + Math.sin(y * 7) * 0.6); p.setX(i, x * (r + k) / r); p.setZ(i, z * (r + k) / r); } geo.computeVertexNormals(); return geo; }
+function grooves(geo, amp, n) { const p = geo.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const L = v.length(); if (L < 1e-5) continue; v.multiplyScalar((L + amp * Math.sin(Math.atan2(v.x, v.z) * n + v.y * 6)) / L); p.setXYZ(i, v.x, v.y, v.z); } geo.computeVertexNormals(); return geo; }
+// a sausage between two points (for noses, fingers, limbs)
+function sausage(a, b, r, mat, parent) { const d = b.clone().sub(a), m = M(new THREE.CapsuleGeometry(r, d.length(), 10, 20), mat, parent); m.position.copy(a).lerp(b, 0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); return m; }
+
+// ---------------- the head (egg profile, fuller jaw) ----------------
+const HP = [[0, 0], [0.11, 0.008], [0.19, 0.05], [0.228, 0.13], [0.238, 0.24], [0.232, 0.36], [0.218, 0.45], [0.2, 0.51], [0.168, 0.565], [0.12, 0.605], [0.062, 0.624], [0, 0.629]];
+const hr = y => { for (let i = 1; i < HP.length; i++) if (y <= HP[i][1]) { const [r0, y0] = HP[i - 1], [r1, y1] = HP[i]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return 0; };
+const SZ = 0.94, surf = (x, y) => Math.sqrt(Math.max(0.0001, hr(y) ** 2 - x * x)) * SZ;
+
+function head({ skin, hair, browC, bald, beard, beardLen = 0.1, crown, lidTop = 0.46, look = [0.2, -0.15], mouthCurve = -1 }) {
+  const g = new THREE.Group(), sk = clay(skin), hm = clay(hair), ink = clay('#120b08', { roughness: 0.25, bumpScale: 0 }), white = clay('#f4efe2', { roughness: 0.32, bumpScale: 0.15 });
+  const skull = M(lathe(HP, 72), sk, g); skull.scale.z = SZ;
+  // eyes: close-set eyeballs beside the top of the nose, in thick rolled lids
+  const eY = 0.405, eX = 0.078, eR = 0.064;
+  for (const s of [-1, 1]) {
+    const e = new THREE.Group(); e.position.set(eX * s, eY, surf(eX, eY) - eR * 0.2); g.add(e);
+    M(new THREE.SphereGeometry(eR, 40, 30), white, e);
+    const p = M(new THREE.SphereGeometry(eR * 0.27, 20, 16), ink, e); p.scale.z = 0.45; const dir = V(look[0] * 0.5, look[1] * 0.5, 1).normalize(); p.position.copy(dir.multiplyScalar(eR * 0.98)); p.lookAt(dir.clone().multiplyScalar(10));
+    const lid = (cover, tube, flip, tilt) => { const R = eR * 1.06, lg = new THREE.Group();
+      M(new THREE.SphereGeometry(R, 40, 18, 0, Math.PI * 2, 0, Math.PI * cover), sk, lg);
+      const rim = M(new THREE.TorusGeometry(R * Math.sin(Math.PI * cover), tube, 16, 56), sk, lg); rim.rotation.x = Math.PI / 2; rim.position.y = R * Math.cos(Math.PI * cover);
+      lg.rotation.set(flip ? Math.PI - tilt : tilt, 0, (flip ? -1 : 1) * 0.12 * s); e.add(lg); };
+    lid(lidTop, eR * 0.28, false, 0.25);   // heavy upper lid
+    lid(0.17, eR * 0.24, true, 0.2);    // lower lid roll (bags)
+    // worm brow arching over the lid
+    const bw = M(new THREE.TorusGeometry(0.062, 0.019, 14, 40, Math.PI * 0.62), clay(browC), g); bw.position.set(eX * s + 0.008 * s, eY + 0.045, surf(eX, eY + 0.07) - 0.005); bw.rotation.set(-0.25, 0, Math.PI * 0.19 + (s > 0 ? -0.08 : 0.08));
+    if (s < 0) bw.rotation.y = 0; bw.scale.set(1, 1, 1.3);
+    // C ear
+    const ear = new THREE.Group(); ear.position.set(hr(0.3) * 0.97 * s, 0.3, -0.01); ear.rotation.y = 0.25 * s; g.add(ear);
+    const lobe = M(new THREE.SphereGeometry(0.06, 24, 18), sk, ear); lobe.scale.set(0.35, 1, 0.75);
+    const rim = M(new THREE.TorusGeometry(0.052, 0.017, 12, 32, Math.PI * 1.55), sk, ear); rim.rotation.set(0, Math.PI / 2, Math.PI * 0.72); rim.position.x = 0.012 * s;
+  }
+  // long droopy nose: from between the eyes to a bulb tip
+  const n0 = V(0, eY + 0.01, surf(0, eY) - 0.01), n1 = V(0, 0.255, surf(0, 0.255) + 0.085);
+  sausage(n0, n1, 0.04, sk, g);
+  const tip = M(new THREE.SphereGeometry(0.058, 32, 24), sk, g); tip.position.copy(n1); tip.scale.set(1, 0.92, 1);
+  for (const s of [-1, 1]) { const w = M(new THREE.SphereGeometry(0.03, 16, 12), sk, g); w.position.set(0.04 * s, n1.y - 0.015, n1.z - 0.035); }
+  // small mouth set low (long upper lip)
+  const mY = 0.125, mo = M(new THREE.TorusGeometry(0.042, 0.0075, 10, 32, Math.PI * 0.62), clay('#4a1e14', { bumpScale: 0 }), g);
+  mo.rotation.z = mouthCurve < 0 ? Math.PI * 0.19 : Math.PI * 1.19; mo.position.set(0, mY + (mouthCurve < 0 ? -0.03 : 0.035), surf(0, mY) - 0.004);
+  // hair
+  if (bald) { // white side tufts sweeping back over the ears, and a fringe around the back
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { const t = M(grooves(new THREE.SphereGeometry(0.06, 28, 20), 0.004, 10), hm, g); t.scale.set(0.55, 0.75, 1.3); const y = 0.43 - i * 0.045; t.position.set(hr(y) * 0.98 * s, y, -0.04 - i * 0.03); t.rotation.set(0.2, 0.5 * s, 0.25 * s); }
+    const back = M(new THREE.TorusGeometry(0.215, 0.05, 16, 48, Math.PI * 0.9), hm, g); back.rotation.set(Math.PI / 2, 0, Math.PI * 1.05); back.position.y = 0.37; back.scale.z = 1.5;
+  } else { // sculpted cap with grooves, sideburns
+    const cap = M(grooves(new THREE.SphereGeometry(0.245, 56, 32, Math.PI / 2 + 0.9, Math.PI * 2 - 1.8, 0, Math.PI * 0.58), 0.006, 28), clay(hair, { side: THREE.DoubleSide }), g); cap.position.y = 0.39; cap.scale.set(1.0, 1.0, SZ * 1.02);
+    for (const s of [-1, 1]) { const sb = M(new THREE.CapsuleGeometry(0.03, 0.09, 8, 16), hm, g); sb.position.set(hr(0.3) * 0.95 * s, 0.31, 0.05); }
+  }
+  if (beard) { // jaw band from ear to ear below the mouth + a solid grooved mass under the chin; droopy mustache
+    const t = 0.03, pts = []; for (let y = 0.0; y <= 0.105; y += 0.015) pts.push([hr(y) + t, y]); pts.unshift([hr(0) * 0.6 + t, -0.02]);
+    const band = M(grooves(lathe(pts, 144, Math.PI * 0.5 - 1.75, 3.5), 0.003, 34), clay(beard, { side: THREE.DoubleSide }), g); band.scale.z = SZ * 1.04;
+    const mass = M(grooves(new THREE.SphereGeometry(0.15, 96, 64), 0.0035, 22), clay(beard), g);
+    mass.scale.set(1.25, 0.8 + beardLen * 5, 0.85); mass.position.set(0, 0.03 - beardLen * 0.9, surf(0, 0.05) - 0.08);
+    for (const s of [-1, 1]) { sausage(V(hr(0.32) * 0.93 * s, 0.31, 0.02), V(hr(0.12) * 0.98 * s, 0.1, 0.06), 0.03, clay(beard), g);
+      sausage(V(0.015 * s, n1.y - 0.075, n1.z - 0.05), V(0.098 * s, mY + 0.004, surf(0.098, mY) + 0.004), 0.026, clay(beard), g); }
+  }
+  if (crown) { const band = M(new THREE.CylinderGeometry(0.205, 0.215, 0.085, 56, 1, true), clay('#d6a640', { roughness: 0.38, side: THREE.DoubleSide }), g); band.position.y = 0.55;
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; const k = M(new THREE.ConeGeometry(0.026, 0.09, 16), clay('#d6a640', { roughness: 0.38 }), g); k.position.set(Math.cos(a) * 0.205, 0.63, Math.sin(a) * 0.205);
+      const gem = M(new THREE.SphereGeometry(0.014, 12, 10), clay('#8a1c2a', { roughness: 0.25, bumpScale: 0 }), g); gem.position.set(Math.cos(a) * 0.214, 0.55, Math.sin(a) * 0.214); } }
+  return g;
+}
+
+// ---------------- hands with fingers ----------------
+function hand(skin, s, curl = 0.35) { const g = new THREE.Group(), sk = clay(skin);
+  const palm = M(new THREE.SphereGeometry(0.052, 28, 20), sk, g); palm.scale.set(0.6, 1, 0.95);
+  [0.03, 0.01, -0.01, -0.03].forEach((z, i) => { const f = new THREE.Group(); f.position.set(0, -0.04, z); f.rotation.z = -s * curl; g.add(f); M(new THREE.CapsuleGeometry(0.0145, 0.05 - Math.abs(i - 1.2) * 0.006, 8, 12), sk, f).position.y = -0.03; });
+  const th = new THREE.Group(); th.position.set(-0.015 * s, -0.005, 0.042); th.rotation.set(0.5, 0, -0.5 * s); g.add(th); M(new THREE.CapsuleGeometry(0.016, 0.035, 8, 12), sk, th).position.y = -0.025;
+  return g; }
+
+// ---------------- the body: slim adult in a long tunic, with real garment parts ----------------
+function person({ skin = '#c8784e', tunic, trim, mantle, sash, ...h }) {
+  const g = new THREE.Group(), tm = clay(tunic);
+  const T = [[0, 0.04], [0.27, 0.04], [0.28, 0.1], [0.25, 0.45], [0.2, 0.85], [0.185, 1.0], [0.205, 1.25], [0.21, 1.42], [0.19, 1.5], [0.11, 1.56], [0.07, 1.58], [0, 1.58]];
+  M(folds(lathe(T, 72), 0.012, 9, 0.05, 0.95), tm, g);
+  for (const s of [-1, 1]) { const ft = M(new THREE.SphereGeometry(0.06, 24, 16), clay('#6a4426'), g); ft.scale.set(0.8, 0.45, 1.5); ft.position.set(0.09 * s, 0.03, 0.2); }
+  const neck = M(new THREE.CylinderGeometry(0.085, 0.1, 0.16, 28), clay(skin), g); neck.position.y = 1.62;
+  const col = M(new THREE.TorusGeometry(0.1, 0.022, 14, 40), clay(trim), g); col.rotation.x = Math.PI / 2 + 0.25; col.position.set(0, 1.565, 0.015);
+  const belt = M(new THREE.TorusGeometry(0.19, 0.026, 14, 56), clay(sash), g); belt.rotation.x = Math.PI / 2; belt.position.y = 0.93;
+  const knot = M(new THREE.SphereGeometry(0.035, 16, 12), clay(sash), g); knot.position.set(0.06, 0.92, 0.18);
+  for (const s of [-1, 1]) { const tail = M(new THREE.CapsuleGeometry(0.018, 0.18, 8, 12), clay(sash), g); tail.position.set(0.07 + s * 0.015, 0.8, 0.19); tail.rotation.z = 0.08 * s; }
+  if (mantle) { const mp = [[0.27, 0.45], [0.25, 0.8], [0.225, 1.15], [0.225, 1.42], [0.2, 1.52], [0.13, 1.585]];
+    const m = M(folds(lathe(mp, 64, Math.PI * 0.35, Math.PI * 1.35), 0.01, 7, 0.45, 1.2), clay(mantle, { side: THREE.DoubleSide }), g); m.scale.set(1.08, 1, 1.1); }
+  for (const s of [-1, 1]) { // arms: shoulder, sleeve, forearm out of a wide cuff, hand
+    const sh = new THREE.Group(); sh.position.set(0.2 * s, 1.47, 0); sh.rotation.set(-0.12, 0, 0.1 * s); g.add(sh);
+    M(new THREE.SphereGeometry(0.075, 24, 18), tm, sh);
+    sausage(V(0, 0, 0), V(0, -0.3, 0.0), 0.064, tm, sh);
+    const el = new THREE.Group(); el.position.y = -0.3; el.rotation.x = -0.35; sh.add(el);
+    const cuff = M(lathe([[0.05, 0.0], [0.07, -0.12], [0.095, -0.24], [0.088, -0.25], [0.06, -0.13], [0.045, 0.0]], 40), clay(tunic, { side: THREE.DoubleSide }), el);
+    sausage(V(0, 0, 0), V(0, -0.27, 0), 0.042, clay(skin), el);
+    const hd = hand(skin, s); hd.position.y = -0.31; el.add(hd);
+  }
+  const hd = head({ skin, ...h }); hd.position.y = 1.64; g.add(hd);
+  return g;
+}
+
+// ---------------- lineup ----------------
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#cdb08a');
+const cyc = M(new THREE.CylinderGeometry(9, 9, 9, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5), clay('#d4b892', { side: THREE.BackSide, bumpScale: 0.3 })); cyc.position.set(0, 4.5, 5.5); scene.add(cyc);
+const floor = M(new THREE.PlaneGeometry(20, 20), clay('#c9ab84', { bumpScale: 0.3 })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const nathan = person({ tunic: '#d9c7a3', trim: '#a8865a', mantle: '#7a5536', sash: '#8a6a44', hair: '#ece7dc', browC: '#ece7dc', bald: true, beard: '#ece7dc', beardLen: 0.12, lidTop: 0.4, look: [0.45, -0.1], mouthCurve: -1 });
+nathan.position.set(-0.5, 0, 0); nathan.rotation.y = 0.32; scene.add(nathan);
+const david = person({ tunic: '#5b3591', trim: '#d6a640', mantle: '#8b2c3a', sash: '#c99a32', hair: '#3a2416', browC: '#3a2416', bald: false, beard: '#3a2416', beardLen: 0.02, crown: true, lidTop: 0.3, look: [-0.45, -0.1], mouthCurve: -1 });
+david.position.set(0.5, 0, 0); david.rotation.y = -0.32; scene.add(david);
+scene.add(new THREE.HemisphereLight('#ffe9cf', '#7a5a3a', 0.75));
+const key = new THREE.DirectionalLight('#ffe8cc', 2.8); key.position.set(-2.2, 4, 4); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 4; Object.assign(key.shadow.camera, { left: -2, right: 2, top: 3, bottom: -1 }); scene.add(key);
+const rim = new THREE.DirectionalLight('#cfe0ff', 1.4); rim.position.set(2.5, 3, -3); scene.add(rim);
+const camera = new THREE.PerspectiveCamera(30, W / H, 0.05, 60); camera.position.set(0, 1.0, 7.6); camera.lookAt(0, 0.55, 0);
+const cam2 = new THREE.PerspectiveCamera(22, W / H, 0.05, 60); cam2.position.set(0, 1.99, 7.0); cam2.lookAt(0, 1.96, 0);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(W, H, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
+const ao = new GTAOPass(scene, camera, W, H); ao.updateGtaoMaterial({ radius: 0.2, samples: 16 }); composer.addPass(ao); composer.addPass(new OutputPass());
+const out = document.getElementById('out'), o = out.getContext('2d');
+window.drawFrame = () => { composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H);
+  renderer.render(scene, cam2); o.drawImage(renderer.domElement, 0, H / 2 - 300, W, 600, 0, 1300, W, 600); o.strokeStyle = 'rgba(30,20,12,0.6)'; o.lineWidth = 4; o.strokeRect(2, 1300, W - 4, 600);
+  o.fillStyle = 'rgba(30,20,12,0.85)'; o.font = '600 46px Georgia, serif'; o.fillText('Study: reference clay design', 40, 80);
+  return out.toDataURL('image/jpeg', 0.92); };
+window.READY = true;
+</script></body></html>
