@@ -10,7 +10,7 @@
 
 ## Script
 
-> King David once heard about a man who stole a lamb, and declared that he deserved to die. He had no idea who he was really judging.
+> Around 1000 BC, a prophet went to the most powerful king in Israel with a story about a stolen lamb. By the time the story was over, the king had passed judgment on himself without knowing it.
 >
 > Months earlier, David had taken another man's wife, Bathsheba. When she became pregnant, he had her husband, Uriah, placed at the front of a battle so he would be killed. Then David married her, and life went on.
 >
@@ -34,7 +34,7 @@
 
 | Paragraph | Job | Connects to the next by… |
 |---|---|---|
-| Hook | Opens the question (who is he really judging?) without giving away the answer | …"months earlier" explains what he's hiding |
+| Hook | Date + unexpected angle + action: opens the question (how did he judge himself without knowing?) without giving away the answer | …"months earlier" explains what he's hiding |
 | Bathsheba / Uriah | Establishes the wrong, stated plainly | …God's response |
 | Nathan arrives | Sets up the method (story, not accusation) | …the story itself |
 | The lamb | The parable, with the detail that makes it hurt (raised like a daughter) | …David's reaction |
@@ -48,6 +48,7 @@
 Nothing is repeated: the "four words" line sets up the quote, the contrast line and the mechanism line say different things (what he did vs why), and the study is left for the long-form version so the short carries one idea.
 
 ## Accuracy notes (KJV, public domain)
+- **"Around 1000 BC":** David's reign is traditionally dated c. 1010–970 BC (standard approximation; recalled, not freshly checked). **"Went to":** Nathan "came unto him" (12:1); the text doesn't say "palace", so the hook doesn't either.
 - **The wrong:** David takes Bathsheba, "the wife of Uriah the Hittite" (2 Samuel 11:3–4). She conceives (11:5). David writes to Joab: "Set ye Uriah in the forefront of the hottest battle… that he may be smitten, and die" (11:15). Uriah dies (11:17). David marries her and she bears a son (11:27). "Months earlier" is fair: a child had been born by the time Nathan came (12:14).
 - **The parable:** 2 Samuel 12:1–4. The lamb "grew up together with him, and with his children; it did eat of his own meat, and drank of his own cup, and lay in his bosom, and was unto him as a daughter" (12:3).
 - **David's verdict:** "As the LORD liveth, the man that hath done this thing shall surely die: And he shall restore the lamb fourfold" (12:5–6).

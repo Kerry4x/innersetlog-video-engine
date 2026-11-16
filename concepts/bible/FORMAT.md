@@ -28,6 +28,13 @@ Long-form can go deeper in either direction. Differences between the modern pack
 - Nothing misused: claims about the text and about studies must be accurate (label anything unverified).
 - Length is whatever the complete idea needs.
 
+## Hook pattern (from Kerry's pick, short 01)
+Open with **a date + a specific, unexpected person or detail + a high-stakes place or person + an action**, not a summary. Example: "Around 760 BC, a fig farmer walked into the king's own temple…"
+- The date signals *this really happened*.
+- The unexpected person creates tension against the high-stakes setting.
+- It must stay accurate: only stage what the text actually says (the Amos hook overreached here; David's version uses "went to" because the text says Nathan "came unto him").
+- Open the question; don't give away how it resolves.
+
 ## Production approach
 - Research and write the **long-form** version of an idea first (room for the full mechanism).
 - Cut **shorts that each carry one complete idea**, start to finish, not trimmed fragments of the long one.
