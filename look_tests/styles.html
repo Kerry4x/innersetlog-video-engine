@@ -1,0 +1,260 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Style options</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Six different 3D style directions for the same frozen moment (2 Samuel 12: "Thou art the man").
+// Same staging in all six: Nathan standing left, pointing; David seated right, realising.
+// Pick with ?style=clay|toy|wood|lowpoly|paper|silhouette
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920, STYLE = new URLSearchParams(location.search).get('style') || 'clay';
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+let seed = 7; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const M = (geo, mat, cast = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = true; return m; };
+const latheG = (pts, seg = 64) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg);
+function folds(geo, amp, n, H) { const p = geo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue; const k = amp * (0.3 + 0.7 * Math.max(0, 1 - y / H)) * Math.sin(Math.atan2(x, z) * n); p.setX(i, x * (r + k) / r); p.setZ(i, z * (r + k) / r); } geo.computeVertexNormals(); return geo; }
+function canvasTex(w, h, draw, srgb = true, repeat = 1) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat, repeat); t.anisotropy = 8; return t; }
+
+// painted face on a sphere (front of a SphereGeometry is u = 0.25), used by wood and paper
+function faceTex({ skin, hair, bald = false, beard = null, brows = 'calm', eyes = 'normal', mouth = 'line', ink = '#2a1a12', style = 'wood' }) {
+  return canvasTex(1024, 512, (g) => {
+    g.fillStyle = skin; g.fillRect(0, 0, 1024, 512);
+    if (style === 'wood') for (let i = 0; i < 60; i++) { g.strokeStyle = `rgba(90,50,20,${0.05 + rand() * 0.08})`; g.lineWidth = 1 + rand() * 3; g.beginPath(); const y = rand() * 512; g.moveTo(0, y); g.bezierCurveTo(300, y + (rand() - 0.5) * 40, 700, y + (rand() - 0.5) * 40, 1024, y + (rand() - 0.5) * 30); g.stroke(); }
+    g.fillStyle = hair; // hair painted on the back and top
+    if (bald) { g.fillRect(430, 175, 590, 120); g.fillRect(0, 175, 80, 120); }
+    else { g.fillRect(0, 0, 1024, 150); g.fillRect(420, 0, 604, 330); g.fillRect(0, 0, 90, 330); }
+    const ex = [210, 302], ey = 222;
+    ex.forEach(x => { // eyes
+      g.fillStyle = '#fbf6ea'; g.beginPath(); g.ellipse(x, ey, eyes === 'wide' ? 26 : 22, eyes === 'wide' ? 30 : 22, 0, 0, 7); g.fill(); g.lineWidth = 3; g.strokeStyle = ink; g.stroke();
+      g.fillStyle = ink; g.beginPath(); g.arc(x + 3, ey + 2, eyes === 'wide' ? 8 : 11, 0, 7); g.fill();
+      if (eyes === 'narrow') { g.fillStyle = skin; g.fillRect(x - 30, ey - 34, 60, 26); g.strokeStyle = ink; g.lineWidth = 4; g.beginPath(); g.moveTo(x - 24, ey - 8); g.lineTo(x + 24, ey - 8); g.stroke(); }
+    });
+    g.strokeStyle = ink; g.lineWidth = 9; g.lineCap = 'round';
+    ex.forEach((x, i) => { const s = i ? 1 : -1; g.beginPath();
+      if (brows === 'angry') { g.moveTo(x - 26 * s * -1, ey - 46); g.lineTo(x + 26 * s * -1, ey - 32); }
+      else if (brows === 'sad') { g.moveTo(x - 26 * -s, ey - 34); g.lineTo(x + 26 * -s, ey - 50); }
+      else if (brows === 'up') { g.moveTo(x - 26, ey - 54); g.quadraticCurveTo(x, ey - 66, x + 26, ey - 54); }
+      else { g.moveTo(x - 26, ey - 42); g.lineTo(x + 26, ey - 42); } g.stroke(); });
+    g.fillStyle = 'rgba(160,80,60,0.25)'; [180, 332].forEach(x => { g.beginPath(); g.arc(x, 268, 20, 0, 7); g.fill(); }); // cheeks
+    if (beard) { g.fillStyle = beard; g.beginPath(); g.moveTo(170, 262); g.quadraticCurveTo(256, 250, 342, 262); g.quadraticCurveTo(350, 420, 256, 470); g.quadraticCurveTo(162, 420, 170, 262); g.fill(); }
+    g.strokeStyle = ink; g.lineWidth = 6; g.beginPath();
+    if (mouth === 'open') { g.fillStyle = '#3a1210'; g.ellipse(256, 300, 16, 20, 0, 0, 7); g.fill(); }
+    else if (mouth === 'frown') { g.moveTo(232, 306); g.quadraticCurveTo(256, 290, 280, 306); g.stroke(); }
+    else { g.moveTo(236, 300); g.lineTo(276, 300); g.stroke(); }
+  });
+}
+
+// ---------------- the six styles ----------------
+const STYLES = {};
+
+// A · SMOOTH CLAY — refined plasticine: smooth surfaces, fine fingerprints only, soft rolled lids that wrap the eye
+STYLES.clay = () => {
+  const print = canvasTex(512, 512, (g) => { g.fillStyle = '#808080'; g.fillRect(0, 0, 512, 512); for (let i = 0; i < 26; i++) { const x = rand() * 512, y = rand() * 512, R = 14 + rand() * 18, rot = rand() * 3;
+    for (let k = 1; k < 8; k++) { g.strokeStyle = k % 2 ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(x, y, R * k / 7, R * k / 7 * 0.7, rot, 0.4, 5.8); g.stroke(); } } }, false, 2);
+  const clay = (c, o = {}) => new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.62, bumpMap: print, bumpScale: 0.8, sheen: 0.05, ...o });
+  const skin = clay('#cf8f68'), ink = clay('#1a110c', { roughness: 0.3, bumpScale: 0 }), white = clay('#f6f1e4', { roughness: 0.35, bumpScale: 0.2 });
+  function eye(head, x, cover = 0.42, lowCover = 0.22, look = [0, 0]) {
+    const e = new THREE.Group(); e.position.set(x, 0.055, 0.215); head.add(e);
+    e.add(M(new THREE.SphereGeometry(0.056, 40, 30), white, false));
+    const p = M(new THREE.SphereGeometry(0.022, 24, 18), ink, false); p.scale.z = 0.5; p.position.set(look[0] * 0.02, look[1] * 0.02, 0.053); e.add(p);
+    const lid = (c, flip) => { const R = 0.061, g = new THREE.Group(); // cap + rolled rim that sits exactly on the cap's edge
+      g.add(M(new THREE.SphereGeometry(R, 40, 16, 0, Math.PI * 2, 0, Math.PI * c), skin, false));
+      const rim = M(new THREE.TorusGeometry(R * Math.sin(Math.PI * c), 0.013, 14, 48), skin, false); rim.rotation.x = Math.PI / 2; rim.position.y = R * Math.cos(Math.PI * c); g.add(rim);
+      g.rotation.x = flip ? Math.PI - 0.35 : 0.35; e.add(g); };
+    lid(cover, false); lid(lowCover, true);
+  }
+  function person({ robe, h, r, hair, bald, beard, crown, mouth = 'line', brows = 'calm', cover = 0.42, look = [0, 0] }) {
+    const g = new THREE.Group(), robeM = clay(robe);
+    const body = M(folds(latheG([[0, 0], [r, 0], [r * 1.02, h * 0.18], [r * 0.85, h * 0.6], [r * 0.6, h * 0.9], [r * 0.3, h], [0, h]]), 0.012, 6, h), robeM); g.add(body);
+    const belt = M(new THREE.TorusGeometry(r * 0.92, 0.025, 16, 64), clay('#6a4a2e')); belt.rotation.x = Math.PI / 2; belt.position.y = h * 0.55; g.add(belt);
+    const head = new THREE.Group(); head.position.y = h + 0.22; g.add(head);
+    const skull = M(new THREE.SphereGeometry(0.26, 64, 48), skin); skull.scale.set(1, 1.08, 0.98); head.add(skull);
+    const nose = M(new THREE.SphereGeometry(0.06, 32, 24), skin); nose.scale.set(0.85, 0.9, 1.1); nose.position.set(0, -0.02, 0.265); head.add(nose);
+    for (const s of [-1, 1]) { const ear = M(new THREE.SphereGeometry(0.05, 24, 16), skin); ear.scale.set(0.45, 1, 0.8); ear.position.set(0.255 * s, 0, 0); head.add(ear); eye(head, 0.09 * s, cover, 0.22, look); }
+    for (const s of [-1, 1]) { const b = M(new THREE.CapsuleGeometry(0.018, 0.075, 8, 16), clay(hair)); b.rotation.z = Math.PI / 2 + s * ({ calm: 0, angry: 0.35, sad: -0.3, up: -0.12 }[brows]); b.position.set(0.09 * s, brows === 'up' ? 0.16 : 0.135, 0.235); head.add(b); }
+    if (mouth === 'open') { const m = M(new THREE.SphereGeometry(0.035, 24, 16), clay('#3a1210', { bumpScale: 0 }), false); m.scale.set(1, 1.2, 0.4); m.position.set(0, -0.12, 0.24); head.add(m); }
+    else { const m = M(new THREE.TorusGeometry(0.04, 0.008, 10, 32, Math.PI * 0.8), clay('#5a2a1e', { bumpScale: 0 }), false); m.rotation.z = mouth === 'frown' ? Math.PI * 0.1 : Math.PI * 1.1; m.position.set(0, mouth === 'frown' ? -0.15 : -0.1, 0.235); head.add(m); }
+    const hm = clay(hair);
+    if (bald) { const f = M(new THREE.TorusGeometry(0.245, 0.06, 20, 64, Math.PI * 1.3), hm); f.rotation.set(Math.PI / 2, 0, Math.PI * 1.15); f.scale.z = 1.6; f.position.y = 0.0; head.add(f); }
+    else { const s = M(new THREE.SphereGeometry(0.275, 48, 32, Math.PI / 2 + 0.9, Math.PI * 2 - 1.8, 0, Math.PI * 0.62), hm); s.material.side = THREE.DoubleSide; head.add(s); }
+    if (beard) { const b = M(new THREE.SphereGeometry(beard.r, 48, 36), hm); b.scale.set(1.1, beard.sy, 0.75); b.position.set(0, beard.y, 0.13); head.add(b);
+      if (beard.must) for (const s of [-1, 1]) { const m = M(new THREE.CapsuleGeometry(0.022, 0.06, 8, 16), hm); m.rotation.z = Math.PI / 2 + s * 0.35; m.position.set(0.045 * s, -0.08, 0.255); head.add(m); } }
+    if (crown) { const band = M(new THREE.CylinderGeometry(0.2, 0.19, 0.09, 48, 1, true), clay('#d6a640', { roughness: 0.45 })); band.material.side = THREE.DoubleSide; band.position.y = 0.25; head.add(band);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; const k = M(new THREE.SphereGeometry(0.03, 20, 16), band.material); k.position.set(Math.cos(a) * 0.195, 0.31, Math.sin(a) * 0.195); head.add(k); } }
+    const arms = [-1, 1].map(s => { const sh = new THREE.Group(); sh.position.set(r * 0.62 * s, h * 0.86, 0.02); g.add(sh);
+      const a = M(new THREE.CapsuleGeometry(0.065, 0.3, 12, 24), robeM); a.position.y = -0.2; sh.add(a);
+      const hand = M(new THREE.SphereGeometry(0.06, 32, 24), skin); hand.scale.set(0.8, 1, 0.9); hand.position.y = -0.42; sh.add(hand);
+      const th = M(new THREE.CapsuleGeometry(0.018, 0.035, 8, 12), skin); th.position.set(-0.04 * s, -0.4, 0.03); th.rotation.z = 0.6 * s; sh.add(th);
+      return { sh, hand }; });
+    return { g, head, arms };
+  }
+  return { person, mats: { wall: clay('#c9a77f', { bumpScale: 1.2 }), floor: clay('#a98763', { bumpScale: 1.2 }), wood: clay('#6a4a2e'), cloth: clay('#8a2c34'), gold: clay('#d6a640', { roughness: 0.45 }) },
+    light: 'warm', ao: true, dof: 0.0008, bg: '#2c2018' };
+};
+
+// B · VINYL TOY MINIATURE — glossy collectible figures, bean bodies, dot eyes, tilt-shift daylight
+STYLES.toy = () => {
+  const plastic = (c, o = {}) => new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.25, ...o });
+  function person({ robe, h, r, hair, bald, beard, crown, mouth, brows, cover, look }) {
+    const g = new THREE.Group(), body = plastic(robe), skin = plastic('#f0b48a');
+    const bean = M(new THREE.CapsuleGeometry(r * 0.95, h * 0.55, 16, 48), body); bean.position.y = h * 0.5; g.add(bean);
+    const head = new THREE.Group(); head.position.y = h * 0.775 + r * 0.95 + 0.22; g.add(head);
+    const face = M(new THREE.SphereGeometry(0.3, 48, 36), skin); face.scale.set(1, 0.95, 0.95); head.add(face);
+    for (const s of [-1, 1]) { const e = M(new THREE.SphereGeometry(mouth === 'open' ? 0.045 : 0.038, 24, 18), plastic('#111111', { roughness: 0.1 }), false); e.scale.z = 0.6; e.position.set(0.1 * s + look[0] * 0.01, 0.05, 0.27); head.add(e);
+      const b = M(new THREE.CapsuleGeometry(0.014, 0.06, 6, 12), plastic(hair)); b.rotation.z = Math.PI / 2 + s * ({ calm: 0, angry: 0.35, sad: -0.3, up: -0.15 }[brows]); b.position.set(0.1 * s, brows === 'up' ? 0.16 : 0.13, 0.27); head.add(b); }
+    if (mouth === 'open') { const m = M(new THREE.SphereGeometry(0.03, 16, 12), plastic('#5a1a1a'), false); m.scale.set(1, 1.2, 0.4); m.position.set(0, -0.06, 0.285); head.add(m); }
+    if (!bald) { const cap = M(new THREE.SphereGeometry(0.31, 48, 24, 0, Math.PI * 2, 0, Math.PI * 0.42), plastic(hair)); cap.rotation.x = -0.35; head.add(cap); }
+    else { const f = M(new THREE.TorusGeometry(0.29, 0.045, 12, 48, Math.PI * 1.2), plastic(hair)); f.rotation.set(Math.PI / 2, 0, Math.PI * 1.4); f.position.y = 0.02; head.add(f); }
+    if (beard) { const b = M(new THREE.SphereGeometry(0.2, 32, 24), plastic(hair)); b.scale.set(1.05, beard.sy * 0.9, 0.7); b.position.set(0, -0.2, 0.15); head.add(b); }
+    if (crown) { const c = M(new THREE.CylinderGeometry(0.2, 0.18, 0.12, 6), plastic('#f2c14e', { metalness: 0.6, roughness: 0.2 })); c.position.y = 0.3; head.add(c); }
+    const arms = [-1, 1].map(s => { const sh = new THREE.Group(); sh.position.set(r * 0.9 * s, h * 0.68, 0); g.add(sh);
+      const a = M(new THREE.CapsuleGeometry(0.06, 0.18, 8, 16), body); a.position.y = -0.13; sh.add(a); const hand = M(new THREE.SphereGeometry(0.06, 20, 16), skin); hand.position.y = -0.27; sh.add(hand); return { sh, hand }; });
+    return { g, head, arms };
+  }
+  return { person, mats: { wall: plastic('#f3e2c4', { clearcoat: 0 }), floor: plastic('#7cc3b1', { clearcoat: 0.2 }), wood: plastic('#b0603a'), cloth: plastic('#d8433a'), gold: plastic('#f2c14e', { metalness: 0.6, roughness: 0.2 }) },
+    light: 'day', ao: true, dof: 0.006, bg: '#bfe3ef' };
+};
+
+// C · CARVED & PAINTED WOOD — folk figures: turned wood bodies, painted faces, visible grain, candle light
+STYLES.wood = () => {
+  const grain = (base) => canvasTex(512, 512, (g) => { g.fillStyle = base; g.fillRect(0, 0, 512, 512); for (let i = 0; i < 90; i++) { g.strokeStyle = `rgba(60,30,10,${0.06 + rand() * 0.12})`; g.lineWidth = 1 + rand() * 3; g.beginPath(); const x = rand() * 512; g.moveTo(x, 0); g.bezierCurveTo(x + (rand() - 0.5) * 60, 170, x + (rand() - 0.5) * 60, 340, x + (rand() - 0.5) * 40, 512); g.stroke(); } });
+  const grainBump = canvasTex(512, 512, (g) => { g.fillStyle = '#808080'; g.fillRect(0, 0, 512, 512); for (let i = 0; i < 140; i++) { g.strokeStyle = `rgba(0,0,0,${0.1 + rand() * 0.15})`; g.lineWidth = 1 + rand() * 2; g.beginPath(); const x = rand() * 512; g.moveTo(x, 0); g.bezierCurveTo(x + (rand() - 0.5) * 40, 170, x + (rand() - 0.5) * 40, 340, x, 512); g.stroke(); } }, false);
+  const paint = (c, o = {}) => new THREE.MeshPhysicalMaterial({ color: '#ffffff', map: grain(c), bumpMap: grainBump, bumpScale: 1.5, roughness: 0.55, clearcoat: 0.25, clearcoatRoughness: 0.5, ...o });
+  function person({ robe, h, r, hair, bald, beard, crown, mouth, brows, cover, look, name }) {
+    const g = new THREE.Group(), robeM = paint(robe);
+    const body = M(latheG([[0, 0], [r * 0.95, 0], [r, h * 0.08], [r * 0.82, h * 0.7], [r * 0.55, h * 0.95], [r * 0.4, h], [0, h]], 48), robeM); g.add(body);
+    const trim = M(new THREE.TorusGeometry(r * 0.97, 0.018, 10, 48), paint('#c99a3a')); trim.rotation.x = Math.PI / 2; trim.position.y = h * 0.08; g.add(trim);
+    const head = new THREE.Group(); head.position.y = h + 0.2; g.add(head);
+    const faceMap = faceTex({ skin: '#d9a273', hair, bald, beard: beard ? hair : null, brows, eyes: name === 'david' ? 'wide' : 'narrow', mouth, style: 'wood' });
+    const skull = M(new THREE.SphereGeometry(0.25, 64, 48), new THREE.MeshPhysicalMaterial({ map: faceMap, bumpMap: grainBump, bumpScale: 0.8, roughness: 0.5, clearcoat: 0.3 })); head.add(skull);
+    const nose = M(new THREE.SphereGeometry(0.045, 24, 18), paint('#d9a273')); nose.position.set(0, -0.02, 0.245); head.add(nose);
+    if (beard) { const b = M(new THREE.ConeGeometry(0.13, beard.sy * 0.22, 32), paint(hair)); b.rotation.x = Math.PI; b.position.set(0, -0.24 - beard.sy * 0.05, 0.12); head.add(b); }
+    if (crown) { const c = M(new THREE.CylinderGeometry(0.19, 0.185, 0.1, 8), paint('#d4a43a', { metalness: 0.3 })); c.position.y = 0.24; head.add(c);
+      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; const k = M(new THREE.ConeGeometry(0.03, 0.08, 4), c.material); k.position.set(Math.cos(a) * 0.18, 0.32, Math.sin(a) * 0.18); head.add(k); } }
+    const arms = [-1, 1].map(s => { const sh = new THREE.Group(); sh.position.set(r * 0.62 * s, h * 0.84, 0.02); g.add(sh);
+      const a = M(new THREE.CylinderGeometry(0.055, 0.065, 0.36, 24), robeM); a.position.y = -0.18; sh.add(a); const hand = M(new THREE.SphereGeometry(0.055, 24, 18), paint('#d9a273')); hand.position.y = -0.39; sh.add(hand); return { sh, hand }; });
+    return { g, head, arms };
+  }
+  return { person, mats: { wall: paint('#5a3a24'), floor: paint('#6e4a2c'), wood: paint('#7a5232'), cloth: paint('#7a2430'), gold: paint('#d4a43a', { metalness: 0.3 }) },
+    light: 'candle', ao: true, dof: 0.002, bg: '#140c08' };
+};
+
+// D · LOW-POLY — faceted geometric forms, flat shading, soft pastel earth palette, crisp light
+STYLES.lowpoly = () => {
+  const flat = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: true });
+  function person({ robe, h, r, hair, bald, beard, crown, mouth, brows, look }) {
+    const g = new THREE.Group(), robeM = flat(robe), skin = flat('#e0a77c');
+    const body = M(new THREE.CylinderGeometry(r * 0.45, r, h, 7, 2), robeM); body.position.y = h / 2; g.add(body);
+    const head = new THREE.Group(); head.position.y = h + 0.22; g.add(head);
+    head.add(M(new THREE.IcosahedronGeometry(0.25, 1), skin));
+    const nose = M(new THREE.TetrahedronGeometry(0.06), skin); nose.position.set(0, -0.02, 0.25); nose.rotation.set(0.6, 0.8, 0); head.add(nose);
+    for (const s of [-1, 1]) { const e = M(new THREE.OctahedronGeometry(0.028), flat('#1d1a18'), false); e.position.set(0.09 * s, 0.05, 0.225); e.scale.set(1, mouth === 'open' ? 1.5 : 1, 0.5); head.add(e);
+      const b = M(new THREE.BoxGeometry(0.08, 0.018, 0.02), flat(hair)); b.rotation.z = s * ({ calm: 0, angry: 0.35, sad: -0.3, up: -0.15 }[brows]); b.position.set(0.09 * s, brows === 'up' ? 0.14 : 0.115, 0.23); head.add(b); }
+    if (!bald) { const cap = M(new THREE.SphereGeometry(0.265, 7, 4, 0, Math.PI * 2, 0, Math.PI * 0.45), flat(hair)); cap.rotation.x = -0.4; head.add(cap); }
+    else { const f = M(new THREE.TorusGeometry(0.235, 0.05, 4, 10, Math.PI * 1.3), flat(hair)); f.rotation.set(Math.PI / 2, 0, Math.PI * 1.15); head.add(f); }
+    if (beard) { const b = M(new THREE.ConeGeometry(0.15, beard.sy * 0.3, 6), flat(hair)); b.rotation.x = Math.PI; b.position.set(0, -0.25, 0.12); head.add(b); }
+    if (mouth === 'open') { const m = M(new THREE.OctahedronGeometry(0.025), flat('#5a1d1d'), false); m.position.set(0, -0.1, 0.235); head.add(m); }
+    if (crown) { const c = M(new THREE.CylinderGeometry(0.2, 0.18, 0.12, 6), flat('#e8b84a')); c.position.y = 0.25; head.add(c); }
+    const arms = [-1, 1].map(s => { const sh = new THREE.Group(); sh.position.set(r * 0.55 * s, h * 0.85, 0); g.add(sh);
+      const a = M(new THREE.CylinderGeometry(0.05, 0.065, 0.36, 5), robeM); a.position.y = -0.18; sh.add(a); const hand = M(new THREE.IcosahedronGeometry(0.055, 0), skin); hand.position.y = -0.39; sh.add(hand); return { sh, hand }; });
+    return { g, head, arms };
+  }
+  return { person, mats: { wall: flat('#e9cfa8'), floor: flat('#c99f78'), wood: flat('#9a6a48'), cloth: flat('#b5424a'), gold: flat('#e8b84a') }, light: 'crisp', ao: false, dof: 0, bg: '#f0d9b5' };
+};
+
+// E · PAPER-CRAFT — folded and rolled paper figures with painted faces, paper backdrops, soft daylight
+STYLES.paper = () => {
+  const fiber = canvasTex(512, 512, (g) => { g.fillStyle = '#808080'; g.fillRect(0, 0, 512, 512); for (let i = 0; i < 3000; i++) { g.strokeStyle = `rgba(${rand() > 0.5 ? 255 : 0},${rand() > 0.5 ? 255 : 0},0,0.06)`; g.lineWidth = 1; g.beginPath(); const x = rand() * 512, y = rand() * 512, a = rand() * 6.28; g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 8, y + Math.sin(a) * 8); g.stroke(); } }, false, 3);
+  const paper = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95, bumpMap: fiber, bumpScale: 1.2, flatShading: true, ...o });
+  function person({ robe, h, r, hair, bald, beard, crown, mouth, brows, name }) {
+    const g = new THREE.Group(), robeM = paper(robe, { side: THREE.DoubleSide });
+    const body = M(new THREE.ConeGeometry(r, h * 1.15, 12, 1, true), robeM); body.position.y = h * 0.5; g.add(body);
+    const head = new THREE.Group(); head.position.y = h + 0.22; g.add(head);
+    const faceMap = faceTex({ skin: '#e8c19a', hair, bald, beard: beard ? hair : null, brows, eyes: name === 'david' ? 'wide' : 'narrow', mouth, style: 'paper' });
+    head.add(M(new THREE.SphereGeometry(0.25, 12, 9), new THREE.MeshStandardMaterial({ map: faceMap, bumpMap: fiber, bumpScale: 1, roughness: 0.95, flatShading: true })));
+    if (beard) { const b = M(new THREE.ConeGeometry(0.14, beard.sy * 0.28, 5, 1, true), paper(hair, { side: THREE.DoubleSide })); b.rotation.x = Math.PI; b.position.set(0, -0.28, 0.12); head.add(b); }
+    if (crown) { const c = M(new THREE.CylinderGeometry(0.2, 0.2, 0.12, 10, 1, true), paper('#e2b04a', { side: THREE.DoubleSide })); c.position.y = 0.24; head.add(c); }
+    const arms = [-1, 1].map(s => { const sh = new THREE.Group(); sh.position.set(r * 0.5 * s, h * 0.86, 0); g.add(sh);
+      const a = M(new THREE.ConeGeometry(0.07, 0.38, 8, 1, true), robeM); a.rotation.x = Math.PI; a.position.y = -0.18; sh.add(a); const hand = M(new THREE.SphereGeometry(0.05, 8, 6), paper('#e8c19a')); hand.position.y = -0.39; sh.add(hand); return { sh, hand }; });
+    return { g, head, arms };
+  }
+  return { person, mats: { wall: paper('#efe2c8'), floor: paper('#d9c3a0'), wood: paper('#b98a5a'), cloth: paper('#c4544a'), gold: paper('#e2b04a') }, light: 'soft', ao: true, dof: 0.0015, bg: '#efe2c8' };
+};
+
+// F · SILHOUETTE THEATRE — dark figures against a glowing backdrop; acting through shape and posture
+STYLES.silhouette = () => {
+  const base = STYLES.clay(); const dark = new THREE.MeshStandardMaterial({ color: '#120c09', roughness: 0.8 });
+  const person = (o) => { const p = base.person(o); p.g.traverse(m => { if (m.isMesh) m.material = dark; }); return p; };
+  return { person, mats: { wall: new THREE.MeshBasicMaterial({ color: '#000' }), floor: new THREE.MeshStandardMaterial({ color: '#1a120c', roughness: 0.6 }), wood: dark, cloth: dark, gold: dark }, light: 'back', ao: false, dof: 0, bg: '#000' };
+};
+
+// ---------------- shared staging ----------------
+const S = STYLES[STYLE]();
+const scene = new THREE.Scene(); scene.background = new THREE.Color(S.bg);
+const camera = new THREE.PerspectiveCamera(32, W / H, 0.05, 60);
+// set
+const floor = M(new THREE.PlaneGeometry(14, 14), S.mats.floor, false); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+if (STYLE === 'silhouette') {
+  const glow = canvasTex(512, 1024, (g) => { const gr = g.createRadialGradient(256, 600, 20, 256, 620, 560); gr.addColorStop(0, '#ffe0a0'); gr.addColorStop(0.35, '#f29a4a'); gr.addColorStop(1, '#3a1208'); g.fillStyle = gr; g.fillRect(0, 0, 512, 1024);
+    g.fillStyle = '#120c09'; g.beginPath(); g.moveTo(0, 1024); g.lineTo(0, 800); g.lineTo(512, 800); g.lineTo(512, 1024); g.fill(); });
+  const bd = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({ map: glow })); bd.position.set(0, 2.6, -2); scene.add(bd);
+  for (const x of [-1.6, 1.6]) { const col = M(new THREE.CylinderGeometry(0.22, 0.26, 4, 24), S.mats.wood); col.position.set(x, 2, -1.6); scene.add(col); }
+} else {
+  const wall = M(new THREE.PlaneGeometry(14, 7), S.mats.wall, false); wall.position.set(0, 3.5, -1.8); scene.add(wall);
+  const sh = new THREE.Shape(); sh.moveTo(-0.45, 0); sh.lineTo(-0.45, 1.1); sh.absarc(0, 1.1, 0.45, Math.PI, 0, true); sh.lineTo(0.45, 0);
+  const win = new THREE.Mesh(new THREE.ShapeGeometry(sh, 32), new THREE.MeshBasicMaterial({ color: STYLE === 'wood' ? '#3a5a80' : '#fff1d6' })); win.position.set(-1.1, 1.8, -1.79); scene.add(win);
+  const hang = M(new THREE.PlaneGeometry(1.0, 1.8), S.mats.cloth, false); hang.position.set(0.6, 1.75, -1.78); scene.add(hang);
+  for (const x of [-0.25, 1.5]) { const st = M(new THREE.CylinderGeometry(0.035, 0.08, 1.1, 16), S.mats.wood); st.position.set(x, 0.55, -0.9); scene.add(st);
+    const fl = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 10), new THREE.MeshBasicMaterial({ color: '#ffd27a' })); fl.scale.y = 1.8; fl.position.set(x, 1.16, -0.9); scene.add(fl);
+    const pl = new THREE.PointLight('#ffb35c', STYLE === 'wood' ? 4 : 1.5, 4, 1.6); pl.position.set(x, 1.25, -0.85); scene.add(pl); }
+  for (const [x, z, hh] of [[1.9, -1.3, 0.6], [2.15, -1.05, 0.48]]) { const j = M(latheG([[0, 0], [0.09, 0], [0.17, hh * 0.35], [0.15, hh * 0.75], [0.07, hh * 0.9], [0.08, hh], [0, hh]], 40), S.mats.wood); j.position.set(x, 0, z); scene.add(j); }
+}
+// throne
+const throne = new THREE.Group(); throne.position.set(0.55, 0, -0.15); throne.rotation.y = -0.3; scene.add(throne);
+const tb = (w, h, d, x, y, z, m) => { const b = M(STYLE === 'lowpoly' || STYLE === 'paper' ? new THREE.BoxGeometry(w, h, d) : new RoundedBoxGeometry(w, h, d, 4, 0.04), m); b.position.set(x, y, z); throne.add(b); };
+tb(1.0, 0.45, 0.72, 0, 0.225, -0.05, S.mats.wood); tb(1.0, 1.6, 0.14, 0, 1.0, -0.42, S.mats.wood); tb(0.8, 0.08, 0.6, 0, 0.49, -0.04, S.mats.cloth);
+for (const s of [-1, 1]) { tb(0.13, 0.14, 0.66, 0.47 * s, 0.66, -0.08, S.mats.wood); const k = M(new THREE.SphereGeometry(0.08, 24, 18), S.mats.gold); k.position.set(0.47 * s, 0.75, 0.28); throne.add(k); }
+// people
+const david = S.person({ name: 'david', robe: '#5b3591', h: 0.72, r: 0.33, hair: '#3b2618', bald: false, beard: { r: 0.14, sy: 0.85, y: -0.25 }, crown: true, mouth: 'open', brows: 'up', cover: 0.2, look: [-0.6, 0] });
+david.g.position.set(0, 0.5, 0.0); throne.add(david.g);
+for (const s of [-1, 1]) { const leg = M(new THREE.CapsuleGeometry(0.09, 0.4, 8, 16), david.g.children[0].material); leg.rotation.x = Math.PI / 2 - 0.1; leg.position.set(0.13 * s, 0.55, 0.22); throne.add(leg); }
+david.arms.forEach(a => { a.sh.rotation.set(-0.55, 0, 0.3 * (a.sh.position.x > 0 ? 1 : -1)); });
+david.head.rotation.set(-0.06, -0.15, 0.04);
+const nathan = S.person({ name: 'nathan', robe: '#cdb48e', h: 1.12, r: 0.36, hair: '#d8d2c6', bald: true, beard: { r: 0.17, sy: 1.15, y: -0.29, must: true }, mouth: 'line', brows: 'angry', cover: 0.45, look: [0.5, 0] });
+nathan.g.position.set(-0.6, 0, 0.35); nathan.g.rotation.y = 0.75; scene.add(nathan.g);
+nathan.arms[1].sh.rotation.set(-1.45, 0, 0.1); // pointing at the king
+nathan.arms[0].sh.rotation.set(-0.2, 0, -0.15);
+const staffM = STYLE === 'silhouette' ? S.mats.wood : S.mats.wood;
+const staff = M(new THREE.CylinderGeometry(0.025, 0.03, 1.8, 12), staffM); staff.position.set(-1.05, 0.9, 0.45); scene.add(staff);
+
+// light
+if (S.light === 'warm') { scene.add(new THREE.HemisphereLight('#ffe2c0', '#2a1c12', 0.6)); const k = new THREE.SpotLight('#fff0dc', 60, 14, Math.PI / 5, 0.9, 1.5); k.position.set(-2.2, 3.6, 3.8); k.target.position.set(0, 1, 0); k.castShadow = true; k.shadow.mapSize.set(2048, 2048); k.shadow.bias = -0.0004; scene.add(k, k.target); const rim = new THREE.DirectionalLight('#9ab8ff', 0.8); rim.position.set(3, 3, -3); scene.add(rim); }
+if (S.light === 'day') { scene.add(new THREE.HemisphereLight('#dff3ff', '#c8a07a', 1.1)); const sun = new THREE.DirectionalLight('#fff4e0', 3.2); sun.position.set(-3, 6, 4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4 }); scene.add(sun); }
+if (S.light === 'candle') { scene.add(new THREE.HemisphereLight('#6a5040', '#0a0604', 0.35)); const k = new THREE.SpotLight('#ffcf90', 45, 12, Math.PI / 6, 0.8, 1.5); k.position.set(-1.5, 3.2, 3.2); k.target.position.set(0, 1, 0); k.castShadow = true; k.shadow.mapSize.set(2048, 2048); scene.add(k, k.target); }
+if (S.light === 'crisp') { scene.add(new THREE.HemisphereLight('#fff3e0', '#9a7a60', 1.3)); const sun = new THREE.DirectionalLight('#fff0d8', 2.6); sun.position.set(-4, 5, 5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4 }); scene.add(sun); }
+if (S.light === 'soft') { scene.add(new THREE.HemisphereLight('#fff8ec', '#bfa384', 1.4)); const sun = new THREE.DirectionalLight('#fff4e4', 1.8); sun.position.set(-2, 5, 6); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 4; Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4 }); scene.add(sun); }
+if (S.light === 'back') { const rim = new THREE.DirectionalLight('#ffb060', 3); rim.position.set(0, 2, -4); scene.add(rim); scene.add(new THREE.AmbientLight('#2a1608', 0.4)); }
+
+// render
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = STYLE === 'silhouette' ? 1.0 : 1.05; renderer.outputColorSpace = THREE.SRGBColorSpace;
+camera.position.set(0.0, 1.4, 5.6); camera.lookAt(-0.05, 1.05, 0);
+const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
+if (S.ao) { const ao = new GTAOPass(scene, camera, W, H); ao.updateGtaoMaterial({ radius: 0.3, distanceExponent: 1.5, thickness: 1, scale: 1, samples: 16 }); ao.updatePdMaterial({ radius: 5, rings: 2, samples: 16 }); composer.addPass(ao); }
+if (S.dof) composer.addPass(new BokehPass(scene, camera, { focus: camera.position.distanceTo(V(0, 1.3, 0.1)), aperture: S.dof, maxblur: S.dof * 2.5 }));
+composer.addPass(new OutputPass());
+const out = document.getElementById('out'), o = out.getContext('2d');
+window.drawFrame = () => { composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H); return out.toDataURL('image/jpeg', 0.92); };
+window.READY = true;
+</script></body></html>
