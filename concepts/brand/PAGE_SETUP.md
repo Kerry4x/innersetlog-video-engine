@@ -1,4 +1,6 @@
-# Page setup and narration voice (draft for Kerry to choose from)
+# Page setup and narration voice
+
+**Chosen name (Kerry, 2026-11-16): No New Thing**, from KJV Ecclesiastes 1:9.
 
 The concept: Bible stories (KJV) told story-first, then the same human mechanism today. Thesis: *same human, new package.*
 Rule for the name: say what the page is about, never sound like a clay or copycat page.
@@ -39,3 +41,17 @@ Pick on: does the KJV line sound natural, not costume-like; does the hook pull y
 
 ## 5. Not decided yet (later)
 - Character and set collision with the world (sitting, holding, hands on tables) is a requirement before any scene renders; noted, scheduled after page setup.
+
+## 6. Reference: how @clayrified_ sets up its page (screenshot, 2026-11-16)
+- **Numbers:** 78 posts, 339K followers (their end card months earlier showed 186K).
+- **Avatar:** the page name in big clay letters with one character's face peeking from underneath; reads at thumbnail size.
+- **Bio (4 lines):** category "Reel creator" · a one-line promise ("Providing value, clay by clay" + 2 emoji) · what they sell ("Shop • Brands • Course") · one link page.
+- **Highlights:** Exclusive, Shop, Community (all business; added once there was something to sell).
+- **Pinned:** their three biggest videos (two monks, the chalk line, the golden Buddha).
+- **Cover template, the same on every post:** 2–5 words in big chunky clay letters (mostly blue, sometimes red or gold) across the top, one character from the story in the middle. The words are the **hook or a quote from the turn** ("HE'S STILL CARRYING HER", "MAKE THIS LINE SHORTER", "THAT'S HIS MOM", "WE DON'T PAY TAXES"), never the lesson.
+
+## 7. What we take for No New Thing (our own version, not theirs)
+- **Avatar:** "No New Thing" lettering in our own material, with one of our characters; must read at small size.
+- **Cover template:** one consistent layout on every post: a 2–5 word hook or quote from the story's turn + the key character. Our lettering should not be blue clay; an idea that fits the page is letters **carved in stone like a tablet**, or warm terracotta.
+- **Bio:** category + one-line promise + (later) one link. No shop/course line until there is one.
+- **Pin** the three best performers once we have them; highlights later.
