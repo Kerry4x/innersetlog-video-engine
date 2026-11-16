@@ -11,13 +11,11 @@ Source: PDF Kerry received from @clayrified (3 pages, Nov 2026). Summarized, not
 
 **One rule for all three:** start with the best line. No warm-up, no slow shot of the setting; if the best line is mid-script, move it to the start.
 
-## What it means for us
-- These are **three tools, not one template.** That matches Kerry's rule (no repeated hook style); rotate them and still let each story's strongest moment decide.
-- They sit inside our existing hook standard (concrete, opens the question, accurate). Extra caution for us: the "flip" must come from the text, never from bending it.
-- **Our David/Nathan look tests broke the main rule.** They opened on a slow aerial of the city with "Around 1000 BC". The opening shot should be the most charged moment, with the setting shown later.
+## How we use them (Kerry, 2026-11-16)
+- **Reference only.** These stay in the library and come out only when a story already has that shape. Never bend a story to fit one, and never pick a formula first and then look for a story.
+- They sit inside our hook standard (concrete, opens the question, accurate). The flip, task or hidden truth has to be in the text itself.
+- **Keep from it:** start with the best line. Our David/Nathan look tests broke this by opening on a slow aerial of the city with "Around 1000 BC". The opening shot should be the most charged moment.
 
-## Scripture drafts in each formula (verses recalled; check before production)
-- **Unfair contrast (2 Sam 12):** "A prophet told the king a story. The king sentenced himself to death." (David's verdict, v5; he is spared, v13.)
-- **Unfair contrast (Mark 7:9–13):** "He gave his money to God. Jesus said he was rejecting God's command." (Corban.)
-- **Impossible task (1 Kings 3:16–28):** "Two mothers. One baby. No witnesses. The king called for a sword." (v18: no one else was in the house.)
-- **Hidden truth (Amos 5:21–24):** "They kept the feasts and brought the offerings. God said: take away the noise of thy songs." (vv21–23)
+## Fit check: an example of forcing it (rejected)
+- *Impossible task* on Solomon's judgment (1 Kings 3): doesn't fit. Nobody with power sets an impossible rule for someone else; the king himself is solving a dispute.
+- *Hidden truth* on Amos 5: doesn't fit. Amos is an open rebuke, not something everyone believed that hides an opposite underneath.
