@@ -20,4 +20,4 @@ Source: PDF Kerry received from @clayrified (3 pages, Nov 2026). Summarized, not
 - **Unfair contrast (2 Sam 12):** "A prophet told the king a story. The king sentenced himself to death." (David's verdict, v5; he is spared, v13.)
 - **Unfair contrast (Mark 7:9–13):** "He gave his money to God. Jesus said he was rejecting God's command." (Corban.)
 - **Impossible task (1 Kings 3:16–28):** "Two mothers. One baby. No witnesses. The king called for a sword." (v18: no one else was in the house.)
-- **Hidden truth (Amos 5:21–24):** "They were the most religious nation on earth. God said: take away the noise of thy songs." (v23)
+- **Hidden truth (Amos 5:21–24):** "They kept the feasts and brought the offerings. God said: take away the noise of thy songs." (vv21–23)
