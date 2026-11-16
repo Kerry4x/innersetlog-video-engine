@@ -1,0 +1,119 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Movement test reel</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Movement test reel for the approved characters. Six 4-second tests, posed on 2s (12 poses/s, stop motion).
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { buildCharacter, clay, M } from './kit/claychar.js';
+
+const W = 1080, H = 1920, SEG = 4, TESTS = ['1 · Idle: breathing, blinks, glances', '2 · Talking with gestures', '3 · Emotions: calm → suspicious → angry → shocked → sad', '4 · Point: wind-up, point, hold', '5 · Walking', '6 · Hands: open, fist, point, offer'];
+const DURATION = SEG * TESTS.length;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#cdb08a');
+const cyc = M(new THREE.CylinderGeometry(9, 9, 9, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5), clay('#d4b892', { side: THREE.BackSide, bumpScale: 0.3 })); cyc.position.set(0, 4.5, 5.5); scene.add(cyc);
+const floor = M(new THREE.PlaneGeometry(30, 30), clay('#c9ab84', { bumpScale: 0.3 })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const N = buildCharacter({ tunic: '#d9c7a3', trim: '#a8865a', mantle: '#7a5536', sash: '#8a6a44', hair: '#ece7dc', browC: '#ece7dc', bald: true, beard: '#ece7dc', beardLen: 0.12, lidTop: 0.36 });
+const D = buildCharacter({ tunic: '#5b3591', trim: '#d6a640', mantle: '#8b2c3a', sash: '#c99a32', hair: '#3a2416', browC: '#3a2416', bald: false, beard: '#3a2416', beardLen: 0.02, crown: true, lidTop: 0.3 });
+scene.add(N.root, D.root);
+scene.add(new THREE.HemisphereLight('#ffe9cf', '#7a5a3a', 0.75));
+const key = new THREE.DirectionalLight('#ffe8cc', 2.8); key.position.set(-2.2, 4, 4); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -2 }); scene.add(key);
+const rim = new THREE.DirectionalLight('#cfe0ff', 1.4); rim.position.set(2.5, 3, -3); scene.add(rim);
+const camera = new THREE.PerspectiveCamera(30, W / H, 0.05, 60);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(W, H, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
+const ao = new GTAOPass(scene, camera, W, H); ao.updateGtaoMaterial({ radius: 0.2, samples: 16 }); composer.addPass(ao); composer.addPass(new OutputPass());
+
+// ---------- timing helpers, tuned to library/styles/CLAY_MOTION_SPEC.md ----------
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const ramp = (t, a, b) => ease((t - a) / (b - a));
+const snap = (t, a) => t >= a ? 1 : 0;                       // faces swap in one frame
+const back = x => { x = Math.max(0, Math.min(1, x)); const c = 1.3; return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2; };
+const lerp = (a, b, k) => a + (b - a) * k;
+const hash = (a, b) => { const h = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return h - Math.floor(h); };
+const F = 1 / 24;
+const blinkAt = (t, k) => { const P = 2.6 + hash(k, 1) * 1.4, ph = (t + hash(k, 2) * P) % P; return ph < 4 * F ? 1 : 0; }; // 1-4-1: shut 4 frames
+// speech = a few HELD mouth shapes (no flapping): shape changes every 3-6 frames
+const speak = (t, seed) => { const i = Math.floor(t * 6); return [0.15, 0.55, 0.3, 0.7, 0.2, 0.45][Math.floor(hash(i, seed) * 6)]; };
+const cam = (p, l) => { camera.position.set(...p); camera.lookAt(...l); };
+
+function pose(t) {
+  const seg = Math.min(TESTS.length - 1, Math.floor(t / SEG)), u = t - seg * SEG, ts = Math.floor(u * 12) / 12; // bodies on 2s
+  for (const C of [N, D]) { C.setBody({ breathe: 0.6 * Math.sin(ts * 2.0) }); C.setHead(); C.setFace({ blink: blinkAt(t, C === N ? 1 : 2) }); C.setArm('L'); C.setArm('R'); C.walk(0, 0); C.root.visible = true; }
+  N.root.position.set(-0.5, 0, 0); N.root.rotation.y = 0.45; D.root.position.set(0.5, 0, 0); D.root.rotation.y = -0.45;
+  const fold = (C) => { C.setArm('R', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5 }); C.setArm('L', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5, twist: 0.3 }); };
+  if (seg === 0) { // IDLE: a held pose, two glances, blinks; one slow head turn
+    fold(N); D.setArm('R', { fwd: 0.15, curl: 0.4 }); D.setArm('L', { fwd: 0.15, curl: 0.4 });
+    N.setFace({ blink: blinkAt(t, 1), look: snap(u, 1.6) ? [0.6, -0.1] : [0.3, 0.1] }); N.setHead({ turn: 0.05 + 0.15 * ramp(ts, 1.6, 2.0), tilt: 0.03 });
+    D.setFace({ blink: blinkAt(t, 2), look: snap(u, 2.4) ? [-0.6, 0] : [0.2, -0.3], lid: 0.1 }); D.setHead({ turn: lerp(0.1, -0.15, ramp(ts, 2.4, 2.8)) });
+    cam([0, 1.45, 6.4], [0, 1.05, 0]);
+  }
+  if (seg === 1) { // TALKING: held mouth shapes, ONE gesture (rise ~8 frames, hold, lower)
+    const speaking = u > 0.3 && u < 3.5, g = ramp(ts, 0.9, 1.25) * (1 - ramp(ts, 2.9, 3.25));
+    N.setFace({ blink: blinkAt(t, 1), open: speaking ? speak(u, 3) : 0, look: [0.55, 0], raise: 0.4 * snap(u, 0.9) * (1 - snap(u, 2.9)) });
+    N.setHead({ nod: 0.05 * ramp(ts, 0.9, 1.25) * (1 - ramp(ts, 2.9, 3.25)), turn: 0.15 });
+    N.setArm('R', { fwd: lerp(0.35, 0.75, g), out: lerp(0.05, 0.3, g), bend: lerp(1.3, 1.0, g), curl: lerp(0.5, 0.1, g), twist: -0.4 * g }); N.setArm('L', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5, twist: 0.3 });
+    D.setFace({ blink: blinkAt(t, 2), look: [-0.55, 0], lid: 0.12 }); D.setHead({ nod: 0.08 * ramp(ts, 2.2, 2.5) * (1 - ramp(ts, 2.6, 2.9)), turn: -0.1 }); fold(D);
+    cam([0, 1.5, 6.0], [0, 1.15, 0]);
+  }
+  if (seg === 2) { // EMOTIONS: face snaps to each state; body eases after it
+    N.root.visible = false; D.root.position.set(0, 0, 0); D.root.rotation.y = -0.15;
+    const st = u < 0.8 ? 0 : u < 1.6 ? 1 : u < 2.4 ? 2 : u < 3.2 ? 3 : 4; // calm, suspicious, angry, shocked, sad
+    const face = [{ lid: 0.1 }, { lid: 0.3, squint: 0.6, browL: 0.8, look: [0.35, 0] }, { lid: 0.2, squint: 0.5, angry: 1, open: 0.25 }, { lid: -0.55, raise: 1, open: 0.9 }, { lid: 0.5, sad: 1, open: 0.1, look: [0, -0.6] }][st];
+    D.setFace({ ...face, blink: st === 0 ? blinkAt(t, 2) : 0 });
+    const b = (a) => ramp(ts, a, a + 0.35); // body follows over ~8 frames
+    const ang = b(1.6) * (1 - b(2.4)), sho = b(2.4) * (1 - b(3.2)), sad = b(3.2), sus = b(0.8) * (1 - b(1.6));
+    D.setHead({ tilt: 0.1 * sus, nod: 0.1 * ang - 0.1 * sho + 0.3 * sad, turn: -0.12 * sus });
+    D.setBody({ breathe: 0.6 * Math.sin(ts * 2), lean: 0.05 * ang - 0.05 * sho + 0.03 * sad });
+    D.setArm('R', { fwd: 0.15 + 0.7 * ang + 0.45 * sho + 0.3 * sad, out: 0.12 + 0.3 * sho, bend: 0.35 + 1.2 * ang + 0.8 * sho + 1.1 * sad, curl: st === 2 ? 1 : st === 3 ? 0.05 : 0.4, twist: 0.3 * sad });
+    D.setArm('L', { fwd: 0.15 + 0.45 * sho + 0.3 * sad, out: 0.12 + 0.3 * sho, bend: 0.35 + 0.8 * sho + 1.1 * sad, curl: st === 3 ? 0.05 : 0.4, twist: 0.3 * sad });
+    cam([0.1, 1.65, 3.1], [0, 1.55, 0]);
+  }
+  if (seg === 3) { // POINT: the one big move, small anticipation, settle, hold; David's face snaps, body eases back
+    const an = ramp(ts, 0.9, 1.15) * (1 - ramp(ts, 1.15, 1.25)), pk = back((ts - 1.25) / 0.35);
+    N.setArm('R', { fwd: lerp(0.35 + 0.15 * an, 1.45, pk), out: lerp(0.05, 0.25, pk), bend: lerp(1.3 + 0.2 * an, 0.05, pk), point: pk > 0.3, curl: 0.5 }); N.setArm('L', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5, twist: 0.3 });
+    N.setBody({ breathe: 0.6 * Math.sin(ts * 2), lean: -0.03 * an + 0.04 * pk, twist: 0.08 * pk });
+    N.setFace({ blink: u > 1.1 ? 0 : blinkAt(t, 1), look: [0.6, 0], lid: snap(u, 1.25) ? 0.3 : 0.1, angry: 0.4 * snap(u, 1.25), open: (u > 1.6 && u < 2.4) ? speak(u, 7) : 0 });
+    N.setHead({ turn: 0.2, nod: 0.04 * pk });
+    const hit = snap(u, 1.7), re = ramp(ts, 1.7, 2.05);
+    D.setFace({ blink: u > 1.6 ? 0 : blinkAt(t, 2), look: [-0.6, 0], lid: hit ? -0.5 : 0.1, raise: hit ? 0.9 : 0, open: hit ? 0.55 : 0 });
+    D.setHead({ nod: -0.1 * re, turn: -0.2 }); D.setBody({ breathe: 0.6 * Math.sin(ts * 2), lean: -0.06 * re });
+    D.setArm('R', { fwd: 0.15 + 0.45 * re, bend: 0.35 + 0.8 * re, curl: 0.2, out: 0.15 }); D.setArm('L', { fwd: 0.15 + 0.45 * re, bend: 0.35 + 0.8 * re, curl: 0.2, out: 0.15 });
+    cam([0, 1.45, 6.2], [0, 1.05, 0]);
+  }
+  if (seg === 4) { // WALK (wide shot): the place for full-body motion
+    D.root.visible = false;
+    const phase = ts / 1.0, w = N.walk(phase, 1);
+    N.root.position.set(-1.6 + ts * 0.8, 0, 0); N.root.rotation.y = Math.PI / 2 - 0.35;
+    N.setBody({ bob: w.bob, sway: w.sway, breathe: 0, lean: 0.04 });
+    N.setArm('R', { fwd: w.swing * 0.8, out: 0.1, bend: 0.4 }); N.setArm('L', { fwd: -w.swing * 0.8, out: 0.1, bend: 0.4 });
+    N.setFace({ blink: blinkAt(t, 1), look: snap(u, 2.6) ? [-0.6, 0] : [0, -0.1] }); N.setHead({ turn: -0.3 * ramp(ts, 2.6, 2.95) });
+    cam([0, 1.3, 5.6], [0, 1.0, 0]);
+  }
+  if (seg === 5) { // HANDS: each change ~8 frames, then held
+    N.root.position.set(0, 0, 0); N.root.rotation.y = 0.2; D.root.visible = false;
+    const s1 = ramp(ts, 0.7, 1.0), s2 = ramp(ts, 1.7, 2.0), s3 = ramp(ts, 2.7, 3.05);
+    N.setArm('R', { fwd: 0.95 + 0.2 * s3, out: 0.25, bend: 1.2 - 0.5 * s3, twist: -0.5 - 1.2 * s3, curl: (s1 > 0.5 ? (s2 > 0.5 ? 0.4 : 1) : 0.05) * (s3 > 0.5 ? 0 : 1), point: s2 > 0.5 && s3 < 0.5, wrist: 0.25 * s3 });
+    N.setFace({ blink: blinkAt(t, 1), look: [0.2, -0.6] }); N.setHead({ nod: 0.22 });
+    cam([0.45, 1.25, 1.75], [0.25, 1.05, 0.4]);
+  }
+}
+
+const out = document.getElementById('out'), o = out.getContext('2d');
+window.drawFrame = (t) => {
+  pose(t); composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H);
+  const seg = Math.min(TESTS.length - 1, Math.floor(t / SEG));
+  o.fillStyle = 'rgba(30,20,12,0.82)'; o.fillRect(0, 0, W, 120); o.fillStyle = '#f6ead6'; o.font = '600 40px Georgia, serif'; o.fillText(TESTS[seg], 36, 72);
+  o.font = '26px Georgia, serif'; o.fillStyle = 'rgba(246,234,214,0.7)'; o.fillText('v2 · timed to the measured clay motion: faces swap in 1 frame, bodies on 2s', 36, 108);
+  return out.toDataURL('image/jpeg', 0.9);
+};
+window.DURATION = DURATION; window.STRIP = [36, 130, 190, 228, 340, 430, 530];
+window.READY = true;
+</script></body></html>
