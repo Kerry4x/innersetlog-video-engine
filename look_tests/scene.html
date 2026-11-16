@@ -1,0 +1,242 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Look test</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// One scene (Nathan tells David the lamb story → "Thou art the man."), five looks.
+// All characters are original simple figures. Time t in seconds, 0..6.
+const W = 1080, H = 1920;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+
+// ---------- helpers ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const ramp = (t, a, b) => ease((t - a) / (b - a));
+function seeded(s) { return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+function noiseCanvas(seed, alpha, tint) {
+  const n = document.createElement('canvas'); n.width = W / 2; n.height = H / 2;
+  const g = n.getContext('2d'), d = g.createImageData(n.width, n.height), r = seeded(seed);
+  for (let i = 0; i < d.data.length; i += 4) {
+    const v = r() * 255;
+    d.data[i] = tint[0] * v / 255; d.data[i + 1] = tint[1] * v / 255; d.data[i + 2] = tint[2] * v / 255; d.data[i + 3] = alpha * 255;
+  }
+  g.putImageData(d, 0, 0); return n;
+}
+
+// ---------- shared geometry (Path2D builders) ----------
+function robe(cx, top, bottom, wTop, wBot) {
+  const p = new Path2D();
+  p.moveTo(cx - wTop / 2, top); p.lineTo(cx + wTop / 2, top);
+  p.quadraticCurveTo(cx + wBot / 2 + 10, (top + bottom) / 2, cx + wBot / 2, bottom);
+  p.lineTo(cx - wBot / 2, bottom);
+  p.quadraticCurveTo(cx - wBot / 2 - 10, (top + bottom) / 2, cx - wTop / 2, top);
+  p.closePath(); return p;
+}
+const circle = (x, y, r) => { const p = new Path2D(); p.arc(x, y, r, 0, Math.PI * 2); return p; };
+function crown(x, y, s) {
+  const p = new Path2D(); const w = 90 * s, h = 46 * s;
+  p.moveTo(x - w / 2, y); p.lineTo(x - w / 2, y - h); p.lineTo(x - w / 4, y - h * 0.45); p.lineTo(x, y - h * 1.15);
+  p.lineTo(x + w / 4, y - h * 0.45); p.lineTo(x + w / 2, y - h); p.lineTo(x + w / 2, y); p.closePath(); return p;
+}
+function beard(x, y, s) {
+  const p = new Path2D(); p.moveTo(x - 40 * s, y); p.quadraticCurveTo(x, y + 120 * s, x + 40 * s, y);
+  p.quadraticCurveTo(x, y + 30 * s, x - 40 * s, y); return p;
+}
+function arm(sx, sy, ang, len, thick) { // a capsule from shoulder along angle
+  const p = new Path2D(); const ex = sx + Math.cos(ang) * len, ey = sy + Math.sin(ang) * len;
+  const nx = -Math.sin(ang) * thick / 2, ny = Math.cos(ang) * thick / 2;
+  p.moveTo(sx + nx, sy + ny); p.lineTo(ex + nx, ey + ny); p.arc(ex, ey, thick / 2, ang + Math.PI / 2, ang - Math.PI / 2, true);
+  p.lineTo(sx - nx, sy - ny); p.closePath(); return { p, ex, ey };
+}
+function lamb(x, y, s) {
+  const body = new Path2D(); body.ellipse(x, y, 70 * s, 46 * s, 0, 0, Math.PI * 2);
+  const head = new Path2D(); head.ellipse(x + 70 * s, y - 28 * s, 26 * s, 20 * s, -0.3, 0, Math.PI * 2);
+  const legs = new Path2D();
+  [-40, -15, 20, 45].forEach(dx => { legs.rect(x + dx * s - 6 * s, y + 30 * s, 12 * s, 48 * s); });
+  return { body, head, legs };
+}
+function throne() {
+  const p = new Path2D();
+  p.moveTo(640, 1460); p.lineTo(640, 860); p.quadraticCurveTo(760, 760, 880, 860); p.lineTo(880, 1460); p.closePath();
+  return p;
+}
+function windowArch() {
+  const p = new Path2D(); p.moveTo(140, 760); p.lineTo(140, 420); p.arc(260, 420, 120, Math.PI, 0); p.lineTo(380, 760); p.closePath(); return p;
+}
+
+// Scene state at time t
+function scene(t) {
+  const breath = Math.sin(t * 2.2) * 4;
+  const point = ramp(t, 4.0, 4.7);                 // prophet raises arm
+  const inset = ramp(t, 1.8, 2.4) * (1 - ramp(t, 3.7, 4.2));
+  const zoom = 1 + 0.22 * ramp(t, 4.0, 6.0);
+  const king = { x: 760, head: 960 + breath * 0.5, robeTop: 1030, bottom: 1460 };
+  const prophet = { x: 330, head: 900 - breath, robeTop: 975, bottom: 1460 };
+  // arm: resting (pointing down) → pointing at the king
+  const restAng = Math.PI * 0.45, pointAng = -0.12;
+  const ang = restAng + (pointAng - restAng) * point;
+  return {
+    t, breath, point, inset, zoom, king, prophet,
+    armP: arm(prophet.x + 40, prophet.robeTop + 40, ang, 210, 34),
+    caption: t < 2 ? 'A prophet came to the king\nwith a story.' : t < 4 ? 'A poor man\'s only lamb…' : '"Thou art the man."',
+  };
+}
+
+function camera(s) { // push in toward the space between them
+  const fx = 545, fy = 1150; // zoom about this point
+  ctx.translate(fx, fy); ctx.scale(s.zoom, s.zoom); ctx.translate(-fx, -fy);
+}
+
+function drawCaption(s, font, fill, stroke, y = 1690) {
+  ctx.save(); ctx.textAlign = 'center'; ctx.font = font; ctx.lineJoin = 'round';
+  s.caption.split('\n').forEach((line, i) => {
+    const yy = y + i * 78;
+    if (stroke) { ctx.lineWidth = 10; ctx.strokeStyle = stroke; ctx.strokeText(line, W / 2, yy); }
+    ctx.fillStyle = fill; ctx.fillText(line, W / 2, yy);
+  });
+  ctx.restore();
+}
+
+// ---------- looks ----------
+const tex = {};
+const looks = {
+  // A · Paper cut-out: flat layered shapes, drop shadows, paper grain, stepped "on twos" motion
+  paper(s) {
+    tex.paper = tex.paper || noiseCanvas(7, 0.10, [255, 240, 210]);
+    ctx.fillStyle = '#E9D9BC'; ctx.fillRect(0, 0, W, H);
+    ctx.save(); camera(s);
+    const r = seeded(Math.floor(s.t * 12) + 1); const j = () => (r() - 0.5) * 3;
+    const layer = (path, color, dx = 0, dy = 0) => {
+      ctx.save(); ctx.translate(dx + j(), dy + j());
+      ctx.shadowColor = 'rgba(60,35,10,0.35)'; ctx.shadowBlur = 14; ctx.shadowOffsetX = 8; ctx.shadowOffsetY = 10;
+      ctx.fillStyle = color; ctx.fill(path); ctx.restore();
+    };
+    const wall = new Path2D(); wall.rect(0, 0, W, 1460); layer(wall, '#D8B98D');
+    layer(windowArch(), '#F4E2B8'); const floor = new Path2D(); floor.rect(0, 1440, W, 480); layer(floor, '#A8794A');
+    layer(throne(), '#7A2E2A');
+    layer(robe(s.king.x, s.king.robeTop, s.king.bottom, 120, 230), '#5B3A8C');
+    layer(circle(s.king.x, s.king.head, 58), '#E8C39E'); layer(crown(s.king.x, s.king.head - 40, 1), '#D9A62E');
+    layer(robe(s.prophet.x, s.prophet.robeTop, s.prophet.bottom, 110, 220), '#8B6B4A');
+    layer(circle(s.prophet.x, s.prophet.head, 56), '#E2B892'); layer(beard(s.prophet.x, s.prophet.head + 25, 1), '#EFEDE6');
+    layer(s.armP.p, '#7A5C3E');
+    if (s.inset > 0.01) {
+      ctx.save(); ctx.globalAlpha = s.inset; const k = 0.85 + 0.15 * s.inset;
+      ctx.translate(545, 560); ctx.scale(k, k); ctx.translate(-545, -560);
+      layer(circle(545, 560, 250), '#F6EBD2');
+      layer(robe(470, 520, 760, 70, 140), '#9B8160'); layer(circle(470, 470, 38), '#E2B892');
+      const L = lamb(600, 650, 1); layer(L.legs, '#4A3B2C'); layer(L.body, '#FFFDF6'); layer(L.head, '#FFFDF6');
+      ctx.restore();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1; ctx.drawImage(tex.paper, 0, 0, W, H);
+    drawCaption(s, 'bold 66px Georgia, serif', '#2B1A0E', '#F6EBD2');
+  },
+
+  // B · Shadow puppet: warm backlit screen, pure black silhouettes
+  shadow(s) {
+    const g = ctx.createRadialGradient(540, 900, 80, 540, 900, 1100);
+    g.addColorStop(0, '#FFD68A'); g.addColorStop(0.55, '#E58A2E'); g.addColorStop(1, '#5A1C06');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.save(); camera(s); ctx.fillStyle = '#0E0806';
+    const f = p => ctx.fill(p);
+    const floor = new Path2D(); floor.rect(0, 1455, W, 500); f(floor);
+    f(throne()); f(robe(s.king.x, s.king.robeTop, s.king.bottom, 120, 230)); f(circle(s.king.x, s.king.head, 58)); f(crown(s.king.x, s.king.head - 40, 1));
+    f(robe(s.prophet.x, s.prophet.robeTop, s.prophet.bottom, 110, 220)); f(circle(s.prophet.x, s.prophet.head, 56)); f(beard(s.prophet.x, s.prophet.head + 25, 1));
+    f(s.armP.p);
+    const staff = new Path2D(); staff.rect(410, 820, 14, 640); f(staff);
+    if (s.inset > 0.01) {
+      ctx.save(); ctx.globalAlpha = s.inset;
+      const gi = ctx.createRadialGradient(545, 560, 20, 545, 560, 260); gi.addColorStop(0, '#FFF3D0'); gi.addColorStop(1, 'rgba(255,220,150,0)');
+      ctx.fillStyle = gi; ctx.fill(circle(545, 560, 260)); ctx.fillStyle = '#0E0806';
+      f(robe(470, 520, 760, 70, 140)); f(circle(470, 470, 38)); const L = lamb(600, 650, 1); f(L.legs); f(L.body); f(L.head);
+      ctx.restore();
+    }
+    ctx.restore();
+    drawCaption(s, 'italic 64px Georgia, serif', '#FFE9C2', null, 1720);
+  },
+
+  // C · Ink on parchment: brown line work, hatching, one red accent
+  ink(s) {
+    tex.parch = tex.parch || noiseCanvas(11, 0.16, [120, 85, 40]);
+    ctx.fillStyle = '#EADBB8'; ctx.fillRect(0, 0, W, H); ctx.drawImage(tex.parch, 0, 0, W, H);
+    ctx.save(); camera(s);
+    ctx.strokeStyle = '#3B2414'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    const st = p => ctx.stroke(p);
+    const hatch = (p, gap = 18) => { ctx.save(); ctx.clip(p); ctx.lineWidth = 2; ctx.beginPath(); for (let x = -H; x < W + H; x += gap) { ctx.moveTo(x, 0); ctx.lineTo(x + H, H); } ctx.stroke(); ctx.restore(); };
+    const fl = new Path2D(); fl.moveTo(0, 1460); fl.lineTo(W, 1460); st(fl);
+    st(windowArch()); const th = throne(); hatch(th, 14); st(th);
+    const kr = robe(s.king.x, s.king.robeTop, s.king.bottom, 120, 230); ctx.fillStyle = '#EADBB8'; ctx.fill(kr); hatch(kr, 26); st(kr);
+    st(circle(s.king.x, s.king.head, 58)); ctx.fillStyle = '#A3271F'; ctx.fill(crown(s.king.x, s.king.head - 40, 1)); st(crown(s.king.x, s.king.head - 40, 1));
+    const pr = robe(s.prophet.x, s.prophet.robeTop, s.prophet.bottom, 110, 220); ctx.fillStyle = '#EADBB8'; ctx.fill(pr); st(pr);
+    st(circle(s.prophet.x, s.prophet.head, 56)); st(beard(s.prophet.x, s.prophet.head + 25, 1));
+    ctx.fillStyle = '#EADBB8'; ctx.fill(s.armP.p); st(s.armP.p);
+    if (s.inset > 0.01) {
+      ctx.save(); ctx.globalAlpha = s.inset; ctx.fillStyle = '#F3E7C9'; const c = circle(545, 560, 250); ctx.fill(c); st(c);
+      const r2 = robe(470, 520, 760, 70, 140); hatch(r2, 20); st(r2); st(circle(470, 470, 38));
+      const L = lamb(600, 650, 1); ctx.fillStyle = '#F3E7C9'; ctx.fill(L.body); st(L.body); st(L.head); st(L.legs);
+      ctx.restore();
+    }
+    ctx.restore();
+    drawCaption(s, '600 64px Georgia, serif', '#3B2414', null, 1710);
+  },
+
+  // D · Dark cinematic flat: near-black room, a shaft of light, rim-lit shapes, gold accent
+  dark(s) {
+    ctx.fillStyle = '#07090D'; ctx.fillRect(0, 0, W, H);
+    ctx.save(); camera(s);
+    const shaft = new Path2D(); shaft.moveTo(150, 420); shaft.lineTo(380, 420); shaft.lineTo(820, 1460); shaft.lineTo(380, 1460); shaft.closePath();
+    const gs = ctx.createLinearGradient(260, 420, 600, 1460); gs.addColorStop(0, 'rgba(255,214,140,0.35)'); gs.addColorStop(1, 'rgba(255,214,140,0.02)');
+    ctx.fillStyle = gs; ctx.fill(shaft);
+    ctx.fillStyle = '#1C2333'; ctx.fill(windowArch());
+    ctx.fillStyle = '#0F131C'; const fl = new Path2D(); fl.rect(0, 1460, W, 500); ctx.fill(fl);
+    const rim = (p, base, rimc) => { ctx.save(); ctx.fillStyle = base; ctx.fill(p); ctx.strokeStyle = rimc; ctx.lineWidth = 4; ctx.shadowColor = rimc; ctx.shadowBlur = 18; ctx.stroke(p); ctx.restore(); };
+    rim(throne(), '#121722', 'rgba(255,200,120,0.25)');
+    rim(robe(s.king.x, s.king.robeTop, s.king.bottom, 120, 230), '#1A2030', 'rgba(255,200,120,0.55)');
+    rim(circle(s.king.x, s.king.head, 58), '#222A3A', 'rgba(255,200,120,0.6)');
+    ctx.save(); ctx.fillStyle = '#E2B04A'; ctx.shadowColor = '#E2B04A'; ctx.shadowBlur = 30; ctx.fill(crown(s.king.x, s.king.head - 40, 1)); ctx.restore();
+    rim(robe(s.prophet.x, s.prophet.robeTop, s.prophet.bottom, 110, 220), '#1D2232', 'rgba(255,220,160,0.8)');
+    rim(circle(s.prophet.x, s.prophet.head, 56), '#262D3E', 'rgba(255,220,160,0.85)');
+    rim(s.armP.p, '#1D2232', 'rgba(255,220,160,0.8)');
+    if (s.inset > 0.01) {
+      ctx.save(); ctx.globalAlpha = s.inset;
+      const gi = ctx.createRadialGradient(545, 560, 10, 545, 560, 270); gi.addColorStop(0, 'rgba(255,230,180,0.30)'); gi.addColorStop(1, 'rgba(255,230,180,0)');
+      ctx.fillStyle = gi; ctx.fill(circle(545, 560, 270));
+      rim(robe(470, 520, 760, 70, 140), '#1D2232', 'rgba(255,220,160,0.8)'); rim(circle(470, 470, 38), '#262D3E', 'rgba(255,220,160,0.8)');
+      const L = lamb(600, 650, 1); ctx.fillStyle = '#F2EBDD'; ctx.shadowColor = '#FFF4DC'; ctx.shadowBlur = 25; ctx.fill(L.body); ctx.fill(L.head); ctx.fill(L.legs);
+      ctx.restore();
+    }
+    ctx.restore();
+    drawCaption(s, '700 60px Helvetica, Arial, sans-serif', '#F4EDE0', null, 1710);
+  },
+
+  // E · Stained glass: saturated panes, heavy dark lead lines, inner glow
+  glass(s) {
+    ctx.fillStyle = '#10151F'; ctx.fillRect(0, 0, W, H);
+    ctx.save(); camera(s);
+    const pane = (p, color) => { ctx.save(); ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 25; ctx.fill(p); ctx.restore(); ctx.save(); ctx.strokeStyle = '#141414'; ctx.lineWidth = 12; ctx.lineJoin = 'round'; ctx.stroke(p); ctx.restore(); };
+    // background tessellation
+    const r = seeded(3); const cols = ['#1E4E8C', '#25609E', '#173C6E', '#2C6FB0'];
+    for (let y = 0; y < 1460; y += 160) for (let x = 0; x < W; x += 180) {
+      const p = new Path2D(); const o = (y / 160) % 2 ? 90 : 0;
+      p.moveTo(x + o, y); p.lineTo(x + o + 180, y + r() * 30); p.lineTo(x + o + 160, y + 160); p.lineTo(x + o - 10, y + 150); p.closePath();
+      pane(p, cols[Math.floor(r() * cols.length)]);
+    }
+    const fl = new Path2D(); fl.rect(0, 1460, W, 500); pane(fl, '#3B2A1E');
+    pane(throne(), '#8E1F2A');
+    pane(robe(s.king.x, s.king.robeTop, s.king.bottom, 120, 230), '#5E2A8C'); pane(circle(s.king.x, s.king.head, 58), '#E8B98A'); pane(crown(s.king.x, s.king.head - 40, 1), '#F0B92E');
+    pane(robe(s.prophet.x, s.prophet.robeTop, s.prophet.bottom, 110, 220), '#2E7D4F'); pane(circle(s.prophet.x, s.prophet.head, 56), '#E1AE80'); pane(beard(s.prophet.x, s.prophet.head + 25, 1), '#F1EEE4');
+    pane(s.armP.p, '#2E7D4F');
+    if (s.inset > 0.01) {
+      ctx.save(); ctx.globalAlpha = s.inset; pane(circle(545, 560, 250), '#E9D9A6');
+      pane(robe(470, 520, 760, 70, 140), '#9B5B2A'); pane(circle(470, 470, 38), '#E1AE80');
+      const L = lamb(600, 650, 1); pane(L.body, '#FFFBEF'); pane(L.head, '#FFFBEF'); pane(L.legs, '#3A2A20');
+      ctx.restore();
+    }
+    ctx.restore();
+    drawCaption(s, '700 64px Georgia, serif', '#FFF6DE', '#141414', 1720);
+  },
+};
+
+window.drawFrame = (look, t) => { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; looks[look](scene(t)); };
+window.LOOKS = Object.keys(looks);
+</script></body></html>
