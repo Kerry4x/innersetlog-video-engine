@@ -1,0 +1,5 @@
+# Scale, measured with a pixel ruler on 720x1280 frames (by eye on the ruler, about ±10 px)
+S14#26 door vs standing man: door opening 407→1007 = 600 px; man head-top 535 → feet 993 = 458 px  => door ≈ 1.3 × character height
+S06#30 low table vs seated monks: table top 810, floor 993 => table 183 px; seated monk (head top → cushion bottom) 463 px => table ≈ 0.4 × seated height (top of table at chest/elbow level); cup ≈ 43 px vs head ≈ 187 px => cup ≈ 0.23 head height
+S13#6 low table vs seated men: table 273 px; seated 500 px => ≈ 0.55 × seated height (table top at mid-chest); table lantern ≈ 173 px ≈ 1 head height
+S09#12 palace steps vs standing man: man 570 px; each step ≈ 58 px => step ≈ 0.1 × character height
