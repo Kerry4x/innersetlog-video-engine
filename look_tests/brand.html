@@ -1,0 +1,121 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>No New Thing: profile and banner</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out"></canvas>
+<script type="module">
+// Brand images for No New Thing, three directions.
+//   ?kind=pfp|banner  &dir=char|symbol|letter
+// pfp = 1080x1080 (shown in a circle), banner = 2560x1440 (YouTube; phone-safe centre 1546x423).
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { buildCharacter, clay, M, lathe } from './kit/claychar.js';
+
+const q = new URLSearchParams(location.search), KIND = q.get('kind') || 'pfp', DIR = q.get('dir') || 'char';
+const W = KIND === 'pfp' ? 1080 : 2560, H = KIND === 'pfp' ? 1080 : 1440;
+const out = document.getElementById('out'); out.width = W; out.height = H;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+let seed = 3; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const font = await new Promise(r => new FontLoader().load('./node_modules/three/examples/fonts/gentilis_bold.typeface.json', r));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, W / H, 0.05, 100);
+
+// ---------- shared pieces ----------
+const PAL = { amber: '#e9a45b', amberDeep: '#c4733b', cream: '#f3e2c3', terracotta: '#b9582f', stone: '#cdb999', ink: '#3b2416', sky: '#f6cf8e' };
+function gradientBG(top, bottom) { const c = document.createElement('canvas'); c.width = 4; c.height = 512; const g = c.getContext('2d'); const gr = g.createLinearGradient(0, 0, 0, 512); gr.addColorStop(0, top); gr.addColorStop(1, bottom); g.fillStyle = gr; g.fillRect(0, 0, 4, 512); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+function clayText(str, size, color, depth = 0.25) { // chunky rounded clay letters, centred at the origin
+  const g = new TextGeometry(str, { font, size, depth: depth * size, curveSegments: 10, bevelEnabled: true, bevelThickness: 0.09 * size, bevelSize: 0.05 * size, bevelSegments: 6 });
+  g.computeBoundingBox(); const b = g.boundingBox; g.translate(-(b.max.x + b.min.x) / 2, -(b.max.y + b.min.y) / 2, 0);
+  const m = M(g, clay(color, { bumpScale: 0.5 })); m.castShadow = false; return m;
+}
+function carvedSlab(lines, w, h, d, { fontPx = 300, sub = null } = {}) { // stone tablet with letters cut into it (colour + bump from the same text)
+  const cw = 2048, ch = Math.round(cw * h / w), col = document.createElement('canvas'), bmp = document.createElement('canvas'); col.width = bmp.width = cw; col.height = bmp.height = ch;
+  const c = col.getContext('2d'), b = bmp.getContext('2d');
+  c.fillStyle = PAL.stone; c.fillRect(0, 0, cw, ch); b.fillStyle = '#b0b0b0'; b.fillRect(0, 0, cw, ch);
+  for (let i = 0; i < 2500; i++) { const x = rand() * cw, y = rand() * ch, r = 2 + rand() * 18, v = rand(); c.fillStyle = `rgba(${v > .5 ? '255,250,235' : '90,70,50'},${0.04 + rand() * 0.06})`; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); b.fillStyle = `rgba(${v > .5 ? '255,255,255' : '0,0,0'},.08)`; b.beginPath(); b.arc(x, y, r, 0, 7); b.fill(); }
+  for (let i = 0; i < 18; i++) { c.strokeStyle = 'rgba(80,60,40,.18)'; c.lineWidth = 2 + rand() * 3; c.beginPath(); let x = rand() * cw, y = rand() * ch; c.moveTo(x, y); for (let k = 0; k < 5; k++) { x += (rand() - .5) * 120; y += rand() * 60; c.lineTo(x, y); } c.stroke(); }
+  c.textAlign = b.textAlign = 'center'; c.textBaseline = b.textBaseline = 'middle';
+  c.font = `700 ${fontPx}px "Liberation Serif", serif`; const widest = Math.max(...lines.map(l => c.measureText(l).width)); if (widest > cw * 0.86) fontPx *= cw * 0.86 / widest;
+  const lh = fontPx * 1.08, total = lh * lines.length + (sub ? fontPx * 0.55 : 0), y0 = ch / 2 - total / 2 + lh / 2;
+  lines.forEach((ln, i) => { const y = y0 + i * lh; c.font = b.font = `700 ${fontPx}px "Liberation Serif", "DejaVu Serif", serif`;
+    c.fillStyle = 'rgba(255,245,225,.55)'; c.fillText(ln, cw / 2 + 5, y + 6); c.fillStyle = '#5a3f28'; c.fillText(ln, cw / 2, y); // lit lower edge + shadowed cut
+    b.fillStyle = '#202020'; b.fillText(ln, cw / 2, y); });
+  if (sub) { const y = y0 + lines.length * lh - lh / 2 + fontPx * 0.32; c.font = b.font = `italic 600 ${fontPx * 0.22}px "Liberation Serif", serif`; c.fillStyle = '#5a3f28'; c.fillText(sub, cw / 2, y); b.fillStyle = '#505050'; b.fillText(sub, cw / 2, y); }
+  const map = new THREE.CanvasTexture(col), bump = new THREE.CanvasTexture(bmp); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = bump.anisotropy = 8;
+  const mat = new THREE.MeshPhysicalMaterial({ map, bumpMap: bump, bumpScale: 9, roughness: 0.88 });
+  const side = new THREE.MeshPhysicalMaterial({ color: PAL.stone, roughness: 0.9 });
+  const geo = new RoundedBoxGeometry(w, h, d, 6, Math.min(w, h) * 0.06); // faces: +x,-x,+y,-y,+z,-z groups
+  return new THREE.Mesh(geo, [side, side, side, side, mat, side]);
+}
+function lights(warm = 1) {
+  scene.add(new THREE.HemisphereLight('#fff1dc', '#6a4a30', 0.85));
+  const key = new THREE.DirectionalLight('#ffe7c8', 2.6 * warm); key.position.set(-3, 4, 5); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 4;
+  Object.assign(key.shadow.camera, { left: -8, right: 8, top: 6, bottom: -6, near: 0.5, far: 30 }); scene.add(key);
+  const rim = new THREE.DirectionalLight('#cfe0ff', 0.9); rim.position.set(3, 3, -4); scene.add(rim);
+}
+function sun(r, color = '#ffcf6a') { const g = new THREE.Group(); const disc = M(new THREE.SphereGeometry(r, 48, 32).scale(1, 1, 0.25), clay(color, { emissive: new THREE.Color('#ff9a30'), emissiveIntensity: 0.35, bumpScale: 0.3 })); g.add(disc);
+  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, ray = M(new THREE.CapsuleGeometry(r * 0.07, r * 0.32, 6, 12), clay(color, { emissive: new THREE.Color('#ff9a30'), emissiveIntensity: 0.25 })); ray.position.set(Math.cos(a) * r * 1.35, Math.sin(a) * r * 1.35, -0.02); ray.rotation.z = a - Math.PI / 2; g.add(ray); }
+  return g; }
+function hills(width, z, color, amp, seedOff = 0) { // a strip of rolling clay hills
+  const shape = new THREE.Shape(); shape.moveTo(-width / 2, -3); for (let i = 0; i <= 60; i++) { const x = -width / 2 + width * i / 60; shape.lineTo(x, amp * (Math.sin(x * 0.9 + seedOff) * 0.6 + Math.sin(x * 2.1 + seedOff * 2) * 0.25)); } shape.lineTo(width / 2, -3);
+  const m = M(new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 4, curveSegments: 4 }), clay(color, { bumpScale: 1 })); m.position.z = z; return m; }
+const preacher = () => buildCharacter({ tunic: '#d9c7a3', trim: '#a8865a', mantle: '#7a5536', sash: '#8a6a44', hair: '#ece7dc', browC: '#ece7dc', bald: true, beard: '#ece7dc', beardLen: 0.12, lidTop: 0.38 });
+
+// ---------- the three directions ----------
+let focusBox = null;
+if (DIR === 'char') {
+  scene.background = gradientBG('#f2b867', '#c86f3a');
+  lights();
+  const p = preacher(); scene.add(p.root); p.setFace({ lid: 0.2, look: [0.25, 0.05] }); p.setHead({ turn: -0.08, tilt: 0.03 });
+  p.setArm('R', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5 }); p.setArm('L', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5, twist: 0.3 }); p.solve();
+  const s = sun(0.55); s.position.set(0, 1.95, -1.4); scene.add(s);
+  if (KIND === 'pfp') { camera.fov = 26; camera.position.set(0.05, 1.82, 3.3); camera.lookAt(0, 1.72, 0); }
+  else {
+    p.root.position.x = -1.45; s.position.set(-1.45, 1.75, -1.4); s.scale.setScalar(0.75);
+    const t = clayText('NO NEW THING', 0.3, '#8a3a1f'); t.position.set(0.6, 1.8, 0); scene.add(t);
+    const sub = clayText('Bible stories, then the same story today', 0.085, '#5a2f1c', 0.15); sub.position.set(0.6, 1.5, 0.02); scene.add(sub);
+    camera.fov = 18; camera.position.set(0, 1.66, 12.5); camera.lookAt(0, 1.66, 0);
+  }
+}
+if (DIR === 'symbol') {
+  scene.background = gradientBG('#f7d7a0', '#eaa060');
+  lights(0.9);
+  const s = sun(KIND === 'pfp' ? 1.05 : 0.95); s.position.set(0, KIND === 'pfp' ? 0.25 : 0.55, -2.4); scene.add(s);
+  scene.add(hills(30, -1.6, '#c98a52', 0.35, 0.5), hills(30, -0.9, '#b06a3c', 0.3, 2.2), hills(30, -0.2, '#8e4f2e', 0.28, 4.1));
+  for (const [x, z, sc] of [[-1.9, 0.0, 1], [-1.5, 0.05, 0.8], [2.2, -0.05, 0.9]]) { const tr = new THREE.Group(); tr.position.set(x, 0.1, z); tr.scale.setScalar(sc); scene.add(tr);
+    M(new THREE.CylinderGeometry(0.05, 0.07, 0.5, 10), clay('#5a3b25'), tr).position.y = 0.25; const crown = M(new THREE.SphereGeometry(0.3, 24, 18), clay('#6f7d4a'), tr); crown.position.y = 0.62; crown.scale.set(1, 0.8, 1); }
+  if (KIND === 'pfp') { camera.fov = 30; camera.position.set(0, 0.45, 6.2); camera.lookAt(0, 0.35, -1); }
+  else { s.position.set(0, 0.55, -2.4); const t = clayText('NO NEW THING', 0.32, '#8a3a1f'); t.position.set(0, 1.42, 0.6); scene.add(t);
+    const sub = clayText('Bible stories, then the same story today', 0.09, '#5a2f1c', 0.15); sub.position.set(0, 1.1, 0.62); scene.add(sub);
+    camera.fov = 18; camera.position.set(0, 1.2, 13); camera.lookAt(0, 1.2, 0); }
+}
+if (DIR === 'letter') {
+  scene.background = gradientBG('#3a2a1f', '#1c130d');
+  lights(1.1);
+  const back = M(new THREE.PlaneGeometry(30, 20), clay('#4a3424', { bumpScale: 1.5 })); back.position.z = -0.6; scene.add(back);
+  if (KIND === 'pfp') { const slab = carvedSlab(['NO', 'NEW', 'THING'], 2.2, 2.4, 0.35, { fontPx: 420 }); scene.add(slab); camera.fov = 30; camera.position.set(0, 0, 5.4); camera.lookAt(0, 0, 0); }
+  else { const slab = carvedSlab(['NO NEW THING'], 3.7, 1.0, 0.25, { fontPx: 330, sub: 'Ecclesiastes 1:9' }); scene.add(slab);
+    for (const x of [-2.6, 2.6]) { const stand = M(lathe([[0, 0], [0.12, 0], [0.08, 0.05], [0.03, 0.09], [0.025, 0.85], [0.1, 0.9], [0.1, 0.93], [0, 0.93]], 24), clay('#6a4426')); stand.position.set(x, -1.0, 0.3); scene.add(stand);
+      const fl = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 10), new THREE.MeshBasicMaterial({ color: '#ffd27a' })); fl.scale.y = 1.8; fl.position.set(x, -0.0, 0.3); scene.add(fl);
+      const pl = new THREE.PointLight('#ffb35c', 4, 6, 1.5); pl.position.set(x, 0.05, 0.6); scene.add(pl); }
+    const lampL = new THREE.PointLight('#ffb35c', 6, 8, 1.5); lampL.position.set(-3.6, 0.6, 1.2); scene.add(lampL);
+    camera.fov = 18; camera.position.set(0, 0.05, 11); camera.lookAt(0, 0.05, 0); }
+}
+camera.aspect = W / H; camera.updateProjectionMatrix();
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(W, H, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0; renderer.outputColorSpace = THREE.SRGBColorSpace;
+const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new OutputPass());
+const o = out.getContext('2d');
+window.drawFrame = () => { composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H); return out.toDataURL('image/png'); };
+window.READY = true;
+</script></body></html>
