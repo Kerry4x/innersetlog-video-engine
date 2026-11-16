@@ -31,7 +31,9 @@ Long-form can go deeper in either direction. Differences between the modern pack
 ## Translation: NIV (Kerry, 2026-11-16)
 - Scripts use the **NIV**. It is under copyright (Biblica), unlike the KJV.
 - Quote **short passages only** (a verse or two per video), and take the **exact wording from an authorized NIV source** (e.g. BibleGateway or a print NIV) at final draft. Never quote from memory; mark quotes in drafts as **[NIV quote: book ch:v]**.
-- Credit: include Biblica's NIV copyright notice where required (e.g. in the video description). **Confirm Biblica's current permission terms and exact notice wording before publishing** (not yet verified).
+- Credit: include Biblica's NIV copyright notice where required (e.g. in the video description).
+- **Permission status (checked 2026-11-16, via search summaries of biblica.com/terms-of-use, biblica.com/permissions, harpercollinschristian.com):** up to 500 verses without written permission if not a complete book and under 25% of the work (HarperCollins adds: under 50% of any one book), with the full NIV notice. Biblica's terms describe this for **written** use; whether it covers **spoken/video** use on a monetized channel is unclear (sources conflict). **Action: ask Biblica Rights & Permissions in writing before publishing.**
+- Until then: narrate verses in our own words and show the reference on screen. Fallback if needed: a public-domain modern translation (believed: Berean Standard Bible, World English Bible; confirm status first).
 - Drafts 01–03 still quote the KJV; convert when they're reworked.
 
 ## Hooks
