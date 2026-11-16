@@ -1,0 +1,274 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Look test v4: clay miniature world</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Look test v4: a hybrid. A cinematic miniature world with an always-moving camera, golden light,
+// god rays and tilt-shift blur, populated by the clay kit's characters acting in stop motion (on 2s).
+// Three shots: aerial over a miniature Jerusalem → throne room → David's face.
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { createKit } from './kit/clay-kit.js';
+
+const W = 1080, H = 1920, DURATION = 9, CUT1 = 3.2, CUT2 = 6.6;
+const K = createKit(12345), { C, mesh, blob, lumpy, clay, rand } = K;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const camera = new THREE.PerspectiveCamera(34, W / H, 0.05, 120);
+
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const ramp = (t, a, b) => ease((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+
+// =====================================================================================
+// SHOT 1 · the city: a miniature Jerusalem on a hill at golden hour
+// =====================================================================================
+const city = new THREE.Scene();
+{
+  const c = document.createElement('canvas'); c.width = 4; c.height = 256; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#6f8fb8'); gr.addColorStop(0.55, '#f2c08a'); gr.addColorStop(1, '#f7d9a8');
+  g.fillStyle = gr; g.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; city.background = t;
+}
+city.fog = new THREE.Fog('#efc595', 24, 70);
+const hill = (x, z) => 1.25 * Math.exp(-(x * x + z * z) / 16) + 0.25 * Math.exp(-((x + 9) ** 2 + (z + 6) ** 2) / 20) + 0.4 * Math.exp(-((x - 10) ** 2 + (z + 9) ** 2) / 30);
+{
+  const geo = new THREE.PlaneGeometry(80, 80, 160, 160); geo.rotateX(-Math.PI / 2);
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i); p.setY(i, hill(x, z) + (K.fbm(x * 0.7, 0, z * 0.7) - 0.5) * 0.12); }
+  geo.computeVertexNormals();
+  city.add(mesh(geo, C.sand, false));
+}
+// houses: instanced clay blocks with flat roofs and dark doors
+const houseSpots = [];
+for (let gx = -6; gx <= 6; gx += 0.62) for (let gz = -6; gz <= 6; gz += 0.62) {
+  const x = gx + (rand() - 0.5) * 0.22, z = gz + (rand() - 0.5) * 0.22, r = Math.hypot(x, z);
+  if (r > 5.6 || r < 1.25 || Math.abs(x - 0.0) < 0.28 && z > 0) continue; // keep a street running to the palace
+  if (rand() < 0.12) continue;
+  houseSpots.push({ x, z, w: 0.36 + rand() * 0.2, h: 0.26 + rand() * 0.26, d: 0.36 + rand() * 0.2, ry: (rand() - 0.5) * 0.25 });
+}
+{
+  const n = houseSpots.length, white = clay('#ffffff');
+  const houses = new THREE.InstancedMesh(lumpy(new RoundedBoxGeometry(1, 1, 1, 2, 0.1), 0.02, 3), white, n);
+  const doors = new THREE.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 1, 0.2), C.hairDark, n);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), tones = ['#e6d2b0', '#d9bf98', '#ecdcc0', '#cfb08a', '#e2c7a3'].map(c => new THREE.Color(c));
+  houseSpots.forEach((s, i) => {
+    const y = hill(s.x, s.z); q.setFromEuler(new THREE.Euler(0, s.ry, 0));
+    m.compose(V(s.x, y + s.h / 2 - 0.03, s.z), q, V(s.w, s.h, s.d)); houses.setMatrixAt(i, m); houses.setColorAt(i, tones[i % tones.length]);
+    const off = V(0, 0, s.d / 2 + 0.005).applyQuaternion(q);
+    m.compose(V(s.x + off.x, y + 0.06, s.z + off.z), q, V(0.07, 0.13, 0.02)); doors.setMatrixAt(i, m);
+  });
+  const rugs = new THREE.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 1, 0.3), clay('#ffffff'), n), wins = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), C.hairDark, n * 2);
+  const rugTones = ['#b0402e', '#2f5f8f', '#d39a2a', '#6b7a3a', '#8a3a6a'].map(c => new THREE.Color(c)); let rk = 0;
+  houseSpots.forEach((s, i) => {
+    const y = hill(s.x, s.z); q.setFromEuler(new THREE.Euler(0, s.ry, 0));
+    for (const side of [-1, 1]) { const off = V(side * (s.w / 2 + 0.004), s.h * 0.62, 0).applyQuaternion(q); m.compose(V(s.x + off.x, y + off.y, s.z + off.z), q, V(0.01, 0.06, 0.06)); wins.setMatrixAt(i * 2 + (side > 0 ? 1 : 0), m); }
+    if (rand() < 0.3) { m.compose(V(s.x + (rand() - 0.5) * s.w * 0.4, y + s.h + 0.0, s.z + (rand() - 0.5) * s.d * 0.4), q, V(s.w * 0.45, 0.025, s.d * 0.35)); rugs.setMatrixAt(rk, m); rugs.setColorAt(rk++, rugTones[rk % rugTones.length]); }
+  });
+  rugs.count = rk; rugs.castShadow = true;
+  houses.castShadow = houses.receiveShadow = true; city.add(houses, doors, rugs, wins);
+}
+// the palace on the summit, with the throne room window lit
+{
+  const top = hill(0, 0);
+  const palace = mesh(lumpy(new RoundedBoxGeometry(1.7, 0.85, 1.25, 3, 0.08), 0.02, 3), C.stoneLight); palace.position.set(0, top + 0.4, -0.2); city.add(palace);
+  const tower = mesh(lumpy(new RoundedBoxGeometry(0.55, 0.85, 0.55, 3, 0.06), 0.015, 4), C.stoneLight); tower.position.set(0.55, top + 1.15, -0.35); city.add(tower);
+  for (const [x, z] of [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]]) { const k = blob(0.06, C.gold, 0.005, 12); k.position.set(0.55 + x, top + 1.6, -0.35 + z); city.add(k); }
+  const winGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.24), new THREE.MeshBasicMaterial({ color: '#ffcf7a' })); winGlow.position.set(0.55, top + 1.2, -0.07); city.add(winGlow);
+  for (const x of [-0.5, -0.1, 0.3]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.2), new THREE.MeshBasicMaterial({ color: '#3a2416' })); w.position.set(x, top + 0.5, 0.43); city.add(w); }
+  const steps = mesh(lumpy(new RoundedBoxGeometry(0.6, 0.12, 0.5, 2, 0.04), 0.01, 4), C.stone); steps.position.set(0, top + 0.03, 0.62); city.add(steps);
+}
+// city wall with towers
+for (let i = 0; i < 40; i++) {
+  const a = i / 40 * Math.PI * 2, x = Math.cos(a) * 6.1, z = Math.sin(a) * 6.1, tower = i % 5 === 0;
+  const seg = mesh(lumpy(new RoundedBoxGeometry(tower ? 0.55 : 1.0, tower ? 0.75 : 0.45, tower ? 0.55 : 0.26, 2, 0.05), 0.015, 4), C.stone);
+  seg.position.set(x, hill(x, z) + (tower ? 0.37 : 0.22), z); seg.rotation.y = -a + Math.PI / 2; city.add(seg);
+}
+// trees: cypress inside and around, olives on the outer slopes
+{
+  const cyp = new THREE.InstancedMesh(lumpy(new THREE.ConeGeometry(0.11, 0.62, 12, 6), 0.02, 8, 'radial'), C.cypress, 110);
+  const oli = new THREE.InstancedMesh(lumpy(new THREE.SphereGeometry(0.22, 16, 12), 0.04, 6), C.olive, 140);
+  const m = new THREE.Matrix4(); let k = 0;
+  for (let i = 0; i < 400 && k < 110; i++) {
+    const a = rand() * 6.283, r = 2 + rand() * 8, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (Math.abs(r - 6.1) < 0.45 || houseSpots.some(s => Math.hypot(s.x - x, s.z - z) < 0.36)) continue;
+    const s = 0.8 + rand() * 0.6; m.compose(V(x, hill(x, z) + 0.3 * s, z), new THREE.Quaternion(), V(s, s, s)); cyp.setMatrixAt(k++, m);
+  }
+  cyp.count = k; k = 0;
+  for (let i = 0; i < 400 && k < 140; i++) {
+    const a = rand() * 6.283, r = 6.8 + rand() * 12, x = Math.cos(a) * r, z = Math.sin(a) * r, s = 0.7 + rand() * 0.7;
+    m.compose(V(x, hill(x, z) + 0.15 * s, z), new THREE.Quaternion(), V(s, s * 0.8, s)); oli.setMatrixAt(k++, m);
+  }
+  oli.count = k; cyp.castShadow = oli.castShadow = true; city.add(cyp, oli);
+}
+// tiny people in the street (they bob on 2s)
+const crowdN = 70, crowdBody = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.03, 0.07, 4, 8), clay('#ffffff'), crowdN), crowdHead = new THREE.InstancedMesh(new THREE.SphereGeometry(0.027, 10, 8), C.skin, crowdN);
+const crowd = [];
+for (let i = 0; i < crowdN; i++) { const z = 0.9 + rand() * 4.8, x = (rand() - 0.5) * 0.45; crowd.push({ x, z, ph: rand() * 6 }); crowdBody.setColorAt(i, new THREE.Color(['#8a6544', '#5b6f8a', '#a04a3a', '#d8c7a5', '#6a7a4a'][i % 5])); }
+crowdBody.castShadow = true; city.add(crowdBody, crowdHead);
+function updateCrowd(ts) {
+  const m = new THREE.Matrix4();
+  crowd.forEach((p, i) => {
+    const zz = p.z - ((ts * 0.12 + p.ph) % 0.6) * (i % 2 ? 1 : -1), y = hill(p.x, zz), b = Math.abs(Math.sin(ts * 9 + p.ph)) * 0.012;
+    m.makeTranslation(p.x, y + 0.065 + b, zz); crowdBody.setMatrixAt(i, m); m.makeTranslation(p.x, y + 0.15 + b, zz); crowdHead.setMatrixAt(i, m);
+  });
+  crowdBody.instanceMatrix.needsUpdate = crowdHead.instanceMatrix.needsUpdate = true;
+}
+city.add(new THREE.HemisphereLight('#bcd0ff', '#6a4a2a', 0.5));
+{
+  const sun = new THREE.DirectionalLight('#ffc27a', 4.2); sun.position.set(-9, 5.5, 5); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 40 }); sun.shadow.bias = -0.0005; city.add(sun);
+}
+
+// =====================================================================================
+// SHOTS 2–3 · the throne room
+// =====================================================================================
+const room = new THREE.Scene();
+room.background = new THREE.Color('#3a2a1f'); room.fog = new THREE.Fog('#3a2a1f', 10, 20);
+{
+  const c = document.createElement('canvas'); c.width = c.height = 1024; const g = c.getContext('2d');
+  g.fillStyle = '#4e3b2c'; g.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { const v = 150 + rand() * 40; g.fillStyle = `rgb(${v},${v * 0.8},${v * 0.62})`; g.beginPath(); g.roundRect(i * 128 + 6 + rand() * 4, j * 128 + 6 + rand() * 4, 114, 114, 18); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3); t.colorSpace = THREE.SRGBColorSpace;
+  const floor = mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshPhysicalMaterial({ map: t, bumpMap: t, bumpScale: 3, roughness: 0.85, sheen: 0.2 }), false); floor.rotation.x = -Math.PI / 2; room.add(floor);
+}
+const wall = mesh(lumpy(new THREE.BoxGeometry(12, 6, 0.3, 60, 30, 2), 0.03, 1.5), C.wall, false); wall.position.set(0, 3, -1.9); room.add(wall);
+{
+  const s = new THREE.Shape(); s.moveTo(-0.45, 0); s.lineTo(-0.45, 1.1); s.absarc(0, 1.1, 0.45, Math.PI, 0, true); s.lineTo(0.45, 0); s.lineTo(-0.45, 0);
+  const win = new THREE.Mesh(new THREE.ShapeGeometry(s, 24), new THREE.MeshBasicMaterial({ color: '#ffdca8' })); win.position.set(-1.1, 1.9, -1.74); room.add(win);
+  for (const x of [-0.15, 0.15]) { const bar = mesh(lumpy(new THREE.CapsuleGeometry(0.035, 1.5, 4, 8), 0.01, 6), C.wood); bar.position.set(-1.1 + x, 2.65, -1.7); room.add(bar); }
+  for (const x of [-2.4, 2.4]) { const col = mesh(lumpy(new THREE.CylinderGeometry(0.26, 0.3, 6, 32, 30), 0.03, 2.5, 'radial'), C.wall); col.position.set(x, 3, -1.5); room.add(col); }
+}
+// king on the throne
+const kingG = new THREE.Group(); kingG.position.set(0.55, 0, -0.1); kingG.rotation.y = -0.25; room.add(kingG);
+{
+  const seat = mesh(lumpy(new RoundedBoxGeometry(0.95, 0.45, 0.7, 4, 0.08), 0.015, 3), C.throne); seat.position.set(0, 0.225, -0.05); kingG.add(seat);
+  const back = mesh(lumpy(new RoundedBoxGeometry(0.95, 1.75, 0.18, 4, 0.07), 0.02, 2.5), C.throne); back.position.set(0, 1.075, -0.42); kingG.add(back);
+  for (const s of [-1, 1]) { const k = blob(0.08, C.gold, 0.006, 16); k.position.set(0.42 * s, 2.0, -0.42); kingG.add(k); }
+  for (const s of [-1, 1]) {
+    const thigh = mesh(lumpy(new THREE.CapsuleGeometry(0.1, 0.22, 6, 12), 0.008, 8), C.kingRobe); thigh.rotation.x = Math.PI / 2; thigh.position.set(0.13 * s, 0.52, 0.2); kingG.add(thigh);
+    const shin = mesh(lumpy(new THREE.CapsuleGeometry(0.09, 0.3, 6, 12), 0.008, 8), C.kingRobe); shin.position.set(0.13 * s, 0.27, 0.36); kingG.add(shin);
+    const foot = blob(0.08, C.wood, 0.006, 14); foot.scale.set(1, 0.6, 1.5); foot.position.set(0.13 * s, 0.05, 0.43); kingG.add(foot);
+  }
+}
+const king = K.character({ robeMat: C.kingRobe, robeH: 0.72, robeR: 0.33, hair: C.hairDark, crown: true, beard: [[0, -0.29, 0.12, 0.1], [0.1, -0.24, 0.12, 0.075], [-0.1, -0.24, 0.12, 0.075]] });
+king.g.position.y = 0.45; kingG.add(king.g);
+{ const sash = mesh(lumpy(new THREE.TorusGeometry(0.29, 0.03, 10, 40), 0.006, 8), C.sash); sash.rotation.x = Math.PI / 2; sash.position.y = 0.42; king.g.add(sash); }
+// Nathan
+const nathan = K.character({ robeMat: C.prophetRobe, robeH: 1.12, robeR: 0.36, hair: C.hairGray, beard: [[0, -0.2, 0.17, 0.14], [0.1, -0.15, 0.17, 0.1], [-0.1, -0.15, 0.17, 0.1], [0, -0.32, 0.12, 0.11]] });
+nathan.g.position.set(-0.55, 0, 0.3); nathan.g.rotation.y = 0.5; room.add(nathan.g); nathan.P.mouth.visible = false;
+const [nL, nR] = nathan.P.arms; nL.sh.rotation.set(-0.45, 0, -0.2);
+{ const staff = mesh(lumpy(new THREE.CylinderGeometry(0.03, 0.035, 1.75, 12, 20), 0.008, 6, 'radial'), C.wood); staff.position.set(-0.33, 0.87, 0.3); nathan.g.add(staff);
+  const finger = blob(0.025, C.skin, 0.003, 10); finger.scale.y = 2.4; finger.position.y = -0.55; nR.sh.add(finger); }
+// the parable as a flat paper cutout (2D inside the 3D world)
+const memMat = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  g.beginPath(); for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2, r = 228 + (rand() - 0.5) * 14; g[i ? 'lineTo' : 'moveTo'](256 + Math.cos(a) * r, 256 + Math.sin(a) * r); }
+  g.closePath(); g.fillStyle = '#efe1c2'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#4a3020'; g.stroke();
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 6; g.strokeStyle = '#2e1d12';
+  g.beginPath(); g.moveTo(80, 405); g.quadraticCurveTo(256, 385, 430, 405); g.stroke();
+  g.fillStyle = '#9a7650'; g.beginPath(); g.moveTo(180, 400); g.lineTo(212, 250); g.lineTo(262, 250); g.lineTo(290, 400); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#d6a074'; g.beginPath(); g.arc(237, 212, 36, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#fbf6ea'; for (const [x, y, r] of [[300, 290, 30], [328, 280, 26], [276, 280, 24], [302, 262, 24], [326, 304, 22]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke(); }
+  g.fillStyle = '#2e1d12'; g.beginPath(); g.ellipse(360, 270, 17, 13, 0.3, 0, 7); g.fill();
+  g.beginPath(); g.moveTo(258, 300); g.quadraticCurveTo(300, 330, 330, 300); g.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+})();
+const memory = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.15), memMat); memory.position.set(-0.02, 2.2, 0.55); room.add(memory);
+// light, plus a visible god ray through the window and dust in it
+room.add(new THREE.HemisphereLight('#ffe7cc', '#3a281c', 0.55));
+{
+  const key = new THREE.SpotLight('#fff0dc', 70, 14, Math.PI / 5, 0.9, 1.5); key.position.set(-2.2, 3.8, 3.8); key.target.position.set(0.1, 1.0, 0);
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0003; room.add(key, key.target);
+  const sun = new THREE.SpotLight('#ffc77a', 140, 14, Math.PI / 8, 0.7, 1.6); sun.position.set(-2.4, 4.4, -3.4); sun.target.position.set(0.2, 0, 0.6);
+  sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); room.add(sun, sun.target);
+  const rim = new THREE.DirectionalLight('#9ab8ff', 0.9); rim.position.set(3, 3, -3); room.add(rim);
+  const from = V(-1.1, 2.4, -1.7), to = V(0.25, 0, 0.7), len = from.distanceTo(to);
+  for (const [r1, r2, op] of [[0.4, 0.95, 0.06], [0.25, 0.65, 0.05]]) {
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, len, 24, 1, true), new THREE.MeshBasicMaterial({ color: '#ffcf8a', transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    shaft.position.copy(from).lerp(to, 0.5); shaft.quaternion.setFromUnitVectors(V(0, -1, 0), to.clone().sub(from).normalize()); room.add(shaft);
+  }
+}
+const dust = (() => {
+  const N = 400, pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { const k = rand(); pos[i * 3] = lerp(-1.1, 0.25, k) + (rand() - 0.5) * 0.8; pos[i * 3 + 1] = lerp(2.4, 0.1, k); pos[i * 3 + 2] = lerp(-1.7, 0.7, k) + (rand() - 0.5) * 0.8; }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const p = new THREE.Points(geo, new THREE.PointsMaterial({ color: '#ffe2b0', size: 0.012, transparent: true, opacity: 0.6, depthWrite: false })); room.add(p); return p;
+})();
+
+// =====================================================================================
+// post: tilt-shift / shallow depth of field
+// =====================================================================================
+const composer = new EffectComposer(renderer); composer.setSize(W, H);
+const renderPass = new RenderPass(city, camera); composer.addPass(renderPass);
+const bokeh = new BokehPass(city, camera, { focus: 6, aperture: 0.0022, maxblur: 0.006 }); composer.addPass(bokeh);
+composer.addPass(new OutputPass());
+const useScene = s => { renderPass.scene = s; bokeh.scene = s; };
+
+// =====================================================================================
+// direction: the camera always moves (smooth); characters act on 2s
+// =====================================================================================
+function update(t) {
+  const ts = K.stepTime(t);
+  let pos, tgt, focusPt, aperture = 0.0022, maxblur = 0.006;
+  if (t < CUT1) { // aerial push over the city toward the palace
+    useScene(city); updateCrowd(ts);
+    const k = ease(t / CUT1);
+    pos = V(7.5, 8.5, 13).lerp(V(3.0, 4.2, 6.8), k); tgt = V(0, 0.8, 0).lerp(V(0.2, 1.4, -0.2), k);
+    focusPt = V(0.4, 2.0, -0.3); aperture = 0.0045; maxblur = 0.012;
+  } else {
+    useScene(room);
+    // acting
+    const breath = Math.sin(ts * 2.2) * 0.012; king.P.body.scale.y = 1 + breath; nathan.P.body.scale.y = 1 - breath;
+    nathan.P.head.rotation.y = 0.15 * Math.sin(ts * 1.4) * (1 - ramp(ts, 5.6, 5.9));
+    king.P.head.rotation.z = 0.06 * ramp(ts, 3.7, 4.4) * (1 - ramp(ts, 6.6, 6.9));
+    const pt = ramp(ts, 5.8, 6.25); nR.sh.rotation.set(lerp(-0.1, -0.35, pt), 0, lerp(0.15, 1.45, pt));
+    const r = ramp(ts, 6.85, 7.25);
+    king.P.express({ lid: 0.55, shock: r }); king.P.head.rotation.x = -0.14 * r; king.g.rotation.x = -0.05 * r;
+    king.P.arms.forEach((a, i) => { a.sh.rotation.x = lerp(-0.75, -1.1, r); a.sh.rotation.z = (i ? 1 : -1) * lerp(0.18, 0.35, r); });
+    const mi = ramp(ts, 3.6, 4.1) * (1 - ramp(ts, 5.4, 5.8)); memMat.opacity = mi; memory.rotation.z = 0.04 * Math.sin(ts * 3); memory.position.y = 2.2 + 0.03 * Math.sin(ts * 2);
+    king.g.rotation.z = 0.004 * K.boil(t, 1); nathan.g.rotation.z = 0.004 * K.boil(t, 2);
+    dust.rotation.y = t * 0.03;
+    if (t < CUT2) { // slow arc across the room
+      const k = (t - CUT1) / (CUT2 - CUT1);
+      pos = V(-0.8, 1.65, 6.6).lerp(V(0.45, 1.5, 5.9), k); tgt = V(-0.1, 1.25, 0).lerp(V(0.1, 1.3, 0), k); focusPt = V(0, 1.2, 0.1);
+    } else { // close on David, still drifting in
+      const k = (t - CUT2) / (DURATION - CUT2);
+      pos = V(0.82, 1.52, 2.45).lerp(V(0.64, 1.5, 2.0), k); tgt = V(0.5, 1.46, 0); focusPt = V(0.52, 1.42, 0.05);
+    }
+  }
+  camera.position.copy(pos); camera.lookAt(tgt);
+  bokeh.uniforms.focus.value = camera.position.distanceTo(focusPt); bokeh.uniforms.aperture.value = aperture; bokeh.uniforms.maxblur.value = maxblur;
+}
+
+// =====================================================================================
+// composite + captions
+// =====================================================================================
+const out = document.getElementById('out'), o = out.getContext('2d');
+function caption(t) {
+  if (t < 1.6) return 'Around 1000 BC,'; if (t < CUT1) return 'a prophet went to the king';
+  if (t < 5.85) return 'with a story about\na stolen lamb.'; return '"Thou art the man."';
+}
+window.drawFrame = (t) => {
+  update(t); composer.render();
+  o.drawImage(renderer.domElement, 0, 0, W, H);
+  const g = o.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.78); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.45)');
+  o.fillStyle = g; o.fillRect(0, 0, W, H);
+  o.textAlign = 'center'; o.font = '600 62px Georgia, serif'; o.lineJoin = 'round';
+  caption(t).split('\n').forEach((line, i) => { const y = 1700 + i * 76; o.lineWidth = 9; o.strokeStyle = 'rgba(10,6,4,0.85)'; o.strokeText(line, W / 2, y); o.fillStyle = '#f7ead2'; o.fillText(line, W / 2, y); });
+  return out.toDataURL('image/jpeg', 0.9);
+};
+window.DURATION = DURATION; window.STRIP = [12, 60, 110, 150, 200];
+window.READY = true;
+</script></body></html>
