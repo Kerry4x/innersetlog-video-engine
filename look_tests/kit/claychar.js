@@ -99,18 +99,18 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, ..
   const root = new THREE.Group(), R = { root };
   R.body = new THREE.Group(); root.add(R.body); // pivot at the feet: lean, sway, bob
   const tm = clay(tunic);
-  const T = [[0, 0.04], [0.3, 0.04], [0.31, 0.1], [0.29, 0.35], [0.255, 0.62], [0.245, 0.78], [0.255, 1.0], [0.25, 1.14], [0.22, 1.23], [0.13, 1.29], [0.08, 1.31], [0, 1.31]];
+  const T = [[0, 0.04], [0.3, 0.04], [0.31, 0.1], [0.28, 0.35], [0.235, 0.6], [0.222, 0.72], [0.232, 0.86], [0.238, 1.02], [0.238, 1.14], [0.22, 1.23], [0.13, 1.29], [0.08, 1.31], [0, 1.31]]; /* cinched at the belt so arms can hang */
   R.robe = M(folds(lathe(T, 72), 0.012, 9, 0.05, 0.7), tm, R.body);
   R.feet = [-1, 1].map(s => { const ft = M(new THREE.SphereGeometry(0.075, 24, 16), clay('#6a4426'), root); ft.scale.set(0.85, 0.5, 1.5); ft.position.set(0.1 * s, 0.035, 0.22); return ft; });
   const neck = M(new THREE.CylinderGeometry(0.1, 0.12, 0.1, 28), clay(skin), R.body); neck.position.y = 1.33;
   const col = M(new THREE.TorusGeometry(0.12, 0.024, 14, 40), clay(trim), R.body); col.rotation.x = Math.PI / 2 + 0.25; col.position.set(0, 1.3, 0.015);
-  const belt = M(new THREE.TorusGeometry(0.255, 0.028, 14, 56), clay(sash), R.body); belt.rotation.x = Math.PI / 2; belt.position.y = 0.72;
-  const knot = M(new THREE.SphereGeometry(0.038, 16, 12), clay(sash), R.body); knot.position.set(0.07, 0.71, 0.245);
-  for (const s of [-1, 1]) { const tail = M(new THREE.CapsuleGeometry(0.02, 0.17, 8, 12), clay(sash), R.body); tail.position.set(0.08 + s * 0.016, 0.59, 0.25); tail.rotation.z = 0.08 * s; }
+  const belt = M(new THREE.TorusGeometry(0.232, 0.028, 14, 56), clay(sash), R.body); belt.rotation.x = Math.PI / 2; belt.position.y = 0.72;
+  const knot = M(new THREE.SphereGeometry(0.038, 16, 12), clay(sash), R.body); knot.position.set(0.07, 0.71, 0.222);
+  for (const s of [-1, 1]) { const tail = M(new THREE.CapsuleGeometry(0.02, 0.17, 8, 12), clay(sash), R.body); tail.position.set(0.08 + s * 0.016, 0.59, 0.228); tail.rotation.z = 0.08 * s; }
   if (mantle) { const mp = [[0.31, 0.35], [0.28, 0.65], [0.265, 0.95], [0.255, 1.14], [0.225, 1.24], [0.14, 1.3]];
     const m = M(folds(lathe(mp, 64, Math.PI * 0.6, Math.PI * 0.8), 0.01, 7, 0.35, 1.0), clay(mantle, { side: THREE.DoubleSide }), R.body); m.scale.set(1.08, 1, 1.1); } // a cloak hanging behind the arms
   R.arms = [-1, 1].map(s => {
-    const sh = new THREE.Group(); sh.position.set(0.225 * s, 1.18, 0); R.body.add(sh);
+    const sh = new THREE.Group(); sh.position.set(0.3 * s, 1.17, 0); R.body.add(sh); /* shoulder at the edge of the chest: arms hang against the body */
     M(new THREE.SphereGeometry(0.08, 24, 18), tm, sh); sausage(V(0, 0, 0), V(0, -0.24, 0.0), 0.07, tm, sh);
     const el = new THREE.Group(); el.position.y = -0.24; sh.add(el);
     M(lathe([[0.055, 0.0], [0.075, -0.1], [0.1, -0.2], [0.093, -0.21], [0.065, -0.11], [0.05, 0.0]], 40), clay(tunic, { side: THREE.DoubleSide }), el);
@@ -137,7 +137,7 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, ..
     R.jaw.rotation.x = 0.16 * open; R.mouth.scale.set(1, 0.15 + 0.85 * open, 0.5); R.lip.position.y = 0.032 - 0.03 * open;
   };
   // arm: fwd raises forward, out raises sideways, twist rolls, bend folds the elbow; curl 0 open → 1 fist; point
-  R.setArm = (side, { fwd = 0.12, out = 0.2, twist = 0, bend = 0.35, wrist = 0, curl = 0.35, point = false } = {}) => {
+  R.setArm = (side, { fwd = 0.1, out = 0.13, twist = 0, bend = 0.35, wrist = 0, curl = 0.35, point = false } = {}) => {
     const a = R.arms[side === 'L' ? 0 : 1]; a.sh.rotation.set(-fwd, twist * a.s, out * a.s); a.el.rotation.set(-bend, 0, 0); a.wr.rotation.set(-wrist, 0, 0); a.hand.set(curl, point);
   };
   // walk cycle: phase 0..1 per step pair; feet slide forward/back under the robe, robe swings
@@ -152,7 +152,7 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, ..
   const bodyR = (y) => { if (y <= T[1][1]) return T[1][0]; for (let i = 2; i < T.length; i++) if (y <= T[i][1]) { const [r0, y0] = T[i - 1], [r1, y1] = T[i]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return 0.12; };
   const surfaceR = (x, y, z) => { let r = bodyR(y) + 0.015; if (y > 1.24 && y < 1.36) r = Math.max(r, 0.15); return r; };
   const inv = new THREE.Matrix4(), P = new THREE.Vector3();
-  const armSamples = [[0, -0.17, 0.068], [0, -0.24, 0.066]] /* the top of the arm attaches inside the sleeve: not a collision */, foreSamples = [[0, -0.06, 0.06], [0, -0.14, 0.06], [0, -0.22, 0.06]], handSample = [0, -0.32, 0.08];
+  const armSamples = [[0, -0.17, 0.062], [0, -0.24, 0.06]] /* the top of the arm attaches inside the sleeve: not a collision */, foreSamples = [[0, -0.06, 0.05], [0, -0.14, 0.048], [0, -0.22, 0.046]], handSample = [0, -0.32, 0.05]; /* sized to the real forearm and hand */
   const armPen = (a) => { // deepest point of this arm inside the body (metres)
     let worst = 0; a.front = false; const test = (obj, [x, y, z], rad) => { P.set(x, y, z).applyMatrix4(obj.matrixWorld).applyMatrix4(inv); if (P.y < 0.05 || P.y > 1.36) return;
       const d = surfaceR(P.x, P.y, P.z) + rad - Math.hypot(P.x, P.z); if (d > worst) { worst = d; a.front = Math.abs(Math.atan2(P.x, P.z)) < Math.PI * 0.3; } };
@@ -162,7 +162,7 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, ..
     let report = 0;
     for (const a of R.arms) { // push the arm outward until it clears the body (at most ~0.6 rad)
       let pen = armPen(a), k = 0;
-      while (on && pen > 0.003 && k < 15) { if (a.front) a.sh.rotation.x -= 0.04; else a.sh.rotation.z += 0.04 * a.s; /* hands in front come forward; arms at the side move out */ a.sh.updateMatrixWorld(true); pen = armPen(a); k++; }
+      while (on && pen > 0.008 && k < 15) /* light contact allowed: hands can rest on the robe */ { if (a.front) a.sh.rotation.x -= 0.04; else a.sh.rotation.z += 0.04 * a.s; /* hands in front come forward; arms at the side move out */ a.sh.updateMatrixWorld(true); pen = armPen(a); k++; }
       report = Math.max(report, pen);
     }
     (R.beardMeshes || []).forEach((m) => { /* drape the SHAPE onto the chest, then cut the strands back in so the texture is the same everywhere */

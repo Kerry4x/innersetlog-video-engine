@@ -50,7 +50,7 @@ function pose(t) {
   N.root.position.set(-0.72, 0, 0); N.root.rotation.y = 0.45; D.root.position.set(0.72, 0, 0); D.root.rotation.y = -0.45;
   const fold = (C) => { C.setArm('R', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5 }); C.setArm('L', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5, twist: 0.3 }); };
   if (seg === 0) { // IDLE: a held pose, two glances, blinks; one slow head turn
-    fold(N); D.setArm('R', { fwd: 0.15, out: 0.2, curl: 0.4 }); D.setArm('L', { fwd: 0.15, out: 0.2, curl: 0.4 });
+    fold(N); D.setArm('R', { fwd: 0.12, out: 0.13, bend: 0.2, curl: 0.45 }); D.setArm('L', { fwd: 0.12, out: 0.13, bend: 0.2, curl: 0.45 }); /* relaxed, hanging with gravity */
     N.setFace({ blink: blinkAt(t, 1), look: snap(u, 1.6) ? [0.6, -0.1] : [0.3, 0.1] }); N.setHead({ turn: 0.05 + 0.15 * ramp(ts, 1.6, 2.0), tilt: 0.03 });
     D.setFace({ blink: blinkAt(t, 2), look: snap(u, 2.4) ? [-0.6, 0] : [0.2, -0.3], lid: 0.1 }); D.setHead({ turn: lerp(0.1, -0.15, ramp(ts, 2.4, 2.8)) });
     cam([0, 1.45, 8.0], [0, 1.05, 0]);
