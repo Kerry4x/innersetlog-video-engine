@@ -1,0 +1,160 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Look test v2: 3D diorama</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Look test v2: lit 3D diorama of the David/Nathan beat. Original stylized characters.
+import * as THREE from './node_modules/three/build/three.module.js';
+
+const W = 1080, H = 1920;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#2a1d15');
+scene.fog = new THREE.Fog('#2a1d15', 11, 22);
+const camera = new THREE.PerspectiveCamera(32, W / H, 0.1, 50);
+
+// ---------- materials ----------
+const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, flatShading: true, ...o });
+const M = {
+  stone: mat('#8a6e55'), wall: mat('#7d634c'), throne: mat('#5c1e1a', { roughness: 0.6 }), gold: mat('#d9a33a', { metalness: 0.7, roughness: 0.35 }),
+  kingRobe: mat('#4b2a78'), prophetRobe: mat('#7a5a3c'), skin: mat('#c98e66', { flatShading: false, roughness: 0.7 }), beard: mat('#e9e4d8'),
+  dark: mat('#1a120e', { flatShading: false, roughness: 0.4 }), white: mat('#f6f1e6'), poorRobe: mat('#8f7a5c'), wood: mat('#4a3424'),
+};
+
+// ---------- room ----------
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), M.stone); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const back = new THREE.Mesh(new THREE.BoxGeometry(14, 7, 0.3), M.wall); back.position.set(0, 3.5, -2.2); back.receiveShadow = true; scene.add(back);
+// window opening (bright arch) on the back wall, left side
+const winShape = new THREE.Shape(); winShape.moveTo(-0.55, 0); winShape.lineTo(-0.55, 1.4); winShape.absarc(0, 1.4, 0.55, Math.PI, 0, true); winShape.lineTo(0.55, 0); winShape.lineTo(-0.55, 0);
+const win = new THREE.Mesh(new THREE.ShapeGeometry(winShape, 24), new THREE.MeshBasicMaterial({ color: '#ffd9a0' }));
+win.position.set(-1.25, 2.3, -2.04); scene.add(win);
+for (const x of [-0.18, 0.18]) { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.9, 0.05), M.wood); bar.position.set(-1.25 + x, 3.25, -2.0); scene.add(bar); }
+{ const bar = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.05, 0.05), M.wood); bar.position.set(-1.25, 3.3, -2.0); scene.add(bar); }
+for (const x of [-3.2, 3.2]) { const col = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 6, 10), M.wall); col.position.set(x, 3, -1.7); col.castShadow = true; scene.add(col); }
+
+// ---------- figures ----------
+function robe(heightTop, rBottom, rTop, material) {
+  const pts = [new THREE.Vector2(0, 0), new THREE.Vector2(rBottom, 0), new THREE.Vector2(rBottom * 0.92, heightTop * 0.35), new THREE.Vector2(rTop * 1.25, heightTop * 0.75), new THREE.Vector2(rTop, heightTop), new THREE.Vector2(0, heightTop)];
+  const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 14), material); m.castShadow = true; m.receiveShadow = true; return m;
+}
+function face(group, headY) {
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 32, 24), M.skin); head.position.y = headY; head.castShadow = true; group.add(head);
+  const parts = {};
+  parts.eyes = [-1, 1].map(s => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.026, 16, 12), M.dark); e.position.set(0.07 * s, headY + 0.03, 0.18); group.add(e); return e; });
+  parts.brows = [-1, 1].map(s => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.016, 0.02), M.dark); b.position.set(0.07 * s, headY + 0.1, 0.185); group.add(b); return b; });
+  parts.mouth = new THREE.Mesh(new THREE.SphereGeometry(0.045, 16, 10), M.dark); parts.mouth.scale.set(1, 0.18, 0.3); parts.mouth.position.set(0, headY - 0.085, 0.18); group.add(parts.mouth);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.032, 12, 10), M.skin); nose.position.set(0, headY - 0.02, 0.2); group.add(nose);
+  for (const sx of [-1, 1]) { const ear = new THREE.Mesh(new THREE.SphereGeometry(0.04, 10, 8), M.skin); ear.scale.set(0.5, 1, 0.8); ear.position.set(0.195 * sx, headY, 0); group.add(ear); }
+  parts.head = head; return parts;
+}
+
+// King (seated before the throne, right)
+const king = new THREE.Group(); king.position.set(0.62, 0, 0); scene.add(king);
+const throneBack = new THREE.Mesh(new THREE.BoxGeometry(1.05, 2.6, 0.25), M.throne); throneBack.position.set(0, 1.3, -0.45); throneBack.castShadow = true; king.add(throneBack);
+const throneSeat = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.55, 0.8), M.throne); throneSeat.position.set(0, 0.28, -0.1); throneSeat.castShadow = true; king.add(throneSeat);
+for (const s of [-1, 1]) { const k = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 10), M.gold); k.position.set(0.5 * s, 2.62, -0.45); king.add(k); }
+const kRobe = robe(1.55, 0.48, 0.2, M.kingRobe); king.add(kRobe);
+const kFace = face(king, 1.78);
+const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.15, 0.13, 8, 1, true), M.gold); crown.position.y = 1.97; king.add(crown);
+for (let i = 0; i < 8; i++) { const sp = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.1, 6), M.gold); const a = i / 8 * Math.PI * 2; sp.position.set(Math.cos(a) * 0.155, 2.08, Math.sin(a) * 0.155); king.add(sp); }
+
+// Prophet (standing, left)
+const prophet = new THREE.Group(); prophet.position.set(-0.7, 0, 0.35); prophet.rotation.y = 0.45; scene.add(prophet);
+prophet.add(robe(1.7, 0.42, 0.18, M.prophetRobe));
+const pFace = face(prophet, 1.93);
+const beard = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.32, 10), M.beard); beard.rotation.x = Math.PI; beard.position.set(0, 1.74, 0.11); beard.castShadow = true; prophet.add(beard);
+const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.3, 8), M.wood); staff.position.set(-0.42, 1.15, 0.05); staff.castShadow = true; prophet.add(staff);
+const armPivot = new THREE.Group(); armPivot.position.set(0.2, 1.55, 0.02); prophet.add(armPivot);
+const armMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.55, 6, 10), M.prophetRobe); armMesh.position.y = -0.33; armMesh.castShadow = true; armPivot.add(armMesh);
+
+// ---------- the story "memory" (poor man + lamb), appears between them ----------
+const memory = new THREE.Group(); memory.position.set(-0.05, 2.85, 0.5); scene.add(memory);
+const disc = new THREE.Mesh(new THREE.CircleGeometry(0.72, 48), new THREE.MeshBasicMaterial({ color: '#ffe6b0', transparent: true, opacity: 0.0 }));
+memory.add(disc);
+const memMats = [];
+const mm = c => { const m2 = new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, transparent: true, opacity: 0, emissive: c, emissiveIntensity: 0.15 }); memMats.push(m2); return m2; };
+const poor = robe(0.62, 0.17, 0.08, mm('#8f7a5c')); poor.position.set(-0.22, -0.42, 0.05); memory.add(poor);
+const poorHead = new THREE.Mesh(new THREE.SphereGeometry(0.08, 20, 16), mm('#c98e66')); poorHead.position.set(-0.22, 0.28, 0.05); memory.add(poorHead);
+const lambG = new THREE.Group(); lambG.position.set(0.2, -0.2, 0.12); memory.add(lambG);
+const wool = mm('#fbf7ee');
+[[0, 0, 0, 0.13], [0.1, 0.03, 0, 0.1], [-0.1, 0.02, 0, 0.1], [0, 0.08, 0.02, 0.1], [0.05, -0.03, 0.06, 0.09], [-0.06, -0.02, 0.06, 0.09]].forEach(([x, y, z, r]) => { const s = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), wool); s.position.set(x, y, z); lambG.add(s); });
+const lambHead = new THREE.Mesh(new THREE.SphereGeometry(0.065, 14, 10), mm('#2b211b')); lambHead.position.set(0.19, 0.06, 0.03); lambG.add(lambHead);
+for (const x of [-0.08, 0.08]) for (const z of [-0.04, 0.05]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.16, 6), mm('#2b211b')); l.position.set(x, -0.17, z); lambG.add(l); }
+
+// ---------- light ----------
+scene.add(new THREE.HemisphereLight('#6d7fa8', '#2a1a10', 0.35));
+const sun = new THREE.SpotLight('#ffcf8a', 260, 18, Math.PI / 7, 0.55, 1.6);
+sun.position.set(-2.6, 5.4, -4.0); sun.target.position.set(0.1, 0, 0.6); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004;
+scene.add(sun, sun.target);
+const kingKey = new THREE.PointLight('#ff9d5c', 6, 6, 1.8); kingKey.position.set(0.3, 2.4, 1.6); scene.add(kingKey);
+const rim = new THREE.DirectionalLight('#8fb0ff', 0.6); rim.position.set(3, 4, -3); scene.add(rim);
+
+// visible light shaft: soft additive cone from the window to the floor
+const shaftMat = new THREE.MeshBasicMaterial({ color: '#ffcf8a', transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+const from = new THREE.Vector3(-1.25, 3.0, -2.0), to = new THREE.Vector3(0.15, 0, 0.7), len = from.distanceTo(to);
+for (const [r1, r2, op] of [[0.5, 1.1, 0.07], [0.35, 0.8, 0.06]]) {
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, len, 24, 1, true), shaftMat.clone()); shaft.material.opacity = op;
+  shaft.position.copy(from).lerp(to, 0.5); shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), to.clone().sub(from).normalize()); scene.add(shaft);
+}
+// pool of light on the floor
+const pool = new THREE.Mesh(new THREE.CircleGeometry(1.0, 32), new THREE.MeshBasicMaterial({ color: '#ffd59a', transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false }));
+pool.rotation.x = -Math.PI / 2; pool.scale.set(1.2, 0.8, 1); pool.position.set(0.15, 0.01, 0.7); scene.add(pool);
+// dust in the light shaft
+const lerp0 = (a, b, k) => a + (b - a) * k;
+const N = 500, dpos = new Float32Array(N * 3), rnd = (() => { let s = 9; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+for (let i = 0; i < N; i++) { const k = rnd(); dpos[i * 3] = lerp0(-2.0, 0.1, k) + (rnd() - 0.5) * 0.9; dpos[i * 3 + 1] = lerp0(4.6, 0.2, k); dpos[i * 3 + 2] = lerp0(-2.0, 0.6, k) + (rnd() - 0.5) * 0.9; }
+const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new THREE.BufferAttribute(dpos, 3));
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: '#ffd9a0', size: 0.022, transparent: true, opacity: 0.55, depthWrite: false }));
+scene.add(dust);
+
+// ---------- animation ----------
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const ramp = (t, a, b) => ease((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const v3 = (a, b, k) => new THREE.Vector3(lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k));
+
+function update(t) {
+  const breath = Math.sin(t * 2.0) * 0.006;
+  kRobe.scale.y = 1 + breath; prophet.children[0].scale.y = 1 - breath;
+  // arm: down → pointing at the king
+  const pt = ramp(t, 4.0, 4.6);
+  armPivot.rotation.z = lerp(-0.15, 1.75, pt); armPivot.rotation.x = lerp(0, -0.15, pt);
+  // memory fades in/out
+  const mi = ramp(t, 1.8, 2.4) * (1 - ramp(t, 3.7, 4.2));
+  disc.material.opacity = 0.32 * mi; memMats.forEach(m2 => m2.opacity = mi); memory.scale.setScalar(0.85 + 0.15 * mi);
+  memory.rotation.y = Math.sin(t * 0.8) * 0.08;
+  // David's reaction to "Thou art the man"
+  const r = ramp(t, 4.7, 5.15);
+  kFace.eyes.forEach(e => e.scale.setScalar(1 + 0.45 * r));
+  kFace.brows.forEach((b, i) => { b.position.y = 1.88 + 0.035 * r; b.rotation.z = (i ? -1 : 1) * 0.25 * r; });
+  kFace.mouth.scale.set(1 - 0.3 * r, 0.18 + 0.75 * r, 0.3); kFace.mouth.position.y = 1.695 - 0.012 * r;
+  king.rotation.x = -0.06 * r; // recoils slightly
+  // camera: wide → slight drift → push into David's face
+  const c1 = ramp(t, 0, 4), c2 = ramp(t, 4.0, 5.6);
+  const p = v3([0.0, 2.0, 9.0], [0.2, 2.1, 8.2], c1), look = v3([0, 1.6, 0], [0.05, 1.7, 0], c1);
+  camera.position.copy(p.lerp(new THREE.Vector3(0.62, 1.82, 1.9), c2));
+  camera.lookAt(look.lerp(new THREE.Vector3(0.62, 1.78, 0), c2));
+  dust.rotation.y = t * 0.02; dust.position.y = Math.sin(t * 0.5) * 0.05;
+}
+
+// ---------- composite with caption (2D) ----------
+const out = document.getElementById('out'), o = out.getContext('2d');
+function caption(t) { return t < 2 ? 'A prophet came to the king\nwith a story.' : t < 4 ? "A poor man's only lamb…" : '"Thou art the man."'; }
+window.drawFrame = (t) => {
+  update(t); renderer.render(scene, camera);
+  o.drawImage(renderer.domElement, 0, 0, W, H);
+  // subtle vignette + grain
+  const g = o.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.55)');
+  o.fillStyle = g; o.fillRect(0, 0, W, H);
+  o.textAlign = 'center'; o.font = '600 62px Georgia, serif'; o.lineJoin = 'round';
+  caption(t).split('\n').forEach((line, i) => { const y = 1700 + i * 76; o.lineWidth = 9; o.strokeStyle = 'rgba(10,6,4,0.85)'; o.strokeText(line, W / 2, y); o.fillStyle = '#f7ead2'; o.fillText(line, W / 2, y); });
+  return out.toDataURL('image/jpeg', 0.9);
+};
+window.READY = true;
+</script></body></html>
