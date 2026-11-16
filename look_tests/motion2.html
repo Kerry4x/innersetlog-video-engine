@@ -53,7 +53,7 @@ function pose(t) {
     fold(N); D.setArm('R', { fwd: 0.15, out: 0.2, curl: 0.4 }); D.setArm('L', { fwd: 0.15, out: 0.2, curl: 0.4 });
     N.setFace({ blink: blinkAt(t, 1), look: snap(u, 1.6) ? [0.6, -0.1] : [0.3, 0.1] }); N.setHead({ turn: 0.05 + 0.15 * ramp(ts, 1.6, 2.0), tilt: 0.03 });
     D.setFace({ blink: blinkAt(t, 2), look: snap(u, 2.4) ? [-0.6, 0] : [0.2, -0.3], lid: 0.1 }); D.setHead({ turn: lerp(0.1, -0.15, ramp(ts, 2.4, 2.8)) });
-    cam([0, 1.45, 7.2], [0, 1.05, 0]);
+    cam([0, 1.45, 8.0], [0, 1.05, 0]);
   }
   if (seg === 1) { // TALKING: held mouth shapes, ONE gesture (rise ~8 frames, hold, lower)
     const speaking = u > 0.3 && u < 3.5, g = ramp(ts, 0.9, 1.25) * (1 - ramp(ts, 2.9, 3.25));
@@ -61,7 +61,7 @@ function pose(t) {
     N.setHead({ nod: 0.05 * ramp(ts, 0.9, 1.25) * (1 - ramp(ts, 2.9, 3.25)), turn: 0.15 });
     N.setArm('R', { fwd: lerp(0.35, 0.75, g), out: lerp(0.05, 0.3, g), bend: lerp(1.3, 1.0, g), curl: lerp(0.5, 0.1, g), twist: -0.4 * g }); N.setArm('L', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5, twist: 0.3 });
     D.setFace({ blink: blinkAt(t, 2), look: [-0.55, 0], lid: 0.12 }); D.setHead({ nod: 0.08 * ramp(ts, 2.2, 2.5) * (1 - ramp(ts, 2.6, 2.9)), turn: -0.1 }); fold(D);
-    cam([0, 1.5, 6.9], [0, 1.1, 0]);
+    cam([0, 1.5, 7.8], [0, 1.1, 0]);
   }
   if (seg === 2) { // EMOTIONS: face snaps to each state; body eases after it
     N.root.visible = false; D.root.position.set(0, 0, 0); D.root.rotation.y = -0.15;
@@ -86,7 +86,7 @@ function pose(t) {
     D.setFace({ blink: u > 1.6 ? 0 : blinkAt(t, 2), look: [-0.6, 0], lid: hit ? -0.5 : 0.1, raise: hit ? 0.9 : 0, open: hit ? 0.55 : 0 });
     D.setHead({ nod: -0.1 * re, turn: -0.2 }); D.setBody({ breathe: 0.6 * Math.sin(ts * 2), lean: -0.06 * re });
     D.setArm('R', { fwd: 0.15 + 0.45 * re, bend: 0.35 + 0.8 * re, curl: 0.2, out: 0.15 }); D.setArm('L', { fwd: 0.15 + 0.45 * re, bend: 0.35 + 0.8 * re, curl: 0.2, out: 0.15 });
-    cam([0, 1.45, 7.0], [0, 1.05, 0]);
+    cam([0, 1.45, 7.8], [0, 1.05, 0]);
   }
   if (seg === 4) { // WALK (wide shot): the place for full-body motion
     D.root.visible = false;
@@ -109,7 +109,9 @@ function pose(t) {
 const out = document.getElementById('out'), o = out.getContext('2d');
 window.CLIP = [];
 window.drawFrame = (t) => {
-  pose(t); const on = !window.NOSOLVE; window.CLIP.push([t, N.root.visible ? N.solve({ on }) : 0, D.root.visible ? D.solve({ on }) : 0]); composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H);
+  pose(t); const on = !window.NOSOLVE; window.CLIP.push([t, N.root.visible ? N.solve({ on }) : 0, D.root.visible ? D.solve({ on }) : 0]);
+  if (Math.floor(t / SEG) === 5) { const h = new THREE.Vector3(); N.arms[1].wr.getWorldPosition(h); camera.position.set(h.x + 0.35, h.y + 0.25, h.z + 1.1); camera.lookAt(h.x, h.y - 0.02, h.z); } /* close-up follows the hand */
+  composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H);
   const seg = Math.min(TESTS.length - 1, Math.floor(t / SEG));
   o.fillStyle = 'rgba(30,20,12,0.82)'; o.fillRect(0, 0, W, 120); o.fillStyle = '#f6ead6'; o.font = '600 40px Georgia, serif'; o.fillText(TESTS[seg], 36, 72);
   o.font = '26px Georgia, serif'; o.fillStyle = 'rgba(246,234,214,0.7)'; o.fillText('v2 · timed to the measured clay motion: faces swap in 1 frame, bodies on 2s', 36, 108);
