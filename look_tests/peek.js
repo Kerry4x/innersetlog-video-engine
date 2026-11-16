@@ -6,9 +6,9 @@ const s = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split('?
   fs.mkdirSync(OUT, { recursive: true });
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
   p.on('pageerror', e => console.log('PAGE ERROR', e.message)); p.on('console', m => m.type() === 'error' && console.log('CONSOLE', m.text()));
-  await p.goto(`http://127.0.0.1:${s.address().port}/${PAGE}`); if (process.env.CAM) await p.evaluate(c => window.CAM = JSON.parse(c), process.env.CAM); await p.waitForFunction(() => window.READY, null, { timeout: 120000 });
+  await p.goto(`http://127.0.0.1:${s.address().port}/${PAGE}`); if (process.env.CAM) await p.evaluate(c => window.CAM = JSON.parse(c), process.env.CAM); if (process.env.NOSOLVE) await p.evaluate(() => window.NOSOLVE = true); await p.waitForFunction(() => window.READY, null, { timeout: 120000 });
   const files = [];
   for (const t of TIMES) { const d = await p.evaluate(t => window.drawFrame(t), t); const f = path.join(OUT, `${NAME}_${t}.jpg`); fs.writeFileSync(f, Buffer.from(d.split(',')[1], 'base64')); files.push(f); }
   execFileSync('ffmpeg', ['-y', '-v', 'error', ...files.flatMap(f => ['-i', f]), '-filter_complex', files.map((_, i) => `[${i}]`).join('') + (files.length > 1 ? `hstack=inputs=${files.length},` : `null,`) + `scale=${300 * files.length}:-1`, path.join(OUT, `${NAME}_strip.jpg`)]);
-  await b.close(); s.close(); console.log('ok');
+  const clip = await p.evaluate(() => window.CLIP || []); if (clip.length) console.log('clip', JSON.stringify(clip.map(r => r.map(v => +v.toFixed(3))))); await b.close(); s.close(); console.log('ok');
 });

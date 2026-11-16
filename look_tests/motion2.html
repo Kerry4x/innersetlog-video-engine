@@ -47,21 +47,21 @@ const cam = (p, l) => { camera.position.set(...p); camera.lookAt(...l); };
 function pose(t) {
   const seg = Math.min(TESTS.length - 1, Math.floor(t / SEG)), u = t - seg * SEG, ts = Math.floor(u * 12) / 12; // bodies on 2s
   for (const C of [N, D]) { C.setBody({ breathe: 0.6 * Math.sin(ts * 2.0) }); C.setHead(); C.setFace({ blink: blinkAt(t, C === N ? 1 : 2) }); C.setArm('L'); C.setArm('R'); C.walk(0, 0); C.root.visible = true; }
-  N.root.position.set(-0.5, 0, 0); N.root.rotation.y = 0.45; D.root.position.set(0.5, 0, 0); D.root.rotation.y = -0.45;
-  const fold = (C) => { C.setArm('R', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5 }); C.setArm('L', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5, twist: 0.3 }); };
+  N.root.position.set(-0.72, 0, 0); N.root.rotation.y = 0.45; D.root.position.set(0.72, 0, 0); D.root.rotation.y = -0.45;
+  const fold = (C) => { C.setArm('R', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5 }); C.setArm('L', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5, twist: 0.3 }); };
   if (seg === 0) { // IDLE: a held pose, two glances, blinks; one slow head turn
-    fold(N); D.setArm('R', { fwd: 0.15, curl: 0.4 }); D.setArm('L', { fwd: 0.15, curl: 0.4 });
+    fold(N); D.setArm('R', { fwd: 0.15, out: 0.2, curl: 0.4 }); D.setArm('L', { fwd: 0.15, out: 0.2, curl: 0.4 });
     N.setFace({ blink: blinkAt(t, 1), look: snap(u, 1.6) ? [0.6, -0.1] : [0.3, 0.1] }); N.setHead({ turn: 0.05 + 0.15 * ramp(ts, 1.6, 2.0), tilt: 0.03 });
     D.setFace({ blink: blinkAt(t, 2), look: snap(u, 2.4) ? [-0.6, 0] : [0.2, -0.3], lid: 0.1 }); D.setHead({ turn: lerp(0.1, -0.15, ramp(ts, 2.4, 2.8)) });
-    cam([0, 1.45, 6.4], [0, 1.05, 0]);
+    cam([0, 1.45, 7.2], [0, 1.05, 0]);
   }
   if (seg === 1) { // TALKING: held mouth shapes, ONE gesture (rise ~8 frames, hold, lower)
     const speaking = u > 0.3 && u < 3.5, g = ramp(ts, 0.9, 1.25) * (1 - ramp(ts, 2.9, 3.25));
     N.setFace({ blink: blinkAt(t, 1), open: speaking ? speak(u, 3) : 0, look: [0.55, 0], raise: 0.4 * snap(u, 0.9) * (1 - snap(u, 2.9)) });
     N.setHead({ nod: 0.05 * ramp(ts, 0.9, 1.25) * (1 - ramp(ts, 2.9, 3.25)), turn: 0.15 });
-    N.setArm('R', { fwd: lerp(0.35, 0.75, g), out: lerp(0.05, 0.3, g), bend: lerp(1.3, 1.0, g), curl: lerp(0.5, 0.1, g), twist: -0.4 * g }); N.setArm('L', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5, twist: 0.3 });
+    N.setArm('R', { fwd: lerp(0.35, 0.75, g), out: lerp(0.05, 0.3, g), bend: lerp(1.3, 1.0, g), curl: lerp(0.5, 0.1, g), twist: -0.4 * g }); N.setArm('L', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5, twist: 0.3 });
     D.setFace({ blink: blinkAt(t, 2), look: [-0.55, 0], lid: 0.12 }); D.setHead({ nod: 0.08 * ramp(ts, 2.2, 2.5) * (1 - ramp(ts, 2.6, 2.9)), turn: -0.1 }); fold(D);
-    cam([0, 1.5, 6.0], [0, 1.15, 0]);
+    cam([0, 1.5, 6.9], [0, 1.1, 0]);
   }
   if (seg === 2) { // EMOTIONS: face snaps to each state; body eases after it
     N.root.visible = false; D.root.position.set(0, 0, 0); D.root.rotation.y = -0.15;
@@ -78,7 +78,7 @@ function pose(t) {
   }
   if (seg === 3) { // POINT: the one big move, small anticipation, settle, hold; David's face snaps, body eases back
     const an = ramp(ts, 0.9, 1.15) * (1 - ramp(ts, 1.15, 1.25)), pk = back((ts - 1.25) / 0.35);
-    N.setArm('R', { fwd: lerp(0.35 + 0.15 * an, 1.45, pk), out: lerp(0.05, 0.25, pk), bend: lerp(1.3 + 0.2 * an, 0.05, pk), point: pk > 0.3, curl: 0.5 }); N.setArm('L', { fwd: 0.35, out: 0.05, bend: 1.3, curl: 0.5, twist: 0.3 });
+    N.setArm('R', { fwd: lerp(0.35 + 0.15 * an, 1.45, pk), out: lerp(0.05, 0.25, pk), bend: lerp(1.3 + 0.2 * an, 0.05, pk), point: pk > 0.3, curl: 0.5 }); N.setArm('L', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5, twist: 0.3 });
     N.setBody({ breathe: 0.6 * Math.sin(ts * 2), lean: -0.03 * an + 0.04 * pk, twist: 0.08 * pk });
     N.setFace({ blink: u > 1.1 ? 0 : blinkAt(t, 1), look: [0.6, 0], lid: snap(u, 1.25) ? 0.3 : 0.1, angry: 0.4 * snap(u, 1.25), open: (u > 1.6 && u < 2.4) ? speak(u, 7) : 0 });
     N.setHead({ turn: 0.2, nod: 0.04 * pk });
@@ -86,7 +86,7 @@ function pose(t) {
     D.setFace({ blink: u > 1.6 ? 0 : blinkAt(t, 2), look: [-0.6, 0], lid: hit ? -0.5 : 0.1, raise: hit ? 0.9 : 0, open: hit ? 0.55 : 0 });
     D.setHead({ nod: -0.1 * re, turn: -0.2 }); D.setBody({ breathe: 0.6 * Math.sin(ts * 2), lean: -0.06 * re });
     D.setArm('R', { fwd: 0.15 + 0.45 * re, bend: 0.35 + 0.8 * re, curl: 0.2, out: 0.15 }); D.setArm('L', { fwd: 0.15 + 0.45 * re, bend: 0.35 + 0.8 * re, curl: 0.2, out: 0.15 });
-    cam([0, 1.45, 6.2], [0, 1.05, 0]);
+    cam([0, 1.45, 7.0], [0, 1.05, 0]);
   }
   if (seg === 4) { // WALK (wide shot): the place for full-body motion
     D.root.visible = false;
@@ -107,8 +107,9 @@ function pose(t) {
 }
 
 const out = document.getElementById('out'), o = out.getContext('2d');
+window.CLIP = [];
 window.drawFrame = (t) => {
-  pose(t); composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H);
+  pose(t); const on = !window.NOSOLVE; window.CLIP.push([t, N.root.visible ? N.solve({ on }) : 0, D.root.visible ? D.solve({ on }) : 0]); composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H);
   const seg = Math.min(TESTS.length - 1, Math.floor(t / SEG));
   o.fillStyle = 'rgba(30,20,12,0.82)'; o.fillRect(0, 0, W, 120); o.fillStyle = '#f6ead6'; o.font = '600 40px Georgia, serif'; o.fillText(TESTS[seg], 36, 72);
   o.font = '26px Georgia, serif'; o.fillStyle = 'rgba(246,234,214,0.7)'; o.fillText('v2 · timed to the measured clay motion: faces swap in 1 frame, bodies on 2s', 36, 108);
