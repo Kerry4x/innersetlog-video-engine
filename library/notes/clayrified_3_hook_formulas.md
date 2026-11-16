@@ -19,3 +19,4 @@ Source: PDF Kerry received from @clayrified (3 pages, Nov 2026). Summarized, not
 ## Fit check: an example of forcing it (rejected)
 - *Impossible task* on Solomon's judgment (1 Kings 3): doesn't fit. Nobody with power sets an impossible rule for someone else; the king himself is solving a dispute.
 - *Hidden truth* on Amos 5: doesn't fit. Amos is an open rebuke, not something everyone believed that hides an opposite underneath.
+- *Unfair contrast* on David and Nathan (2 Sam 12): "A prophet told the king a story. The king sentenced himself to death." **Usable but slightly forced.** It isn't really "a small act plus a reaction that makes no sense"; it's a self-judgment twist. And "sentenced himself" compresses the text: David condemned "the man that hath done this thing" (v5) without knowing it was him, and he was spared (v13).
