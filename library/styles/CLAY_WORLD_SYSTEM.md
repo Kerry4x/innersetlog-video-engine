@@ -69,3 +69,10 @@ Because characters are ~3–3.5 heads tall, everything is scaled to the **head**
 4. **Interactions:** one move (4–25 frames), then hold; cut around difficult contact (lifting, handing over) instead of animating it.
 5. **Our kit needs, in order of use:** holding (prop attached to a hand, both-hands grip), seated (cross-legged on a cushion, on a chair or throne), hand flat on a surface, walk through a door, kneel. The collision system covers furniture and props.
 6. What goes **in** a set comes from our research (`concepts/bible/world/JERUSALEM_c1000BC.md`); **how** it is built and shot comes from this file.
+
+## 7. How far to trust this reference (Kerry, 2026-11-16)
+The clay videos are AI-generated. They stay our main guide, with these filters:
+- **Rely on:** shot grammar and editing, script formula and pacing, design rules seen across many characters/videos, set scale and staging. These are the creator's deliberate choices or are consistent library-wide.
+- **Use with judgment:** motion timing (may partly reflect the video model), fine textures richer than real clay; tune by eye, not as law.
+- **Ignore:** AI mistakes (gibberish screen text, wrong numbers on charts, visuals that don't match the narration, props that change between shots, wrong finger counts, melting objects) and anything seen only once. A rule must appear in several videos before we adopt it.
+- **Our advantage:** code-built characters and sets stay consistent shot to shot and avoid these mistakes.
