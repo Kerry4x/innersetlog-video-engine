@@ -1,7 +1,7 @@
-# Launch scripts: three voiceovers (ready to paste into ElevenLabs)
+# Launch scripts: five voiceovers (ready to paste into ElevenLabs)
 
 Written to `FORMAT.md` (one connected idea, story first, no filler, accurate to the KJV) and the hook notes (start with the best line; no forced formula).
-Picked from the four drafts: **David and Nathan** (ready), **Naaman** and **Corban** (rewritten to fix the audit problems). Amos is kept for later.
+**1 David and Nathan** (ready), **2 Naaman**, **3 Corban**, **4 Amos** (rewritten to fix the audit problems), **5 Solomon and the two mothers** (new, Kerry's pick).
 
 Paste the **voiceover text** blocks only. Everything else is notes.
 
@@ -106,3 +106,71 @@ Religion can be the most respectable place there is to hide from God.
 - Pronunciation (respell in the text if the voice gets them wrong): **Naaman** NAY-uh-mun · **Elisha** ee-LIE-shuh · **Bathsheba** bath-SHEE-buh · **Uriah** yoo-RYE-uh · **Corban** KOR-ban · **Jordan** JOR-dun · **liveth** LIV-eth · **wouldest** WOOD-est.
 - Generate each script as its own clip; a blank line between paragraphs gives a natural pause.
 - If a KJV line comes out too acted, say it plainly in the text before it ("When the king heard it, he said,") instead of "furious", as we found in voice testing.
+
+---
+
+## 4. Amos · "God was sick of their worship"
+**Idea:** God is not impressed by worship from people who mistreat others; what he asked for was justice. (Rewritten: the audit's unsupported temple staging, filler beat and repeated "noise" are fixed.)
+
+258 words ≈ 1:31.
+
+**Voiceover text**
+```
+Around 760 BC, a fig farmer went to the king's own sanctuary at Bethel, carrying a message the most religious people in the country did not want to hear. God could not stand their worship.
+
+His name was Amos. He wasn't a priest, and he wasn't a prophet. He herded animals and gathered wild figs. And God sent him to Israel.
+
+Israel looked faithful. The feast days were kept. The offerings were brought. The songs were loud.
+
+And this was the message Amos carried. "I hate, I despise your feast days." "Take thou away from me the noise of thy songs."
+
+Not because God had stopped caring about worship. Because of what those same people did the rest of the week. They took bribes. They pushed the poor out of the courts. They built houses of cut stone with money squeezed out of people who had nothing.
+
+The priest at Bethel told Amos to go home and never prophesy there again. This was the king's sanctuary.
+
+Amos answered, "I was no prophet, neither was I a prophet's son." He hadn't come for a career. He had been sent.
+
+And God said what he wanted instead. "But let judgment run down as waters, and righteousness as a mighty stream."
+
+That still happens. Picture a man who never misses a service. Front row, hands raised for every song. On Monday he's the boss who shorts his workers' hours and calls it good business.
+
+God was never measuring how loud the singing was. He was watching how the singer treated people.
+```
+
+**Accuracy (KJV, checked against ebible.org KJV this session):** Amos "an herdman, and a gatherer of sycomore fruit" (7:14; margin: "wild figs"); "Go, prophesy unto my people Israel" (7:15); Amaziah the priest of Bethel: "prophesy not again any more at Beth-el: for it is the king's chapel" (7:12-13; margin "or, sanctuary"); quotes 5:21, 5:23, 5:24 exact; "they take a bribe, and they turn aside the poor in the gate from their right" (5:12, "the gate" = the court); "ye have built houses of hewn stone" after "your treading is upon the poor" (5:11). "Around 760 BC": the days of Jeroboam II (1:1), standard approximate dating (recalled).
+**Compression to know about:** the "I hate your feast days" message is in the book's collection of Amos's messages to Israel (Bethel is its main sanctuary, 5:5); the script says he *carried* that message, not that he spoke those exact words on one day at Bethel.
+
+---
+
+## 5. Solomon and the two mothers · "Bring me a sword" (268 words ≈ 1:35)
+**Idea:** the person who would rather destroy something than let someone else have it shows who they are; real love will lose to keep the child whole.
+**Note:** the Bible has **two** women, not three (1 Kings 3:16).
+
+**Voiceover text**
+```
+Two women stood before King Solomon, both claiming the same baby. He settled it by calling for a sword.
+
+They lived in the same house. Three days apart, each had given birth to a son. There was no one else in the house.
+
+One night, one of the babies died. The first woman said the other mother had rolled onto her own child in her sleep, then got up at midnight and swapped the babies while she slept. In the morning she woke to feed her son and found a dead child in her arms. And it wasn't hers.
+
+The other woman said, no. The living one is mine.
+
+No witnesses. No proof. Just two women, saying the same thing.
+
+So Solomon said, "Bring me a sword." "Divide the living child in two, and give half to the one, and half to the other."
+
+One woman cried out, "O my lord, give her the living child, and in no wise slay it." She would rather lose him than see him hurt.
+
+The other said, "Let it be neither mine nor thine, but divide it."
+
+And Solomon said, "Give her the living child, and in no wise slay it: she is the mother thereof."
+
+That instinct is still with us. Watch a divorce turn bitter. Sometimes one parent fights for every weekend, not because it's best for the kids, but because the other one can't be allowed to have them. The children become the thing being divided.
+
+The one who truly loves them is usually the one willing to give something up, so they don't get torn in half.
+```
+
+**Accuracy (KJV, 1 Kings 3:16-28, checked against ebible.org KJV this session):** two women "that were harlots" in one house, births three days apart, "no stranger with us in the house" (3:16-18); "this woman's child died in the night; because she overlaid it", swapped "at midnight", the morning discovery (3:19-21); the dispute (3:22-23); quotes from 3:24, 3:25, 3:26 (both women) and 3:27 are exact. The real mother's "bowels yearned upon her son" (3:26) is rendered "She would rather lose him than see him hurt." All Israel "saw that the wisdom of God was in him, to do judgment" (3:28): left for long-form.
+**Choice to note:** "harlots" is left out for flow (true to the text, not needed for the idea). Say if you want it in.
+**Tone:** the modern part describes a behaviour, not divorced parents in general ("sometimes one parent").
