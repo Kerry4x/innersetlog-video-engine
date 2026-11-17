@@ -1,5 +1,7 @@
 # How the clay scripts reveal the deeper meaning (all 10 transcripts, 2026-11-17)
 
+**Status (Kerry, 2026-11-17): examples, not a blueprint.** The principle is Kerry's: every script reveals the deeper meaning about human nature and shows how it plays out today. These videos are just examples of that done well. Don't copy their shape; each story should find its own structure, or every video turns out the same.
+
 What Kerry pointed at: the meaning isn't explained by a narrator, and it isn't a one-line "this is like today". It works in three moves.
 
 1. **The story carries the why inside it.** The reason things happened is a story beat, not commentary: the monks covered the gold in clay *to protect it* (S07); the farmer weighed his butter *against the baker's own loaf* (S05); the older monk's line *is* the lesson ("Why are you still carrying her?", S06). No "think about why" aside.

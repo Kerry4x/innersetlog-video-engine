@@ -58,3 +58,5 @@ Mapping the story onto today is only part of it. Each script has to **reveal the
 3. **What it reveals about human nature**, including the uncomfortable or surprising part (e.g. seeing your wrong clearly is not the same as owning it; give David credit for "I have sinned" with no excuses).
 4. **The same nature today:** concrete examples of each revealed point, not one generic parallel.
 5. Interpretation is labelled as such when the text doesn't state it (e.g. the text says "the LORD sent Nathan"; why the story approach works is our reading).
+
+The clay transcripts (`library/notes/clayrified_script_anatomy.md`) are examples of this principle, not a template. Vary the structure story to story.
