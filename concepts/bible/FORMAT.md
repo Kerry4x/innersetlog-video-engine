@@ -50,3 +50,11 @@ One example that worked (Kerry liked it, short 01): "Around 760 BC, a fig farmer
 ## Idea bank
 - **The blind spot (Solomon Paradox ↔ David and Nathan, 2 Samuel 12):** we judge others wisely and ourselves badly; Nathan's story (self-distancing) is the fix the 2014 study also found. Study: Grossmann & Kross 2014, *Psychological Science*, 3 experiments, N = 693 (checked via abstract/press summaries).
 - Earlier drafts (need rework per the audit): Amos 5 (worship without justice), Naaman 2 Kings 5 (resisting a humbling instruction), Corban Mark 7 (religion as a hiding place from God's command).
+
+## The deeper layer (Kerry, 2026-11-17): what every script must do
+Mapping the story onto today is only part of it. Each script has to **reveal the deeper meaning**: what the story shows about human nature, *why* things happened the way they did, and the nuance a quick retelling misses. Then show how that same nature plays out in our lives today.
+1. **The story**, accurate and in context.
+2. **Why it unfolded that way:** the method, the motive, what each person's choice reveals (e.g. why Nathan told a story instead of accusing: a direct accusation invites denial and excuses).
+3. **What it reveals about human nature**, including the uncomfortable or surprising part (e.g. seeing your wrong clearly is not the same as owning it; give David credit for "I have sinned" with no excuses).
+4. **The same nature today:** concrete examples of each revealed point, not one generic parallel.
+5. Interpretation is labelled as such when the text doesn't state it (e.g. the text says "the LORD sent Nathan"; why the story approach works is our reading).

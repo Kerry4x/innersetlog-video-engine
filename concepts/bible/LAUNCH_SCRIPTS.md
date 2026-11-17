@@ -16,26 +16,30 @@ Around 1000 BC, a prophet went to the most powerful king in Israel with a story 
 
 Months earlier, King David had taken another man's wife, Bathsheba. When she became pregnant, he had her husband, Uriah, sent to the front of the battle so he would be killed. Then David married her, and life went on.
 
-So God sent the prophet Nathan. Nathan didn't accuse him. He told him a story.
+So God sent the prophet Nathan to him. And Nathan didn't accuse him. He told him a story.
 
-A rich man with huge flocks had a guest to feed. Instead of taking one of his own animals, he took his poor neighbor's only lamb. A lamb the poor man had raised with his children. It ate from his plate, and slept in his arms, like a daughter.
+Think about why. If Nathan had walked in and said, "You took Uriah's wife and had him killed," David was the king. He could deny it. He could explain it. He could say it was war, that men die in battle, that he had his reasons. A direct accusation would have given him something to defend.
 
-David was furious. "As the Lord liveth, the man that hath done this thing shall surely die."
+So Nathan told him about a rich man with huge flocks, who took his poor neighbor's only lamb. A lamb the poor man had raised with his children, that slept in his arms like a daughter.
 
-The king who had taken a wife and arranged a death could judge a stolen lamb perfectly.
+David was furious. "As the Lord liveth, the man that hath done this thing shall surely die." The man had to pay it back four times over, because he had no pity.
 
 Then Nathan said four words. "Thou art the man."
 
-David hadn't lost his sense of right and wrong. He had lost the ability to aim it at himself.
+There was nothing left to defend. David had already judged it, and he had judged it right.
 
-And that hasn't changed. A friend tells you their situation, and within a minute you know exactly what they need to hear. Then the same situation shows up in your own life, with your name on it, and suddenly it's complicated.
+That's the first thing this story shows about us. When we're outside a situation, we see it clearly. When we're inside it, we lose it completely. David hadn't lost his sense of right and wrong. He had lost the ability to aim it at himself.
 
-That's why Nathan told a story. David couldn't see it in himself. But he saw it instantly in someone else.
+But the second thing is easy to miss. Seeing the truth doesn't mean someone will own it. Plenty of people get caught and still argue. David didn't. He said, "I have sinned against the Lord." No excuses. No explanation.
+
+We still do both. We can hear a friend's problem and know in a minute what they need to hear. Then the same problem shows up in our own life, and suddenly it's complicated. And when someone finally points it out, our first words are usually "It's not like that," or "You don't understand what I was dealing with."
+
+David had every reason to say that. He was the king. He said, "I have sinned."
 ```
-263 words ≈ 1:33 at 170 wpm.
+**v2 (Kerry's deeper layer, 2026-11-17):** 403 words ≈ 2:20 at 170 wpm. Adds why Nathan told a story, the second reveal (seeing the truth ≠ owning it; David's "I have sinned"), and today's examples of both.
 
 **Accuracy:** 2 Sam 11:3-27 (Bathsheba, Uriah set "in the forefront of the hottest battle", marriage); 12:1-4 parable (lamb "did eat of his own meat… lay in his bosom, and was unto him as a daughter", 12:3); verdict 12:5 (quoted); "Thou art the man" 12:7 (quoted, four words). "Around 1000 BC" = traditional dating of David's reign (approximate). The hook says "passed judgment on himself without knowing it", not "sentenced himself to death", because David was spared (12:13).
-**Change from draft 1:** dropped the fourfold-restitution sentence and the last "distance first" sentence to keep one line of thought; nothing added.
+**v2 additions checked (ebible KJV):** "because he had no pity" (12:6); "I have sinned against the LORD" (12:13). "It was war, men die in battle" echoes David's own message to Joab after Uriah's death: "the sword devoureth one as well as another" (11:25, recalled). **Interpretation, labelled:** the text says "the LORD sent Nathan" (12:1) and that the speech is God's message (12:7); *why* a story works better than an accusation is our reading, written as "Think about why". Left for long-form: forgiveness with consequences (12:13-14), Psalm 51.
 
 ---
 
