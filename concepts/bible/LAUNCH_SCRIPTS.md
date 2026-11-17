@@ -22,7 +22,7 @@ A rich man with huge flocks needed to feed a guest. Instead of taking one of his
 
 David was furious. He said, "As the Lord liveth, the man that hath done this thing shall surely die." And because the man had no pity, he would pay for that lamb four times over.
 
-Nathan looked at him and said, "Thou art the man."
+Then Nathan said, "Thou art the man."
 
 David didn't argue. He didn't explain. He said, "I have sinned against the Lord."
 
