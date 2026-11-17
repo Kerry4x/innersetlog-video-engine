@@ -46,26 +46,32 @@ So the next time someone else's story makes you angry, stop and ask yourself one
 
 **Voiceover text**
 ```
-The most powerful general in Syria nearly went home sick, because the cure he was given was too easy.
+The most powerful general in Syria was saved by people he would never have listened to on his own.
 
 His name was Naaman. Captain of the king's army, a mighty man in battle. And he had leprosy.
 
-He heard there was a prophet in Israel who could heal him. So he rode to the prophet's house with his horses, his chariot, and a fortune in silver and gold.
+The first was a little girl, captured in a raid on Israel and made a servant to his wife. She said there was a prophet in Israel who could heal him.
 
-The prophet, Elisha, didn't even come to the door. He sent a messenger with one instruction. Go and wash in the Jordan River seven times.
+So Naaman went, with his horses, his chariot, and a fortune in silver and gold. He stood at the prophet's door.
 
-Naaman was furious. He had expected the prophet to come out, call on God, and wave his hand over him. Instead, he was told to bathe in a muddy river. The rivers back home were better than this. He turned around and left in a rage.
+The prophet, Elisha, didn't come out. He sent a messenger. Go and wash in the Jordan seven times, and you'll be clean.
 
-His own servants stopped him. "If the prophet had bid thee do some great thing, wouldest thou not have done it? How much rather then, when he saith to thee, Wash, and be clean?"
+Naaman left in a rage. And he said exactly why. "Behold, I thought, He will surely come out to me, and stand, and call on the name of the Lord his God, and strike his hand over the place."
 
-So he went down to the Jordan. Seven times. And his skin came back like the skin of a little child.
+"I thought." He wasn't angry about the cure. He was angry that he wasn't treated like Naaman.
 
-The hardest part was never the river. It was accepting that the answer could be that simple.
+Then his own servants came to him. "My father, if the prophet had bid thee do some great thing, wouldest thou not have done it? How much rather then, when he saith to thee, Wash, and be clean?"
 
-We do the same thing. We'd sign up for a ten-step plan, a new program, a dramatic fresh start. But the answer we already know, the one phone call, the honest apology, the thing we keep putting off, feels too small to be the cure. So we keep waiting for something more impressive.
+He went down to the river, and his skin came back like a little child's.
 
-Naaman almost stayed sick for the same reason.
+A captive servant girl. A messenger at the door. His own servants. Every step of his healing came through someone beneath him.
+
+We're still like that. We'll take advice from someone with a title, and ignore the same advice from a younger brother, a coworker, a friend who's "been through less." And when the answer finally comes, we're often less upset about the answer than about how it came to us.
+
+Naaman almost stayed sick because of two words. "I thought."
 ```
+
+**v2 (2026-11-17): the deeper meaning is Naaman's own words "Behold, I thought" (5:11) and that every step of his healing came through someone beneath him: the captive girl (5:2-3), the messenger (5:10), his servants (5:13). His anger being about how he was treated is our reading of "I thought", labelled as such. All quotes checked on ebible KJV.** 301 words ≈ 1.8 min at 170 wpm.
 272 words ≈ 1:36.
 
 **Accuracy (KJV, 2 Kings 5):** captain of the host, "a mighty man in valour, but he was a leper" (5:1); he goes with silver, gold and raiment (5:5, amounts left out); "came with his horses and with his chariot" (5:9); Elisha "sent a messenger… Go and wash in Jordan seven times" (5:10); his expectation that Elisha would "come out… call on the name of the LORD… and strike his hand over the place" and that Abana and Pharpar, rivers of Damascus, were better (5:11-12), "went away in a rage" (5:12); the servants' line quoted from 5:13 (checked); "his flesh came again like unto the flesh of a little child" (5:14).
@@ -80,22 +86,26 @@ Naaman almost stayed sick for the same reason.
 
 **Voiceover text**
 ```
-Jesus once told the most respected religious teachers of his day that their tradition had cancelled one of God's commandments.
+The religious leaders came to catch Jesus' disciples breaking a rule. They walked away accused of breaking one of the Ten Commandments.
 
-The commandment was simple. Honour thy father and thy mother. Take care of your parents.
+Their complaint was handwashing. The tradition of the elders said you washed your hands a certain way before you ate, and his disciples didn't. So they asked him, why don't your disciples keep the tradition?
 
-But there was a way around it. You could declare your money Corban, a gift dedicated to God. Once it was Corban, it was set apart, and you no longer had to use it to help your father or your mother.
+Jesus answered with Isaiah. "This people honoureth me with their lips, but their heart is far from me."
 
-It sounded like devotion. In practice, the parents went without, and the son looked holier than ever.
+Then he gave them an example of their own. God's law said, "Honour thy father and thy mother." But their tradition gave you a way out. Say your money was Corban, a gift to God, and you no longer had to use it for your father or your mother. It sounded like devotion. And the parents went without.
 
-Jesus didn't praise it. He said, "Full well ye reject the commandment of God, that ye may keep your own tradition." And he said they were "making the word of God of none effect through your tradition."
+"Full well ye reject the commandment of God, that ye may keep your own tradition."
 
-That still happens. Picture a man who's at church four nights a week. He leads the youth group, runs the food drive, prays for everyone who asks. His mother has called three times this month. He hasn't called back. He tells himself he's been busy serving God.
+They were careful about clean hands, and careless about their own parents. Strict about the rule everyone could see, and quietly free of the one that would cost them something.
 
-The work is real. But it has become the reason he never has to do the one thing God already told him to do.
+That's the part that hasn't changed. The small rules are easy to keep, because they cost nothing and everyone notices. The hard commands get a respectable excuse. We'll argue about what someone wore to church, and never call the mother we haven't spoken to in a year. We'll post a verse about family, and skip the family dinner.
 
-Religion can be the most respectable place there is to hide from God.
+Jesus said that kind of tradition was "making the word of God of none effect."
+
+The question was never whether your hands were clean. It was whether your parents were taken care of.
 ```
+
+**v2 (2026-11-17): opens where Mark 7 opens, the handwashing complaint (7:1-5); Isaiah quote 7:6 and Corban 7:9-13 checked on ebible KJV ("ye suffer him no more to do ought for his father or his mother", 7:12). Reveal: strict about the visible rule, free of the costly command.** 269 words ≈ 1.6 min at 170 wpm.
 214 words ≈ 1:16.
 
 **Accuracy (KJV, Mark 7:1-13; parallel Matthew 15:3-6):** the critics are "the Pharisees, and certain of the scribes" (7:1), hence "religious teachers"; "Honour thy father and thy mother" (7:10); "It is Corban, that is to say, a gift" (7:11) and its effect, no longer doing anything for father or mother (7:12, KJV wording of 7:12 not re-checked, so paraphrased, not quoted); the two quotes are 7:9 and 7:13 (checked).
@@ -118,26 +128,28 @@ Religion can be the most respectable place there is to hide from God.
 
 **Voiceover text**
 ```
-Around 760 BC, a fig farmer went to the king's own sanctuary at Bethel, carrying a message the most religious people in the country did not want to hear. God could not stand their worship.
+When a farmer named Amos delivered God's warning at Bethel, the priest didn't argue with the message. He told him where it wasn't allowed. "Prophesy not again any more at Beth-el: for it is the king's chapel."
 
-His name was Amos. He wasn't a priest, and he wasn't a prophet. He herded animals and gathered wild figs. And God sent him to Israel.
+Around 760 BC, Israel was full of worship. The feasts were kept. The offerings were brought. The songs were loud.
 
-Israel looked faithful. The feast days were kept. The offerings were brought. The songs were loud.
+And God sent a farmer, a herdsman who gathered wild figs, with a message for all of it. "I hate, I despise your feast days." "Take thou away from me the noise of thy songs."
 
-And this was the message Amos carried. "I hate, I despise your feast days." "Take thou away from me the noise of thy songs."
+Not because worship didn't matter. Because the same people who sang on the feast days took bribes and pushed the poor out of the courts. They built houses of cut stone off the backs of people who had nothing.
 
-Not because God had stopped caring about worship. Because of what those same people did the rest of the week. They took bribes. They pushed the poor out of the courts. They built houses of cut stone with money squeezed out of people who had nothing.
+What God wanted was plain. "But let judgment run down as waters, and righteousness as a mighty stream."
 
-The priest at Bethel told Amos to go home and never prophesy there again. This was the king's sanctuary.
+Now look at the priest's answer again. Not, is this true? Not, should we change? Just: go home, and don't say this here. This is the king's chapel.
 
-Amos answered, "I was no prophet, neither was I a prophet's son." He hadn't come for a career. He had been sent.
+That one line shows how the worship had gone wrong. The sanctuary was called God's house, but the priest defended it as the king's. And a message from God that troubled the kingdom was treated as the problem.
 
-And God said what he wanted instead. "But let judgment run down as waters, and righteousness as a mighty stream."
+We still do this. It's easier to remove the person saying the hard thing than to deal with what they said. The coworker who raises a problem gets labeled difficult. The friend who tells you the truth gets left out of the group chat. The church member who asks about how people are treated is told it's not the right time.
 
-That still happens. Picture a man who never misses a service. Front row, hands raised for every song. On Monday he's the boss who shorts his workers' hours and calls it good business.
+Amos answered, "I was no prophet, neither was I a prophet's son." He hadn't come for a position. He'd come because he was sent.
 
-God was never measuring how loud the singing was. He was watching how the singer treated people.
+The question isn't whether the message was welcome. It's whether it was true.
 ```
+
+**v2 (2026-11-17): built around the priest's answer, "Prophesy not again any more at Beth-el: for it is the king's chapel" (7:13). Reading (labelled): the house of God (Beth-el means "house of God", recalled) defended as the king's, so the messenger became the problem. Quotes 5:21, 5:23, 5:24, 7:14 checked.** 313 words ≈ 1.8 min at 170 wpm.
 
 **Accuracy (KJV, checked against ebible.org KJV this session):** Amos "an herdman, and a gatherer of sycomore fruit" (7:14; margin: "wild figs"); "Go, prophesy unto my people Israel" (7:15); Amaziah the priest of Bethel: "prophesy not again any more at Beth-el: for it is the king's chapel" (7:12-13; margin "or, sanctuary"); quotes 5:21, 5:23, 5:24 exact; "they take a bribe, and they turn aside the poor in the gate from their right" (5:12, "the gate" = the court); "ye have built houses of hewn stone" after "your treading is upon the poor" (5:11). "Around 760 BC": the days of Jeroboam II (1:1), standard approximate dating (recalled).
 **Compression to know about:** the "I hate your feast days" message is in the book's collection of Amos's messages to Israel (Bethel is its main sanctuary, 5:5); the script says he *carried* that message, not that he spoke those exact words on one day at Bethel.
@@ -150,28 +162,30 @@ God was never measuring how loud the singing was. He was watching how the singer
 
 **Voiceover text**
 ```
-Two women stood before King Solomon, both claiming the same baby. He settled it by calling for a sword.
+Two women stood before King Solomon, both claiming the same baby. No witnesses. No proof. He settled it by calling for a sword.
 
-They lived in the same house. Three days apart, each had given birth to a son. There was no one else in the house.
-
-One night, one of the babies died. The first woman said the other mother had rolled onto her own child in her sleep, then got up at midnight and swapped the babies while she slept. In the morning she woke to feed her son and found a dead child in her arms. And it wasn't hers.
+They shared a house, and each had given birth to a son, three days apart. One night, one of the babies died. The first woman said the other mother had rolled onto her own child in her sleep, then swapped the babies at midnight. In the morning she woke up with a dead child in her arms. And it wasn't hers.
 
 The other woman said, no. The living one is mine.
 
-No witnesses. No proof. Just two women, saying the same thing.
+Solomon said, "Bring me a sword." And when they brought it, he said, "Divide the living child in two, and give half to the one, and half to the other."
 
-So Solomon said, "Bring me a sword." "Divide the living child in two, and give half to the one, and half to the other."
-
-One woman cried out, "O my lord, give her the living child, and in no wise slay it." She would rather lose him than see him hurt.
+One woman cried out, "O my lord, give her the living child, and in no wise slay it."
 
 The other said, "Let it be neither mine nor thine, but divide it."
 
 And Solomon said, "Give her the living child, and in no wise slay it: she is the mother thereof."
 
-That instinct is still with us. Watch a divorce turn bitter. Sometimes one parent fights for every weekend, not because it's best for the kids, but because the other one can't be allowed to have them. The children become the thing being divided.
+Solomon never found out what happened that night. He didn't need to. He made a moment where each woman had to show what she wanted more.
 
-The one who truly loves them is usually the one willing to give something up, so they don't get torn in half.
+The real mother wanted her son to live, even if she lost him. The other woman had already lost her child, and she couldn't stand to watch someone else keep theirs. She didn't want the baby. She wanted no one to win.
+
+That's still in us. It's the argument you keep going long after you've forgotten what started it, because backing down feels like losing. The ex who says, if I can't have you, no one will. The fight over a parent's house where everyone would rather sell it to a stranger than let a sibling keep it.
+
+When you can't tell who's right, watch who's willing to lose to keep the thing whole.
 ```
+
+**v2 (2026-11-17): reveal is that Solomon never learned what happened that night; he made a moment where each woman showed what she wanted more. "Neither mine nor thine" (3:26) = she wanted no one to win (our reading). Quotes 3:24-27 checked exact.** 314 words ≈ 1.8 min at 170 wpm.
 
 **Accuracy (KJV, 1 Kings 3:16-28, checked against ebible.org KJV this session):** two women "that were harlots" in one house, births three days apart, "no stranger with us in the house" (3:16-18); "this woman's child died in the night; because she overlaid it", swapped "at midnight", the morning discovery (3:19-21); the dispute (3:22-23); quotes from 3:24, 3:25, 3:26 (both women) and 3:27 are exact. The real mother's "bowels yearned upon her son" (3:26) is rendered "She would rather lose him than see him hurt." All Israel "saw that the wisdom of God was in him, to do judgment" (3:28): left for long-form.
 **Choice to note:** "harlots" is left out for flow (true to the text, not needed for the idea). Say if you want it in.
