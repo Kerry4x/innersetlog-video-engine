@@ -32,7 +32,7 @@ The favourite 2-3 previews as audio files in the Drive folder (named by number, 
 ## Round 2 (Kerry, 2026-11-17): men 25-30 only
 Observation from round 1: the "angry" king line came from the preview text itself ("The king was furious."), which the model performs. Preview B below reports the anger instead of acting it.
 
-**Preview A** (same as before, performs the emotion) and **Preview B** (narrator stays steady; 470 chars):
+**Preview A** (same as before, performs the emotion) and **Preview B** (narrator stays steady; 490 chars):
 > Around 1000 BC, a prophet went to the most powerful king in Israel with a story about a stolen lamb. A rich man had flocks and herds. A poor man had one little ewe lamb, and it was unto him as a daughter. When the king heard it, he said, "As the Lord liveth, the man that hath done this thing shall surely die." The prophet looked at him and said, "Thou art the man." Three thousand years later, we still do the same thing. We can see it in everyone else. We just can't see it in ourselves.
 
 Descriptions (each run = 3 voices):
