@@ -86,7 +86,7 @@ Naaman almost stayed sick because of two words. "I thought."
 
 **Voiceover text**
 ```
-The religious leaders came to catch Jesus' disciples breaking a rule. They walked away accused of breaking one of the Ten Commandments.
+The religious leaders came to catch Jesus' disciples breaking a rule. Instead, he accused them of breaking one of the Ten Commandments.
 
 Their complaint was handwashing. The tradition of the elders said you washed your hands a certain way before you ate, and his disciples didn't. So they asked him, why don't your disciples keep the tradition?
 
@@ -140,7 +140,7 @@ What God wanted was plain. "But let judgment run down as waters, and righteousne
 
 Now look at the priest's answer again. Not, is this true? Not, should we change? Just: go home, and don't say this here. This is the king's chapel.
 
-That one line shows how the worship had gone wrong. The sanctuary was called God's house, but the priest defended it as the king's. And a message from God that troubled the kingdom was treated as the problem.
+That one line shows how the worship had gone wrong. Bethel means "house of God." But the priest defended it as the king's. And a message from God that troubled the kingdom was treated as the problem.
 
 We still do this. It's easier to remove the person saying the hard thing than to deal with what they said. The coworker who raises a problem gets labeled difficult. The friend who tells you the truth gets left out of the group chat. The church member who asks about how people are treated is told it's not the right time.
 
