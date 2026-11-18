@@ -71,6 +71,30 @@ Kerry, 2026-11-18: "I don't want it to be things that I myself point out only."
   - characters cut off.
 - **Camera after re-staging:** check that it still sees the faces.
 
+## Light and set: make every shot look like the close-ups
+Kerry, 2026-11-18: the close-ups of David "are beautiful"; the room around them, the lighting and the wider shots needed work. What the close-ups had, and what the reference wides do (40 frames studied from WS, EST, MS and INS shots):
+1. **Light pools on the people; the room falls away.**
+   - Ambient light stays low (hemisphere 0.2).
+   - The key light uses a narrow cone on the acting area.
+   - There's a rim light to lift the characters off the background, and a weak cool fill for colour contrast.
+   - The walls should never be evenly lit.
+2. **Every background has a light source and depth:**
+   - a doorway to a sunlit outside (a bright wall reads as sun, so it can carry emissive), or
+   - a lamp, or a window.
+   - A backlit doorway behind a character gives a natural rim light.
+3. **Rich, period-true surfaces instead of repeated bricks.**
+   - The throne room uses cedar panelling below and lime plaster above ("I dwell in an house of cedar", 2 Sam 7:2), with pilasters and a carved arch.
+   - Plaster is one painted map per wall (darker toward the ceiling, trowel marks) with a finely tiled bump.
+4. **Wider shots get depth of field too** (the wide at aperture 0.004, the establishing shot at 0.0011), so the far wall is soft as in the close-ups.
+   - A foreground element only if it reads as something. A blob at the edge is worse than nothing.
+5. **Inserts are macro, and the object has to deserve it.**
+   - A simple shape seen up close reads as a toy, so the lion was carved: mane locks, brow, muzzle, nose and eyes.
+   - Shoot from where the contact is visible: a fist resting on the wood, seen from the side.
+6. **Anything new in the set re-runs the contact checks.** The carved mane was bigger and put David's hand 1.1 cm into it. The hands were re-solved onto the wood itself, not the top of the mane.
+7. **Things seen through openings:**
+   - check every camera for slivers at the frame edge (palm fronds, a niche, a sill);
+   - place background objects so each camera sees them whole, or not at all.
+
 ## Debug hooks in throne.html
 - `PICK(x, y)` gives the meshes under a screen point.
 - `DBG()` colour-codes David's cloth pieces.
