@@ -1,0 +1,253 @@
+{
+ "page": "cutout.html?anim=lamb",
+ "fps": 24,
+ "frames": 120,
+ "audio": [
+  27.4,
+  32.4
+ ],
+ "unique": 60,
+ "issues": [],
+ "gaze": [
+  {
+   "frame": 0,
+   "g": null
+  },
+  {
+   "frame": 2,
+   "g": null
+  },
+  {
+   "frame": 4,
+   "g": null
+  },
+  {
+   "frame": 6,
+   "g": null
+  },
+  {
+   "frame": 8,
+   "g": null
+  },
+  {
+   "frame": 10,
+   "g": null
+  },
+  {
+   "frame": 12,
+   "g": null
+  },
+  {
+   "frame": 14,
+   "g": null
+  },
+  {
+   "frame": 16,
+   "g": null
+  },
+  {
+   "frame": 18,
+   "g": null
+  },
+  {
+   "frame": 20,
+   "g": null
+  },
+  {
+   "frame": 22,
+   "g": null
+  },
+  {
+   "frame": 24,
+   "g": null
+  },
+  {
+   "frame": 26,
+   "g": null
+  },
+  {
+   "frame": 28,
+   "g": null
+  },
+  {
+   "frame": 30,
+   "g": null
+  },
+  {
+   "frame": 32,
+   "g": null
+  },
+  {
+   "frame": 34,
+   "g": null
+  },
+  {
+   "frame": 36,
+   "g": null
+  },
+  {
+   "frame": 38,
+   "g": null
+  },
+  {
+   "frame": 40,
+   "g": null
+  },
+  {
+   "frame": 42,
+   "g": null
+  },
+  {
+   "frame": 44,
+   "g": null
+  },
+  {
+   "frame": 46,
+   "g": null
+  },
+  {
+   "frame": 48,
+   "g": null
+  },
+  {
+   "frame": 50,
+   "g": null
+  },
+  {
+   "frame": 52,
+   "g": null
+  },
+  {
+   "frame": 54,
+   "g": null
+  },
+  {
+   "frame": 56,
+   "g": null
+  },
+  {
+   "frame": 58,
+   "g": null
+  },
+  {
+   "frame": 60,
+   "g": null
+  },
+  {
+   "frame": 62,
+   "g": null
+  },
+  {
+   "frame": 64,
+   "g": null
+  },
+  {
+   "frame": 66,
+   "g": null
+  },
+  {
+   "frame": 68,
+   "g": null
+  },
+  {
+   "frame": 70,
+   "g": null
+  },
+  {
+   "frame": 72,
+   "g": null
+  },
+  {
+   "frame": 74,
+   "g": null
+  },
+  {
+   "frame": 76,
+   "g": null
+  },
+  {
+   "frame": 78,
+   "g": null
+  },
+  {
+   "frame": 80,
+   "g": null
+  },
+  {
+   "frame": 82,
+   "g": null
+  },
+  {
+   "frame": 84,
+   "g": null
+  },
+  {
+   "frame": 86,
+   "g": null
+  },
+  {
+   "frame": 88,
+   "g": null
+  },
+  {
+   "frame": 90,
+   "g": null
+  },
+  {
+   "frame": 92,
+   "g": null
+  },
+  {
+   "frame": 94,
+   "g": null
+  },
+  {
+   "frame": 96,
+   "g": null
+  },
+  {
+   "frame": 98,
+   "g": null
+  },
+  {
+   "frame": 100,
+   "g": null
+  },
+  {
+   "frame": 102,
+   "g": null
+  },
+  {
+   "frame": 104,
+   "g": null
+  },
+  {
+   "frame": 106,
+   "g": null
+  },
+  {
+   "frame": 108,
+   "g": null
+  },
+  {
+   "frame": 110,
+   "g": null
+  },
+  {
+   "frame": 112,
+   "g": null
+  },
+  {
+   "frame": 114,
+   "g": null
+  },
+  {
+   "frame": 116,
+   "g": null
+  },
+  {
+   "frame": 118,
+   "g": null
+  }
+ ]
+}
