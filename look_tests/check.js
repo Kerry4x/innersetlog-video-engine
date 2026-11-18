@@ -7,7 +7,7 @@ const s = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split('?
   fs.mkdirSync(OUT, { recursive: true });
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const p = await b.newPage({ viewport: { width: 1080, height: 1920 } }); p.on('pageerror', e => console.log('PAGE ERROR', e.message));
-  await p.goto(`http://127.0.0.1:${s.address().port}/${PAGE}`); await p.waitForFunction(() => window.READY, null, { timeout: 300000 });
+  await p.goto(`http://127.0.0.1:${s.address().port}/${PAGE}`); await p.waitForFunction(() => window.READY, null, { timeout: 900000 });
   const R = await p.evaluate(() => window.RANGES || [[0, window.DURATION]]), E = await p.evaluate(() => window.EDIT || []), rep = [];
   const ONLY = process.env.ONLY ? process.env.ONLY.split(',').map(Number) : null;
   for (let k = 0; k < R.length; k++) { if (ONLY && !ONLY.includes(k)) continue; const [t0, t1] = R[k]; const name = E[k] ? E[k][2] : ''; let worst = null, gz = [], n = 0;

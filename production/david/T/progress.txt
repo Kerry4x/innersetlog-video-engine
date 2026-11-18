@@ -1,0 +1,5 @@
+shot 0: done 2453 frames, 40 rendered, 0 frames with issues
+shot 1: done 2453 frames, 25 rendered, 0 frames with issues
+shot 2: done 2453 frames, 19 rendered, 0 frames with issues
+shot 3: done 2453 frames, 48 rendered, 0 frames with issues
+shot 4: done 2453 frames, 17 rendered, 0 frames with issues

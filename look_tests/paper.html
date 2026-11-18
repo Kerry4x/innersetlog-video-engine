@@ -1,0 +1,378 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Paper theatre: David short</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="module">
+// Nathan's parable as a paper theatre inside the clay world (2 Sam 12:1-4): layered paper scenery, hinged paper puppets in profile,
+// real lights and shadows. Same renderer and quality settings as the throne room (2x supersampling, MSAA, soft shadows).
+//   ?anim=lamb   voiceover 27.4-32.4 s: "Instead of taking one of his own animals, he took his poor neighbor's only lamb,"
+//   ?ss=1 for fast previews
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const Q = new URLSearchParams(location.search), W = 1080, H = 1920, SS = +(Q.get('ss') || 2), RW = W * SS, RH = H * SS;
+let seed = 7; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#1c130d');
+const PPM = 2000; /* texture pixels per metre of paper */
+
+// ---------- paper: fibre texture, cut-edge rim, alpha-tested planes that cast real shadows ----------
+const fibre = (() => { const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d'); g.fillStyle = '#808080'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 9000; i++) { const v = 110 + rand() * 40 | 0; g.strokeStyle = `rgba(${v},${v},${v},0.35)`; g.lineWidth = 0.6 + rand(); const x = rand() * 512, y = rand() * 512, a = rand() * 6.3, l = 3 + rand() * 12; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+  for (let i = 0; i < 2500; i++) { const v = 90 + rand() * 80 | 0; g.fillStyle = `rgba(${v},${v},${v},0.25)`; g.fillRect(rand() * 512, rand() * 512, 1.5, 1.5); } return c; })();
+const bump = new THREE.CanvasTexture(fibre); bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
+
+/* piece(wM, hM, [pivotX, pivotY] as 0..1 from top-left, draw(ctx, w, h), { rim }) -> Group at the pivot.
+   The cut edge: the drawn shape is dilated and filled with pale paper underneath, like card cut with scissors. */
+function piece(wM, hM, pivot, draw, { rim = 9, rimColor = '#efe3c9', z = 0 } = {}) {
+  const ppm = wM * hM > 0.6 ? 700 : PPM; /* big backdrops are soft anyway: a third of the resolution keeps load time and memory sane */
+  const sc = ppm / PPM, w = Math.round(wM * ppm), h = Math.round(hM * ppm), pad = rim + 4; const draw0 = draw; draw = (g, ww, hh) => { draw0(g, ww, hh); };
+  const art = document.createElement('canvas'); art.width = w + pad * 2; art.height = h + pad * 2; const a = art.getContext('2d'); a.translate(pad, pad); draw(a, w, h);
+  const c = document.createElement('canvas'); c.width = art.width; c.height = art.height; const g = c.getContext('2d');
+  if (rim) { const m = document.createElement('canvas'); m.width = c.width; m.height = c.height; const mg = m.getContext('2d');
+    for (let k = 0; k < 24; k++) { const an = k / 24 * 6.283; mg.drawImage(art, Math.cos(an) * rim, Math.sin(an) * rim); }
+    mg.globalCompositeOperation = 'source-in'; mg.fillStyle = rimColor; mg.fillRect(0, 0, m.width, m.height); g.drawImage(m, 0, 0); m.width = m.height = 0; }
+  g.drawImage(art, 0, 0);
+  g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.18; g.globalCompositeOperation = 'multiply'; for (let y = 0; y < c.height; y += 512) for (let x = 0; x < c.width; x += 512) g.drawImage(fibre, x, y);
+  g.globalAlpha = 1; g.globalCompositeOperation = 'destination-in'; g.drawImage(art, 0, 0); if (rim) { for (let k = 0; k < 24; k++) { const an = k / 24 * 6.283; g.drawImage(art, Math.cos(an) * rim, Math.sin(an) * rim); } }
+  g.globalCompositeOperation = 'source-over';
+  if (rim) { /* re-lay the rim under the art (destination-in above only restored the alpha) */ const fin = document.createElement('canvas'); fin.width = c.width; fin.height = c.height; const f = fin.getContext('2d');
+    const m = document.createElement('canvas'); m.width = c.width; m.height = c.height; const mg = m.getContext('2d'); for (let k = 0; k < 24; k++) { const an = k / 24 * 6.283; mg.drawImage(art, Math.cos(an) * rim, Math.sin(an) * rim); }
+    mg.globalCompositeOperation = 'source-in'; mg.fillStyle = rimColor; mg.fillRect(0, 0, m.width, m.height); f.drawImage(m, 0, 0);
+    f.drawImage(art, 0, 0); f.globalCompositeOperation = 'source-atop'; f.globalAlpha = 0.16; f.globalCompositeOperation = 'multiply'; for (let y = 0; y < fin.height; y += 512) for (let x = 0; x < fin.width; x += 512) f.drawImage(fibre, x, y);
+    f.globalAlpha = 1; f.globalCompositeOperation = 'destination-in'; f.drawImage(m, 0, 0); art.width = art.height = 0; c.width = c.height = 0; m.width = m.height = 0; return mk(fin, wM, hM, pad, pivot, z, ppm); } /* release the scratch canvases: under memory pressure Chrome handed back stale canvas contents */
+  art.width = art.height = 0; return mk(c, wM, hM, pad, pivot, z, ppm);
+}
+function mk(canvas, wM, hM, pad, pivot, z, ppm = PPM) {
+  const t = new THREE.CanvasTexture(canvas); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  const fw = canvas.width / ppm, fh = canvas.height / ppm, padM = pad / ppm;
+  const mat = new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.92, bumpMap: bump, bumpScale: 0.6 });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), mat); mesh.castShadow = mesh.receiveShadow = true;
+  mesh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: t, alphaTest: 0.5 });
+  /* place so that the pivot (fraction of the drawn area) is at the group origin */
+  mesh.position.set(fw / 2 - padM - pivot[0] * wM, -(fh / 2 - padM - pivot[1] * hM), z);
+  const grp = new THREE.Group(); grp.add(mesh); grp.userData.mesh = mesh; return grp;
+}
+
+// ---------- drawing helpers (pixel space of each piece) ----------
+const path = (g, pts, close = true) => { g.beginPath(); g.moveTo(...pts[0]); for (let i = 1; i < pts.length; i++) { const p = pts[i]; if (p.length === 6) g.bezierCurveTo(...p); else if (p.length === 4) g.quadraticCurveTo(...p); else g.lineTo(...p); } if (close) g.closePath(); };
+const fill = (g, c, pts) => { path(g, pts); g.fillStyle = c; g.fill(); };
+const ell = (g, c, x, y, rx, ry, rot = 0) => { g.beginPath(); g.ellipse(x, y, rx, ry, rot, 0, 6.283); g.fillStyle = c; g.fill(); };
+const shade = (g, c, x, y, rx, ry, rot = 0) => { g.save(); g.globalCompositeOperation = 'source-atop'; ell(g, c, x, y, rx, ry, rot); g.restore(); }; /* paper layered on top, clipped to what is already cut */
+
+// ---------- scenery layers (z from back to front, at least 2 cm apart) ----------
+const stage = new THREE.Group(); scene.add(stage);
+const softDraw = (draw, blur) => (g, w, h) => { draw(g, w, h); const cv = g.canvas, k = Math.max(2, blur * 1.6), sw = Math.max(8, Math.round(cv.width / k)), sh = Math.max(8, Math.round(cv.height / k)); const sm = document.createElement('canvas'); sm.width = sw; sm.height = sh; const sg = sm.getContext('2d'); sg.imageSmoothingQuality = 'high'; sg.drawImage(cv, 0, 0, sw, sh); g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(sm, 0, 0, cv.width, cv.height); g.restore(); sm.width = sm.height = 0; }; /* soft focus by down- and up-scaling: ctx.filter blur corrupted the next canvas drawn in this renderer */
+function layer(wM, hM, x, y, z, draw, rim = 0, blur = 0) { const p = piece(wM, hM, [0.5, 1], blur ? softDraw(draw, blur) : draw, { rim }); p.position.set(x, y, z); stage.add(p); return p; }
+/* sky with a paper sun */
+const sky = layer(1.9, 2.7, 0, -0.2, -0.22, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f2c58a'); gr.addColorStop(0.55, '#f7dcae'); gr.addColorStop(1, '#f3e2c0'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  ell(g, '#f9e9c8', w * 0.72, h * 0.3, 150, 150); ell(g, '#fbf0d8', w * 0.72, h * 0.3, 118, 118);
+  for (const [x, y, s] of [[0.2, 0.16, 1], [0.48, 0.24, 0.7], [0.86, 0.12, 0.8]]) { g.fillStyle = '#fbefd9'; g.beginPath(); for (const [dx, dy, r] of [[0, 0, 60], [55, -18, 48], [105, 2, 52], [50, 18, 50]]) { g.moveTo(w * x + dx * s + r * s, h * y + dy * s); g.arc(w * x + dx * s, h * y + dy * s, r * s, 0, 6.283); } g.fill(); } }, 0);
+/* far hills */
+layer(1.9, 1.0, 0, 0.5, -0.17, (g, w, h) => { fill(g, '#c9b07a', [[0, h], [0, h * 0.5], [w * 0.15, h * 0.25, w * 0.3, h * 0.42], [w * 0.45, h * 0.12, w * 0.62, h * 0.35], [w * 0.8, h * 0.1, w, h * 0.3], [w, h]]);
+  shade(g, 'rgba(255,240,200,0.35)', w * 0.6, h * 0.3, w * 0.25, h * 0.12); }, 8, 5);
+/* the rich man's hill: house, palm, flock */
+const richHill = layer(1.6, 0.95, 0.25, 0.4, -0.12, (g, w, h) => { fill(g, '#9aa45c', [[0, h], [0, h * 0.62], [w * 0.25, h * 0.38, w * 0.55, h * 0.3], [w * 0.8, h * 0.24, w, h * 0.34], [w, h]]);
+  shade(g, 'rgba(60,70,20,0.25)', w * 0.2, h * 0.95, w * 0.5, h * 0.3); shade(g, 'rgba(255,250,210,0.3)', w * 0.7, h * 0.35, w * 0.3, h * 0.08);
+  for (let i = 0; i < 40; i++) { const x = rand() * w, y = h * (0.45 + rand() * 0.5); g.fillStyle = 'rgba(70,80,30,0.35)'; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 6, y - 22); g.lineTo(x + 12, y); g.fill(); } }, 8, 2);
+const house = piece(0.5, 0.42, [0.5, 1], (g, w, h) => {
+  fill(g, '#efe2c4', [[w * 0.05, h], [w * 0.05, h * 0.35], [w * 0.55, h * 0.35], [w * 0.55, h * 0.12], [w * 0.95, h * 0.12], [w * 0.95, h]]);
+  fill(g, '#d9c7a0', [[w * 0.55, h * 0.12], [w * 0.95, h * 0.12], [w * 0.95, h * 0.2], [w * 0.55, h * 0.2]]);
+  for (const [x, y] of [[0.14, 0.5], [0.3, 0.5], [0.64, 0.3], [0.8, 0.3], [0.64, 0.55], [0.8, 0.55]]) fill(g, '#5a3b28', [[w * x, h * (y + 0.12)], [w * x, h * y + 14, w * x + 26, h * y - 2, w * x + 52, h * y + 14], [w * x + 52, h * (y + 0.12)]]);
+  fill(g, '#6b4a30', [[w * 0.38, h], [w * 0.38, h * 0.72, w * 0.43, h * 0.66, w * 0.48, h * 0.72], [w * 0.48, h]]);
+  fill(g, '#b9925a', [[w * 0.02, h * 0.37], [w * 0.58, h * 0.37], [w * 0.58, h * 0.33], [w * 0.02, h * 0.33]]); }, { rim: 7 });
+house.position.set(0.46, 1.03, -0.127); /* tucked behind the ridge: the hill hides its base, no floating corner on the slope */ stage.add(house);
+const palm = piece(0.26, 0.5, [0.5, 1], (g, w, h) => { fill(g, '#7a5a36', [[w * 0.46, h], [w * 0.44, h * 0.5, w * 0.5, h * 0.3, w * 0.56, h * 0.25], [w * 0.6, h * 0.26], [w * 0.55, h * 0.5, w * 0.54, h * 0.8, w * 0.56, h]]);
+  for (let k = 0; k < 7; k++) { const a = -2.9 + k * 0.48; g.save(); g.translate(w * 0.57, h * 0.25); g.rotate(a); fill(g, k % 2 ? '#6f8a3a' : '#5e7a30', [[0, 0], [70, -40, 150, -30, 210, 10], [150, -5, 70, 10, 0, 0]]); g.restore(); } }, { rim: 7 });
+palm.position.set(0.2, 0.99, -0.1235); stage.add(palm);
+const sheep = (g, w, h, dark = '#3a2d26', wool = '#f4efe6') => { for (const [x, y, r] of [[0.32, 0.45, 0.2], [0.5, 0.38, 0.22], [0.68, 0.45, 0.2], [0.42, 0.58, 0.2], [0.6, 0.58, 0.2]]) ell(g, wool, w * x, h * y, w * r, h * r * 1.1);
+  for (const x of [0.36, 0.48, 0.58, 0.68]) fill(g, dark, [[w * x, h * 0.66], [w * (x + 0.05), h * 0.66], [w * (x + 0.045), h * 0.95], [w * (x + 0.005), h * 0.95]]);
+  ell(g, dark, w * 0.18, h * 0.42, w * 0.13, h * 0.16, -0.3); ell(g, dark, w * 0.26, h * 0.3, w * 0.06, h * 0.035, -0.6); ell(g, '#fbf7ee', w * 0.15, h * 0.38, w * 0.028, h * 0.03); ell(g, '#111', w * 0.145, h * 0.385, w * 0.014, h * 0.016); };
+const flock = [];
+for (let i = 0; i < 26; i++) { const s = 0.034 + rand() * 0.012, sp = piece(s * 1.3, s, [0.5, 0.95], (g, w, h) => sheep(g, w, h), { rim: 4 }); sp.position.set(0.12 + (i % 13) * 0.032 + rand() * 0.012, 0.9 + Math.floor(i / 13) * 0.03 + rand() * 0.008, -0.112 + i * 0.0006 * 5); sp.scale.x = rand() < 0.4 ? -1 : 1; stage.add(sp); flock.push(sp); } /* huge flocks */
+for (let i = 0; i < 14; i++) { const s = 0.042 + rand() * 0.014, sp = piece(s * 1.3, s, [0.5, 0.95], (g, w, h) => sheep(g, w, h), { rim: 5 });
+  sp.position.set(0.43 + (i % 7) * 0.026 + rand() * 0.012, 0.975 + Math.floor(i / 7) * 0.024 + rand() * 0.008, -0.097 + i * 0.003); /* small and distant, on the slope below his house: above the puppets' heads, never beside a face */ sp.scale.x = rand() < 0.4 ? -1 : 1; stage.add(sp); flock.push(sp); }
+/* the poor man's side: a lower, drier hill and a small hut */
+layer(1.0, 0.7, -0.42, 0.3, -0.05, (g, w, h) => { fill(g, '#c49a62', [[0, h], [0, h * 0.4], [w * 0.3, h * 0.22, w * 0.6, h * 0.3], [w * 0.8, h * 0.36, w * 0.94, h * 0.7, w * 0.99, h], [0, h]]); /* slopes down to the ground: no straight cut edge */ shade(g, 'rgba(90,60,30,0.25)', w * 0.3, h * 0.9, w * 0.4, h * 0.3); }, 8);
+const hut = piece(0.26, 0.24, [0.5, 1], (g, w, h) => { fill(g, '#b07a4a', [[w * 0.08, h], [w * 0.08, h * 0.4], [w * 0.92, h * 0.4], [w * 0.92, h]]);
+  fill(g, '#8a5a34', [[w * 0.02, h * 0.42], [w * 0.5, h * 0.05], [w * 0.98, h * 0.42]]); fill(g, '#4a3020', [[w * 0.4, h], [w * 0.4, h * 0.62], [w * 0.6, h * 0.62], [w * 0.6, h]]);
+  shade(g, 'rgba(255,230,190,0.25)', w * 0.3, h * 0.6, w * 0.15, h * 0.2); }, { rim: 6 });
+hut.position.set(-0.4, 0.8, -0.045); stage.add(hut);
+/* the front strip: ground the puppets stand behind (their feet are hidden in the slot) */
+const FRONT_Y = 0.45;
+layer(1.9, 0.8, 0, FRONT_Y, 0.06, (g, w, h) => { fill(g, '#a8803f', [[0, h], [0, h * 0.06], [w * 0.2, 0, w * 0.4, h * 0.05], [w * 0.62, h * 0.1, w * 0.8, h * 0.02], [w, h * 0.04], [w, h]]);
+  for (let i = 0; i < 70; i++) { const x = rand() * w; g.fillStyle = rand() < 0.5 ? '#8f6a30' : '#b99050'; g.beginPath(); g.moveTo(x, h * 0.08); g.lineTo(x + 8, h * 0.08 - 26 - rand() * 20); g.lineTo(x + 16, h * 0.08); g.fill(); }
+  shade(g, 'rgba(60,40,15,0.3)', w * 0.5, h * 0.7, w * 0.6, h * 0.4); }, 10).userData.front = true;
+/* translate layer: the layer() helper uses pivot bottom-centre, so the front strip's top edge sits at FRONT_Y + 0.8 - ... */
+{ const fs = stage.children[stage.children.length - 1]; fs.position.y = FRONT_Y - 0.8 + 0.8; fs.userData.mesh.position.y -= 0.8; fs.userData.topY = FRONT_Y; }
+
+// ---------- puppets (profile, hinged at the neck and shoulders) ----------
+const SKIN = '#c98a5c', SKIN_D = '#a96d44';
+function profileHead(g, w, h, { beard, beardC = '#3a2416', cloth, clothC, eye = 'calm', nose = 1, faceRight = true, hair = null, longHair = false, skin = null }) {
+  const SKIN = skin || '#c98a5c';
+  g.save(); if (!faceRight) { g.translate(w, 0); g.scale(-1, 1); }
+  ell(g, SKIN, w * 0.45, h * 0.52, w * 0.33, h * 0.42); /* tall egg head */ if (skin) { /* custom skin tone */ }
+  ell(g, SKIN, w * (0.8 + 0.04 * nose), h * 0.6, w * 0.17 * nose, h * 0.15 * nose); shade(g, 'rgba(255,220,180,0.35)', w * 0.8, h * 0.55, w * 0.08, h * 0.06); /* the bulb nose */
+  if (hair) fill(g, hair, [[w * 0.12, h * 0.62], [w * 0.06, h * 0.3, w * 0.3, h * 0.08, w * 0.55, h * 0.1], [w * 0.74, h * 0.12, w * 0.8, h * 0.22, w * 0.7, h * 0.24], [w * 0.45, h * 0.22, w * 0.3, h * 0.36, w * 0.28, h * 0.62]]); /* hair over the back of the head */
+  if (longHair) fill(g, hair, [[w * 0.14, h * 0.4], [w * 0.0, h * 0.7, w * 0.05, h * 1.0, w * 0.2, h * 1.08], [w * 0.36, h * 1.0, w * 0.34, h * 0.7, w * 0.3, h * 0.45]]);
+  ell(g, SKIN_D, w * 0.3, h * 0.55, w * 0.07, h * 0.09); /* ear */
+  const ex = w * 0.62, ey = h * 0.44; if (eye !== 'tender' && eye !== 'closed') ell(g, '#fbf7ee', ex, ey, w * 0.1, h * 0.095);
+  if (eye === 'calm') { ell(g, '#120b08', ex + w * 0.04, ey + h * 0.01, w * 0.035, h * 0.04); fill(g, SKIN, [[ex - w * 0.12, ey - h * 0.1], [ex + w * 0.12, ey - h * 0.1], [ex + w * 0.12, ey - h * 0.03], [ex - w * 0.12, ey - h * 0.03]]); }
+  if (eye === 'sly') { ell(g, '#120b08', ex + w * 0.05, ey + h * 0.03, w * 0.03, h * 0.032); fill(g, SKIN, [[ex - w * 0.12, ey - h * 0.1], [ex + w * 0.12, ey - h * 0.1], [ex + w * 0.12, ey + h * 0.01], [ex - w * 0.12, ey - h * 0.02]]); fill(g, '#2a1a10', [[ex - w * 0.11, ey - h * 0.06], [ex + w * 0.12, ey - h * 0.1], [ex + w * 0.12, ey - h * 0.075], [ex - w * 0.11, ey - h * 0.04]]); }
+  if (eye === 'back') { ell(g, '#120b08', ex - w * 0.04, ey - h * 0.01, w * 0.035, h * 0.04); fill(g, SKIN, [[ex - w * 0.12, ey - h * 0.1], [ex + w * 0.12, ey - h * 0.1], [ex + w * 0.12, ey - h * 0.04], [ex - w * 0.12, ey - h * 0.04]]); }
+  if (eye === 'shock') { ell(g, '#120b08', ex + w * 0.035, ey, w * 0.026, h * 0.03); fill(g, '#2a1a10', [[ex - w * 0.1, ey - h * 0.15], [ex + w * 0.1, ey - h * 0.19], [ex + w * 0.1, ey - h * 0.165], [ex - w * 0.1, ey - h * 0.125]]); }
+  if (eye === 'grief') { ell(g, '#120b08', ex + w * 0.03, ey + h * 0.025, w * 0.032, h * 0.035); fill(g, SKIN, [[ex - w * 0.12, ey - h * 0.1], [ex + w * 0.12, ey - h * 0.1], [ex + w * 0.12, ey - h * 0.04], [ex - w * 0.12, ey - h * 0.01]]); fill(g, '#2a1a10', [[ex - w * 0.1, ey - h * 0.17], [ex + w * 0.1, ey - h * 0.12], [ex + w * 0.1, ey - h * 0.095], [ex - w * 0.1, ey - h * 0.145]]); }
+  if (beard) { /* hangs from the jaw below the mouth, so it never reads as an open mouth */ fill(g, beardC, beard === 'point' ? [[w * 0.34, h * 0.7], [w * 0.44, h * 0.84], [w * 0.56, h * 0.98, w * 0.64, h * 1.06, w * 0.7, h * 1.12], [w * 0.74, h * 0.9, w * 0.78, h * 0.8], [w * 0.62, h * 0.79], [w * 0.5, h * 0.8, w * 0.42, h * 0.76, w * 0.34, h * 0.7]] : [[w * 0.32, h * 0.68], [w * 0.38, h * 0.9, w * 0.62, h * 0.95, w * 0.76, h * 0.84], [w * 0.77, h * 0.79], [w * 0.5, h * 0.8, w * 0.4, h * 0.75, w * 0.32, h * 0.68]]);
+    g.save(); g.globalCompositeOperation = 'source-atop'; g.strokeStyle = 'rgba(0,0,0,0.22)'; g.lineWidth = 5; for (let k = 0; k < 7; k++) { g.beginPath(); g.moveTo(w * (0.4 + k * 0.05), h * 0.76); g.quadraticCurveTo(w * (0.42 + k * 0.05), h * 0.9, w * (0.46 + k * 0.05), h * (beard === 'point' ? 1.0 : 0.9)); g.stroke(); } g.restore();
+    fill(g, SKIN, [[w * 0.6, h * 0.71], [w * 0.8, h * 0.69], [w * 0.8, h * 0.76], [w * 0.62, h * 0.77]]); fill(g, '#5a2a1c', [[w * 0.64, h * 0.735], [w * 0.78, h * 0.725], [w * 0.78, h * 0.742], [w * 0.64, h * 0.752]]); /* chin skin and a closed mouth line above the beard */
+    fill(g, beardC, [[w * 0.6, h * 0.7], [w * 0.72, h * 0.66, w * 0.86, h * 0.69], [w * 0.85, h * 0.725], [w * 0.62, h * 0.73]]); /* mustache under the nose */ }
+  if (cloth === 'turban') { fill(g, clothC, [[w * 0.1, h * 0.38], [w * 0.1, h * 0.05, w * 0.85, h * -0.02, w * 0.8, h * 0.3], [w * 0.6, h * 0.3, w * 0.3, h * 0.3, w * 0.1, h * 0.38]]); ell(g, '#d6a640', w * 0.7, h * 0.2, w * 0.05, h * 0.045); ell(g, '#8a1c2a', w * 0.7, h * 0.2, w * 0.028, h * 0.026); }
+  if (eye === 'tender') { g.strokeStyle = '#2a1a10'; g.lineWidth = 9; g.lineCap = 'round'; g.beginPath(); g.arc(ex, ey - h * 0.02, w * 0.075, 0.2, Math.PI - 0.2); g.stroke(); }  /* eyes closed, content */
+  if (eye === 'closed') { g.strokeStyle = '#2a1a10'; g.lineWidth = 8; g.lineCap = 'round'; g.beginPath(); g.moveTo(ex - w * 0.07, ey + h * 0.01); g.lineTo(ex + w * 0.07, ey + h * 0.01); g.stroke(); }
+  if (eye === 'tender' || eye === 'closed') { /* lids drawn over the white */ }
+  if (cloth === 'crown') { fill(g, '#d6a640', [[w * 0.16, h * 0.2], [w * 0.2, h * 0.02], [w * 0.28, h * 0.13], [w * 0.38, -h * 0.02], [w * 0.47, h * 0.12], [w * 0.57, -h * 0.03], [w * 0.64, h * 0.12], [w * 0.74, h * 0.02], [w * 0.74, h * 0.22], [w * 0.16, h * 0.24]]); for (const x of [0.3, 0.46, 0.62]) ell(g, '#8a1c2a', w * x, h * 0.17, w * 0.022, h * 0.02); }
+  if (cloth === 'veil') { fill(g, clothC, [[w * 0.62, h * 0.1], [w * 0.3, h * -0.02, w * 0.02, h * 0.25, w * 0.06, h * 0.7], [w * 0.02, h * 1.0, w * 0.2, h * 1.12, w * 0.36, h * 1.1], [w * 0.3, h * 0.8, w * 0.36, h * 0.4, w * 0.5, h * 0.24], [w * 0.58, h * 0.18, w * 0.64, h * 0.14, w * 0.62, h * 0.1]]); }
+  if (cloth === 'helmet') { fill(g, '#9a7a3a', [[w * 0.12, h * 0.4], [w * 0.1, h * 0.02, w * 0.78, h * -0.02, w * 0.8, h * 0.36], [w * 0.12, h * 0.4]]); fill(g, '#b0303a', [[w * 0.3, h * 0.04], [w * 0.4, h * -0.2, w * 0.62, h * -0.16, w * 0.66, h * 0.06]]); fill(g, '#7a5a2a', [[w * 0.1, h * 0.36], [w * 0.82, h * 0.33], [w * 0.82, h * 0.4], [w * 0.1, h * 0.43]]); }
+  if (cloth === 'wrap') { fill(g, clothC, [[w * 0.06, h * 0.75], [w * 0.02, h * 0.2, w * 0.5, h * -0.04, w * 0.74, h * 0.22], [w * 0.5, h * 0.24, w * 0.3, h * 0.4, w * 0.22, h * 0.75]]); }
+  g.restore();
+}
+function puppet(def, parent = stage) { const P = new THREE.Group(); parent.add(P); const parts = {}, z0 = def.z;
+  parts.armFar = piece(...def.armFar, { rim: 7, z: z0 - 0.006 }); parts.body = piece(...def.body, { rim: 8, z: z0 });
+  parts.armNear = piece(...def.armNear, { rim: 7, z: z0 + 0.012 });
+  parts.heads = def.heads.map(hd => piece(...hd, { rim: 8, z: z0 + 0.003 })); parts.head = new THREE.Group(); parts.heads.forEach((hh, i) => { hh.visible = i === 0; parts.head.add(hh); });
+  P.add(parts.body); parts.body.add(parts.armFar, parts.head, parts.armNear);
+  parts.head.position.set(...def.neck); parts.armNear.position.set(...def.shoulder); parts.armFar.position.set(def.shoulder[0] - 0.02 * def.dir, def.shoulder[1], 0);
+  P.userData = { parts, def }; return P; }
+const setHead = (P, i) => P.userData.parts.heads.forEach((h, k) => h.visible = k === i);
+
+/* the poor man: thin, patched tunic, faces right; the lamb rests on his forearm against his chest */
+const poor = puppet({ z: 0.0, dir: 1, neck: [0.02, 0.43, 0], shoulder: [0.03, 0.41, 0],
+  body: [0.22, 0.62, [0.5, 1], (g, w, h) => { fill(g, '#8a6240', [[w * 0.22, h], [w * 0.2, h * 0.5, w * 0.24, h * 0.32, w * 0.36, h * 0.3], [w * 0.72, h * 0.3, w * 0.8, h * 0.45, w * 0.82, h]]);
+    fill(g, '#a07a52', [[w * 0.3, h * 0.66], [w * 0.52, h * 0.64], [w * 0.54, h * 0.8], [w * 0.32, h * 0.82]]); for (const x of [0.33, 0.4, 0.47]) fill(g, '#6a4a2c', [[w * x, h * 0.65], [w * (x + 0.012), h * 0.65], [w * (x + 0.012), h * 0.81], [w * x, h * 0.81]]);
+    fill(g, '#c9a45a', [[w * 0.2, h * 0.56], [w * 0.82, h * 0.54], [w * 0.82, h * 0.58], [w * 0.2, h * 0.6]]); ell(g, SKIN_D, w * 0.52, h * 0.31, w * 0.1, h * 0.03); }],
+  heads: ['calm', 'shock', 'grief'].map(e => [0.2, 0.24, [0.4, 0.92], (g, w, h) => profileHead(g, w, h, { beard: 'short', beardC: '#7a5a42', cloth: 'wrap', clothC: '#d8c39a', eye: e, nose: 1 })]),
+  /* near arm: sleeve down from the shoulder, forearm forward under the lamb, hand cupped at the front */
+  armNear: [0.17, 0.2, [0.22, 0.06], (g, w, h) => { fill(g, '#7e5838', [[w * 0.1, h * 0.02], [w * 0.36, h * 0.0], [w * 0.4, h * 0.3, w * 0.4, h * 0.5], [w * 0.46, h * 0.56], [w * 0.8, h * 0.54], [w * 0.82, h * 0.7], [w * 0.4, h * 0.74], [w * 0.16, h * 0.72, w * 0.1, h * 0.5, w * 0.1, h * 0.02]]);
+    ell(g, SKIN, w * 0.88, h * 0.6, w * 0.1, h * 0.085); ell(g, SKIN, w * 0.92, h * 0.5, w * 0.045, h * 0.06); }],
+  armFar: [0.17, 0.2, [0.22, 0.06], (g, w, h) => { fill(g, '#6a4a2e', [[w * 0.1, h * 0.02], [w * 0.36, h * 0.0], [w * 0.42, h * 0.35, w * 0.46, h * 0.45], [w * 0.78, h * 0.4], [w * 0.8, h * 0.55], [w * 0.36, h * 0.6], [w * 0.14, h * 0.55, w * 0.1, h * 0.4, w * 0.1, h * 0.02]]); ell(g, SKIN_D, w * 0.86, h * 0.47, w * 0.09, h * 0.08); }] });
+poor.position.set(-0.27, 0.3, 0);
+const LAMB_SEAT = new THREE.Vector3((0.56 - 0.22) * 0.17, -(0.54 - 0.06) * 0.2, 0); /* top of his forearm, in arm coordinates */
+/* the lamb: pivot at its feet; held by the scruff it hangs 0.1 m below the fist */
+const lamb = new THREE.Group(); stage.add(lamb);
+const lambPieces = ['calm', 'shock'].map(e => piece(0.17, 0.14, [0.5, 0.95], (g, w, h) => { sheep(g, w, h); if (e === 'shock') { ell(g, '#fbf7ee', w * 0.15, h * 0.38, w * 0.042, h * 0.048); ell(g, '#111', w * 0.15, h * 0.38, w * 0.017, h * 0.02); } }, { rim: 6 }));
+lambPieces.forEach((pp, i) => { pp.visible = i === 0; lamb.add(pp); });
+/* the rich man: wide, red robe with a gold sash, collar and hem, rings, turban, pointed beard; faces left */
+const rich = puppet({ z: 0.025, dir: -1, neck: [-0.02, 0.52, 0], shoulder: [-0.06, 0.47, 0],
+  body: [0.34, 0.74, [0.5, 1], (g, w, h) => { fill(g, '#8e2a32', [[w * 0.12, h], [w * 0.02, h * 0.62, w * 0.1, h * 0.36, w * 0.36, h * 0.3], [w * 0.7, h * 0.27, w * 0.96, h * 0.4, w * 0.92, h]]);
+    shade(g, 'rgba(255,170,150,0.18)', w * 0.35, h * 0.5, w * 0.2, h * 0.15);
+    fill(g, '#d6a640', [[w * 0.03, h * 0.6], [w * 0.95, h * 0.59], [w * 0.95, h * 0.63], [w * 0.03, h * 0.64]]); ell(g, '#d6a640', w * 0.2, h * 0.62, w * 0.035, h * 0.03);
+    fill(g, '#d6a640', [[w * 0.1, h * 0.94], [w * 0.92, h * 0.93], [w * 0.92, h * 0.97], [w * 0.1, h * 0.98]]); fill(g, '#d6a640', [[w * 0.3, h * 0.31], [w * 0.5, h * 0.36, w * 0.66, h * 0.3], [w * 0.64, h * 0.35], [w * 0.5, h * 0.4, w * 0.32, h * 0.35]]); }],
+  heads: ['back', 'sly'].map(e => [0.24, 0.27, [0.4, 0.92], (g, w, h) => profileHead(g, w, h, { beard: 'point', beardC: '#6e4c32', cloth: 'turban', clothC: '#efe3c9', eye: e, nose: 1.15, faceRight: false })]),
+  /* near arm: a long sleeve to a ringed fist; pivot at the shoulder, pointing left */
+  armNear: [0.29, 0.12, [0.9, 0.25], (g, w, h) => { fill(g, '#7a222a', [[w * 0.98, h * 0.05], [w * 0.7, 0, w * 0.4, h * 0.12, w * 0.16, h * 0.3], [w * 0.1, h * 0.66], [w * 0.4, h * 0.62, w * 0.7, h * 0.52, w * 0.98, h * 0.62]]);
+    fill(g, '#d6a640', [[w * 0.12, h * 0.28], [w * 0.19, h * 0.26], [w * 0.21, h * 0.66], [w * 0.13, h * 0.7]]); ell(g, SKIN, w * 0.07, h * 0.48, w * 0.07, h * 0.24); ell(g, '#d6a640', w * 0.08, h * 0.62, w * 0.022, h * 0.06); }],
+  armFar: [0.2, 0.2, [0.85, 0.1], (g, w, h) => { fill(g, '#6e1e26', [[w * 0.95, h * 0.05], [w * 0.7, 0, w * 0.6, h * 0.35, w * 0.55, h * 0.5], [w * 0.4, h * 0.6, w * 0.25, h * 0.62, w * 0.15, h * 0.6], [w * 0.15, h * 0.75], [w * 0.4, h * 0.8, w * 0.75, h * 0.72, w * 0.95, h * 0.4]]); ell(g, SKIN_D, w * 0.12, h * 0.67, w * 0.08, h * 0.08); }] });
+rich.position.set(0.36, 0.3, 0);
+const FIST = new THREE.Vector3((0.07 - 0.9) * 0.29, -(0.48 - 0.25) * 0.12, 0), FIST_ANGLE = Math.atan2(FIST.y, FIST.x); /* fist in arm coordinates */
+sky.userData.mesh.receiveShadow = false; /* painted backdrop: shadows of near pieces would read as smudges in the sky */
+
+/* ======================= the other paper sets (each its own stage, 10 m apart so nothing overlaps) ======================= */
+const STAGES = { village: stage };
+const mkStage = (name, x) => { const g = new THREE.Group(); g.position.x = x; scene.add(g); STAGES[name] = g; return g; };
+const lay = (st, wM, hM, x, y, z, draw, rim = 0, blur = 0) => { const p = piece(wM, hM, [0.5, 1], blur ? softDraw(draw, blur) : draw, { rim }); p.position.set(x, y, z); st.add(p); return p; };
+const front = (st, y, color, z = 0.06) => { const p = lay(st, 1.9, 0.8, 0, y, z, (g, w, h) => { fill(g, color, [[0, h], [0, h * 0.06], [w * 0.25, 0, w * 0.5, h * 0.05], [w * 0.75, h * 0.09, w, h * 0.04], [w, h]]); shade(g, 'rgba(40,25,10,0.3)', w * 0.5, h * 0.7, w * 0.6, h * 0.4); }, 10); p.userData.mesh.position.y -= 0.8; p.userData.topY = y; return p; };
+const robe = (col, trim) => (g, w, h) => { fill(g, col, [[w * 0.2, h], [w * 0.18, h * 0.5, w * 0.24, h * 0.32, w * 0.36, h * 0.3], [w * 0.7, h * 0.28, w * 0.82, h * 0.45, w * 0.84, h]]); if (trim) { fill(g, trim, [[w * 0.2, h * 0.56], [w * 0.84, h * 0.54], [w * 0.84, h * 0.59], [w * 0.2, h * 0.61]]); fill(g, trim, [[w * 0.36, h * 0.3], [w * 0.52, h * 0.34, w * 0.66, h * 0.29], [w * 0.65, h * 0.33], [w * 0.52, h * 0.38, w * 0.37, h * 0.34]]); } shade(g, 'rgba(255,230,200,0.14)', w * 0.4, h * 0.5, w * 0.16, h * 0.2); };
+const sleeve = (col, skin = SKIN) => (g, w, h) => { fill(g, col, [[w * 0.2, h * 0.02], [w * 0.8, h * 0.02], [w * 0.72, h * 0.7], [w * 0.3, h * 0.72]]); ell(g, skin, w * 0.52, h * 0.82, w * 0.24, h * 0.13); }; /* hanging arm, pivot at the shoulder */
+const scroll = (g, w, h) => { fill(g, '#e9d9b2', [[w * 0.1, h * 0.25], [w * 0.9, h * 0.25], [w * 0.9, h * 0.75], [w * 0.1, h * 0.75]]); ell(g, '#d8c493', w * 0.1, h * 0.5, w * 0.09, h * 0.27); ell(g, '#d8c493', w * 0.9, h * 0.5, w * 0.09, h * 0.27); ell(g, '#9a1c22', w * 0.5, h * 0.5, w * 0.11, h * 0.2); ell(g, '#c0393f', w * 0.48, h * 0.46, w * 0.05, h * 0.09); };
+const handArm = (col, skin, open, ring) => (g, w, h) => { /* forearm coming in from the left, hand at the right end */ fill(g, col, [[0, h * 0.3], [w * 0.62, h * 0.34], [w * 0.64, h * 0.7], [0, h * 0.74]]); fill(g, '#00000022', [[w * 0.56, h * 0.34], [w * 0.64, h * 0.34], [w * 0.64, h * 0.7], [w * 0.56, h * 0.7]]);
+  ell(g, skin, w * 0.74, h * 0.52, w * 0.13, h * 0.22); if (open) { for (let k = 0; k < 4; k++) fill(g, skin, [[w * 0.8, h * (0.33 + k * 0.1)], [w * 0.98, h * (0.31 + k * 0.1)], [w * 0.98, h * (0.38 + k * 0.1)], [w * 0.8, h * (0.4 + k * 0.1)]]); } else { for (let k = 0; k < 4; k++) ell(g, skin, w * 0.85, h * (0.36 + k * 0.1), w * 0.06, h * 0.055); }
+  fill(g, skin, [[w * 0.7, h * 0.3], [w * 0.86, h * 0.18], [w * 0.9, h * 0.24], [w * 0.76, h * 0.36]]); if (ring) ell(g, '#d6a640', w * 0.74, h * 0.62, w * 0.03, h * 0.05); };
+
+/* ---------- Jerusalem at evening: rooftops, a distant roof with a screen, the palace roof with David (2 Sam 11:2) ---------- */
+const J = mkStage('jerusalem', 10);
+const jSky = lay(J, 1.9, 2.7, 0, -0.2, -0.22, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#5a4a7a'); gr.addColorStop(0.45, '#c06a5a'); gr.addColorStop(0.7, '#f0a86a'); gr.addColorStop(1, '#f6cf94'); g.fillStyle = gr; g.fillRect(0, 0, w, h); ell(g, '#ffd99a', w * 0.24, h * 0.62, 120, 120); ell(g, '#ffe7b8', w * 0.24, h * 0.62, 90, 90); }, 0);
+const jDay = lay(J, 1.9, 2.7, 0, -0.2, -0.216, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#9cc2d8'); gr.addColorStop(0.6, '#e8e2c8'); gr.addColorStop(1, '#f3e6c4'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, 0); jDay.visible = false;
+const jSun = piece(0.16, 0.16, [0.5, 0.5], (g, w, h) => { ell(g, '#fff1c2', w / 2, h / 2, w * 0.48, h * 0.48); ell(g, '#ffe49a', w / 2, h / 2, w * 0.38, h * 0.38); }, { rim: 0 }); jSun.position.set(-0.7, 1.3, -0.205); J.add(jSun); jSun.visible = false;
+lay(J, 1.9, 1.0, 0, 0.55, -0.18, (g, w, h) => { fill(g, '#6a4a6a', [[0, h], [0, h * 0.45], [w * 0.2, h * 0.3, w * 0.4, h * 0.4], [w * 0.6, h * 0.2, w * 0.8, h * 0.35], [w, h * 0.3], [w, h]]); }, 0, 4);
+const houses = (g, w, h, base, lit, n, seedOff) => { let x = 0; seed = 50 + seedOff; while (x < w) { const bw = 120 + rand() * 160, bh = h * (0.35 + rand() * 0.5); fill(g, base, [[x, h], [x, h - bh], [x + bw, h - bh], [x + bw, h]]); fill(g, '#00000018', [[x + bw * 0.8, h], [x + bw * 0.8, h - bh], [x + bw, h - bh], [x + bw, h]]);
+    for (let k = 0; k < n; k++) { const wx = x + 20 + rand() * (bw - 50), wy = h - bh + 30 + rand() * (bh - 80); fill(g, rand() < 0.6 ? lit : '#3a2a3a', [[wx, wy], [wx + 18, wy], [wx + 18, wy + 26], [wx, wy + 26]]); } x += bw + 6; } };
+lay(J, 1.9, 0.6, 0, 0.52, -0.14, (g, w, h) => houses(g, w, h, '#8a6a7a', '#ffcf7a', 3, 1), 6, 2);
+lay(J, 1.9, 0.45, 0, 0.18, -0.075, (g, w, h) => houses(g, w, h, '#9a7458', '#ffd88a', 2, 2), 7); /* nearer rooftops */
+/* the near roof across the street: a lattice screen, and behind it, only her head and shoulders far away */
+lay(J, 0.55, 0.42, -0.06, 0.4, -0.1, (g, w, h) => { fill(g, '#b08a6a', [[0, h], [0, h * 0.18], [w, h * 0.18], [w, h]]); fill(g, '#8a6a52', [[0, h * 0.18], [w, h * 0.18], [w, h * 0.24], [0, h * 0.24]]); for (let k = 0; k < 3; k++) fill(g, '#5a3a2a', [[w * (0.15 + k * 0.28), h * 0.45], [w * (0.25 + k * 0.28), h * 0.45], [w * (0.25 + k * 0.28), h * 0.62], [w * (0.15 + k * 0.28), h * 0.62]]); }, 6);
+lay(J, 0.09, 0.09, -0.12, 0.8, -0.106, (g, w, h) => { ell(g, '#3a2a40', w * 0.5, h * 0.3, w * 0.22, h * 0.26); fill(g, '#3a2a40', [[w * 0.18, h], [w * 0.3, h * 0.5], [w * 0.7, h * 0.5], [w * 0.82, h]]); }, 0); /* a silhouette, far off */
+lay(J, 0.2, 0.16, -0.12, 0.8, -0.103, (g, w, h) => { g.strokeStyle = '#6a4a32'; g.lineWidth = 9; for (let x = 0; x <= w; x += 34) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } for (let y = 0; y <= h; y += 34) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); } g.strokeRect(0, 0, w, h); }, 5); /* lattice screen in front of her */
+/* the palace: terraces, columns, a roof parapet David stands behind */
+lay(J, 1.0, 0.75, 0.36, 0.2, -0.05, (g, w, h) => { fill(g, '#e2c79a', [[0, h], [0, h * 0.28], [w, h * 0.28], [w, h]]); fill(g, '#cdb07e', [[w * 0.1, h * 0.28], [w * 0.1, h * 0.1], [w * 0.6, h * 0.1], [w * 0.6, h * 0.28]]);
+  for (let k = 0; k < 5; k++) fill(g, '#b8956a', [[w * (0.08 + k * 0.2), h], [w * (0.12 + k * 0.2), h], [w * (0.12 + k * 0.2), h * 0.42], [w * (0.08 + k * 0.2), h * 0.42]]); for (let k = 0; k < 4; k++) fill(g, '#ffcf7a', [[w * (0.17 + k * 0.2), h * 0.5], [w * (0.24 + k * 0.2), h * 0.5], [w * (0.24 + k * 0.2), h * 0.6], [w * (0.17 + k * 0.2), h * 0.6]]); shade(g, 'rgba(120,60,40,0.3)', w * 0.85, h * 0.6, w * 0.3, h * 0.6); }, 8);
+const jParapet = lay(J, 1.0, 0.09, 0.36, 0.94, 0.03, (g, w, h) => { fill(g, '#d8bc8a', [[0, h], [0, h * 0.2], [w, h * 0.2], [w, h]]); for (let x = 0; x < w; x += 70) fill(g, '#d8bc8a', [[x, h * 0.2], [x, 0], [x + 40, 0], [x + 40, h * 0.2]]); }, 7);
+const davidP = puppet({ z: 0.0, dir: -1, neck: [-0.01, 0.44, 0], shoulder: [-0.04, 0.4, 0],
+  body: [0.24, 0.6, [0.5, 1], robe('#5b3591', '#d6a640')],
+  heads: ['calm', 'sly'].map(e => [0.21, 0.24, [0.4, 0.92], (g, w, h) => profileHead(g, w, h, { beard: 'short', beardC: '#3a2416', hair: '#3a2416', cloth: 'crown', eye: e, nose: 1.05, faceRight: false })]),
+  armNear: [0.08, 0.26, [0.5, 0.04], sleeve('#4c2b7a')], armFar: [0.08, 0.26, [0.5, 0.04], sleeve('#3f2366')] }, J);
+davidP.position.set(0.3, 0.72, 0); davidP.scale.set(0.6, 0.6, 1); /* smaller on the far roof, but the layer spacing stays (no z-fighting) */
+const bird = piece(0.05, 0.02, [0.5, 0.5], (g, w, h) => { g.strokeStyle = '#3a2a3a'; g.lineWidth = 8; g.beginPath(); g.moveTo(0, h); g.quadraticCurveTo(w * 0.25, 0, w * 0.5, h * 0.6); g.quadraticCurveTo(w * 0.75, 0, w, h); g.stroke(); }, { rim: 0 }); bird.position.set(-0.6, 1.75, -0.2); J.add(bird);
+
+/* ---------- a paper tabletop for the hand inserts: the message (11:5) and the sealed letter Uriah carries (11:14) ---------- */
+const T = mkStage('table', 20);
+lay(T, 1.9, 2.7, 0, -0.2, -0.035, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#3a2418'); gr.addColorStop(1, '#6a4428'); g.fillStyle = gr; g.fillRect(0, 0, w, h); for (let i = 0; i < 80; i++) { g.strokeStyle = 'rgba(30,15,5,0.25)'; g.lineWidth = 2 + rand() * 4; const y = rand() * h; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + 20, w * 0.6, y - 20, w, y + 10); g.stroke(); } ell(g, 'rgba(255,190,110,0.18)', w * 0.5, h * 0.55, w * 0.5, h * 0.3); }, 0);
+const tMsgArm = piece(0.56, 0.16, [0.0, 0.52], handArm('#7a6a52', '#8a5a3a', false, false), { rim: 7 }); T.add(tMsgArm);          /* the messenger */
+const tDavidArm = piece(0.56, 0.16, [0.0, 0.52], handArm('#4c2b7a', SKIN, true, true), { rim: 7 }); T.add(tDavidArm); tDavidArm.scale.x = -1; /* David's ringed hand, from the right */
+const tUriahArm = piece(0.56, 0.16, [0.0, 0.52], handArm('#9a3a32', '#b07a52', true, false), { rim: 7 }); T.add(tUriahArm);
+const tUriahFist = piece(0.56, 0.16, [0.0, 0.52], handArm('#9a3a32', '#b07a52', false, false), { rim: 7 }); T.add(tUriahFist); tUriahFist.visible = false;
+const tScroll = piece(0.14, 0.07, [0.5, 0.5], scroll, { rim: 5 }); T.add(tScroll);
+const tBracer = piece(0.05, 0.11, [0.5, 0.5], (g, w, h) => { fill(g, '#b08a3a', [[0, 0], [w, 0], [w, h], [0, h]]); for (let y = 10; y < h; y += 24) fill(g, '#8a6a2a', [[0, y], [w, y], [w, y + 6], [0, y + 6]]); }, { rim: 4 }); tUriahArm.add(tBracer); tBracer.position.set(0.32, 0.0, 0.004);
+
+/* ---------- the battle at the wall of Rabbah (11:1, 11:15-17): the line draws back from Uriah ---------- */
+const B = mkStage('battle', 30);
+lay(B, 1.9, 2.7, 0, -0.2, -0.22, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#c9a27a'); gr.addColorStop(1, '#ead2a8'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, 0);
+lay(B, 1.9, 1.0, 0, 0.62, -0.15, (g, w, h) => { fill(g, '#9a7a5a', [[0, h], [0, h * 0.25], [w, h * 0.25], [w, h]]); for (let x = 0; x < w; x += 90) fill(g, '#9a7a5a', [[x, h * 0.25], [x, h * 0.12], [x + 50, h * 0.12], [x + 50, h * 0.25]]);
+  for (const tx of [0.18, 0.78]) { fill(g, '#8a6a4a', [[w * tx - 90, h], [w * tx - 90, 0], [w * tx + 90, 0], [w * tx + 90, h]]); for (let x = -90; x < 90; x += 60) fill(g, '#8a6a4a', [[w * tx + x, 0], [w * tx + x, -30], [w * tx + x + 32, -30], [w * tx + x + 32, 0]]); }
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 22; c++) { g.strokeStyle = 'rgba(60,40,20,0.25)'; g.lineWidth = 3; g.strokeRect(c * 90 + (r % 2) * 45, h * 0.25 + r * 80, 90, 80); }
+  fill(g, '#4a3424', [[w * 0.44, h], [w * 0.44, h * 0.55], [w * 0.5, h * 0.48, w * 0.56, h * 0.55], [w * 0.56, h]]);
+  for (let k = 0; k < 7; k++) ell(g, '#5a4430', w * (0.1 + k * 0.13), h * 0.19, 10, 14); }, 8, 1); /* the city wall, archers along the top */
+const soldier = (cloak, plume) => (g, w, h) => { fill(g, cloak, [[w * 0.25, h], [w * 0.25, h * 0.4], [w * 0.75, h * 0.4], [w * 0.75, h]]); ell(g, '#b07a52', w * 0.5, h * 0.28, w * 0.2, h * 0.11); fill(g, '#9a7a3a', [[w * 0.28, h * 0.25], [w * 0.3, h * 0.1, w * 0.7, h * 0.1, w * 0.72, h * 0.25]]); if (plume) fill(g, '#b0303a', [[w * 0.4, h * 0.12], [w * 0.45, h * 0.0, w * 0.62, h * 0.0, w * 0.6, h * 0.12]]);
+  ell(g, '#8a6a3a', w * 0.62, h * 0.62, w * 0.3, h * 0.2); ell(g, '#a8844a', w * 0.62, h * 0.62, w * 0.2, h * 0.13); fill(g, '#5a4a3a', [[w * 0.16, h * 0.02], [w * 0.2, h * 0.02], [w * 0.2, h], [w * 0.16, h]]); };
+const ranks = []; for (let k = 0; k < 6; k++) { const s = piece(0.18, 0.44, [0.5, 1], soldier(['#6a5a4a', '#7a6248', '#5e5244'][k % 3], false), { rim: 6 }); s.position.set(-0.4 + k * 0.13 + (k > 2 ? 0.12 : 0), 0.38, -0.02 + k * 0.004); B.add(s); ranks.push(s); }
+const uriah = piece(0.19, 0.46, [0.5, 1], soldier('#9a3a32', true), { rim: 7 }); uriah.position.set(0.02, 0.36, 0.03); B.add(uriah);
+const arrows = []; for (let k = 0; k < 3; k++) { const a = piece(0.11, 0.012, [0.5, 0.5], (g, w, h) => { fill(g, '#4a3424', [[0, h * 0.4], [w * 0.85, h * 0.4], [w * 0.85, h * 0.6], [0, h * 0.6]]); fill(g, '#2a2a2a', [[w * 0.85, 0], [w, h * 0.5], [w * 0.85, h]]); fill(g, '#e8e0d0', [[0, 0], [w * 0.1, h * 0.4], [w * 0.1, h * 0.6], [0, h]]); }, { rim: 0 }); B.add(a); arrows.push(a); a.visible = false; }
+front(B, 0.45, '#9a7a50');
+
+/* ---------- the wedding (11:27): David and Bathsheba under a canopy ---------- */
+const Wd = mkStage('wedding', 40);
+lay(Wd, 1.9, 2.7, 0, -0.2, -0.22, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#6a3a3a'); gr.addColorStop(1, '#c08a5a'); g.fillStyle = gr; g.fillRect(0, 0, w, h); for (let i = 0; i < 18; i++) ell(g, 'rgba(255,210,140,0.25)', rand() * w, rand() * h * 0.7, 30, 30); }, 0, 6);
+lay(Wd, 1.0, 0.95, 0.0, 0.45, -0.08, (g, w, h) => { fill(g, '#5a3020', [[w * 0.05, h], [w * 0.05, h * 0.05], [w * 0.09, h * 0.05], [w * 0.09, h]]); fill(g, '#5a3020', [[w * 0.91, h], [w * 0.91, h * 0.05], [w * 0.95, h * 0.05], [w * 0.95, h]]);
+  fill(g, '#e9d2a2', [[0, h * 0.02], [w, h * 0.02], [w * 0.95, h * 0.2], [w * 0.75, h * 0.14, w * 0.5, h * 0.22, w * 0.25, h * 0.14], [w * 0.05, h * 0.2]]); for (let x = 20; x < w; x += 40) ell(g, '#b0303a', x, h * 0.2 + Math.sin(x * 0.03) * 8, 9, 14); }, 8);
+const bathsheba = puppet({ z: 0.0, dir: -1, neck: [-0.01, 0.42, 0], shoulder: [-0.03, 0.38, 0], body: [0.22, 0.58, [0.5, 1], robe('#b0436a', '#e9c27a')],
+  heads: ['calm'].map(e => [0.2, 0.24, [0.4, 0.92], (g, w, h) => profileHead(g, w, h, { hair: '#2a1a14', longHair: true, cloth: 'veil', clothC: '#f0e2c8', eye: e, nose: 0.78, faceRight: false })]),
+  armNear: [0.075, 0.24, [0.5, 0.04], sleeve('#9a3a5c')], armFar: [0.075, 0.24, [0.5, 0.04], sleeve('#862f50')] }, Wd);
+bathsheba.position.set(0.14, 0.3, 0);
+const davidW = puppet({ z: 0.0, dir: 1, neck: [0.01, 0.44, 0], shoulder: [0.04, 0.4, 0], body: [0.24, 0.62, [0.5, 1], robe('#5b3591', '#d6a640')],
+  heads: ['calm'].map(e => [0.21, 0.24, [0.4, 0.92], (g, w, h) => profileHead(g, w, h, { beard: 'short', beardC: '#3a2416', hair: '#3a2416', cloth: 'crown', eye: e, nose: 1.05, faceRight: true })]),
+  armNear: [0.08, 0.26, [0.5, 0.04], sleeve('#4c2b7a')], armFar: [0.08, 0.26, [0.5, 0.04], sleeve('#3f2366')] }, Wd);
+davidW.position.set(-0.14, 0.3, 0.012);
+const petals = []; for (let k = 0; k < 10; k++) { const p = piece(0.018, 0.014, [0.5, 0.5], (g, w, h) => ell(g, k % 2 ? '#e05a6a' : '#f0d27a', w / 2, h / 2, w * 0.48, h * 0.4), { rim: 0 }); p.userData.x0 = -0.35 + rand() * 0.7; p.userData.ph = rand() * 6; Wd.add(p); petals.push(p); }
+front(Wd, 0.45, '#8a5a3a');
+
+/* ---------- the poor man's memories (12:3): his plate, asleep in his arms, held like a daughter ---------- */
+const Mm = mkStage('memory', 50);
+lay(Mm, 1.9, 2.7, 0, -0.2, -0.22, (g, w, h) => { const gr = g.createRadialGradient(w * 0.5, h * 0.5, 50, w * 0.5, h * 0.5, w); gr.addColorStop(0, '#d9a868'); gr.addColorStop(1, '#5a3a22'); g.fillStyle = gr; g.fillRect(0, 0, w, h); for (let i = 0; i < 300; i++) ell(g, 'rgba(60,35,15,0.08)', rand() * w, rand() * h, 6 + rand() * 20, 4 + rand() * 10); }, 0, 3);
+const mTorso = lay(Mm, 0.8, 1.2, 0.1, 0.3, -0.08, (g, w, h) => { fill(g, '#8a6240', [[w * 0.1, h], [w * 0.05, h * 0.4, w * 0.2, h * 0.05, w * 0.5, h * 0.02], [w * 0.85, h * 0.05, w * 0.95, h * 0.4, w * 0.92, h]]); fill(g, '#a07a52', [[w * 0.3, h * 0.6], [w * 0.55, h * 0.58], [w * 0.57, h * 0.78], [w * 0.32, h * 0.8]]); }, 9); /* his chest, filling the frame behind */
+const mPlate = piece(0.22, 0.08, [0.5, 0.5], (g, w, h) => { ell(g, '#a0603a', w * 0.5, h * 0.55, w * 0.48, h * 0.4); ell(g, '#c07a4a', w * 0.5, h * 0.45, w * 0.4, h * 0.28); ell(g, '#d8a860', w * 0.4, h * 0.38, w * 0.12, h * 0.12); ell(g, '#c89048', w * 0.58, h * 0.4, w * 0.1, h * 0.1); }, { rim: 6 }); Mm.add(mPlate);
+const mHand = piece(0.4, 0.14, [0.0, 0.52], handArm('#7e5838', SKIN, true, false), { rim: 7 }); Mm.add(mHand); mHand.scale.x = -1;
+const lambEat = piece(0.2, 0.16, [0.5, 0.95], (g, w, h) => { sheep(g, w, h); }, { rim: 6 }); Mm.add(lambEat);
+const lambSleep = piece(0.2, 0.14, [0.5, 0.9], (g, w, h) => { for (const [x, y, r] of [[0.35, 0.55, 0.22], [0.55, 0.5, 0.24], [0.72, 0.58, 0.2], [0.5, 0.68, 0.22]]) ell(g, '#f4efe6', w * x, h * y, w * r, h * r * 1.1); ell(g, '#3a2d26', w * 0.2, h * 0.6, w * 0.13, h * 0.16, 0.3); g.strokeStyle = '#f4efe6'; g.lineWidth = 6; g.beginPath(); g.moveTo(w * 0.15, h * 0.6); g.lineTo(w * 0.24, h * 0.58); g.stroke(); }, { rim: 6 }); Mm.add(lambSleep);
+const mArmA = piece(0.42, 0.12, [0.0, 0.5], handArm('#7e5838', SKIN, true, false), { rim: 7 }); Mm.add(mArmA);
+const mArmB = piece(0.42, 0.12, [0.0, 0.5], handArm('#6a4a2e', SKIN_D, true, false), { rim: 7 }); Mm.add(mArmB); mArmB.scale.x = -1;
+const mHead = piece(0.36, 0.42, [0.4, 0.92], (g, w, h) => profileHead(g, w, h, { beard: 'short', beardC: '#7a5a42', cloth: 'wrap', clothC: '#d8c39a', eye: 'tender', nose: 1 }), { rim: 9 }); Mm.add(mHead);
+const lambNuzzle = piece(0.2, 0.16, [0.5, 0.5], (g, w, h) => { sheep(g, w, h); g.fillStyle = '#3a2d26'; }, { rim: 6 }); Mm.add(lambNuzzle); lambNuzzle.scale.x = -1;
+
+/* ---------- the lamb alone (teaser and callback insert) ---------- */
+const Ls = mkStage('lambsolo', 60);
+lay(Ls, 1.9, 2.7, 0, -0.2, -0.22, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f2c58a'); gr.addColorStop(1, '#f7e2b8'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, 0);
+lay(Ls, 1.9, 0.9, 0, 0.6, -0.04, (g, w, h) => { fill(g, '#a9b26a', [[0, h], [0, h * 0.4], [w * 0.3, h * 0.25, w * 0.6, h * 0.35], [w * 0.8, h * 0.3, w, h * 0.38], [w, h]]); }, 8, 6);
+const lambS = piece(0.3, 0.24, [0.5, 0.95], (g, w, h) => sheep(g, w, h), { rim: 8 }); lambS.position.set(0.0, 0.93, 0.0); Ls.add(lambS);
+const lsFront = front(Ls, 0.98, '#6f7a34', 0.03); /* the ground he stands in: darker than the hill, so the feet read as planted */
+
+/* the guest at the rich man's door (12:4), in the village */
+const guest = puppet({ z: 0.035, dir: -1, neck: [-0.01, 0.42, 0], shoulder: [-0.03, 0.38, 0], body: [0.22, 0.6, [0.5, 1], robe('#7a8a8a', '#5a6a6a')],
+  heads: ['calm'].map(e => [0.2, 0.24, [0.4, 0.92], (g, w, h) => profileHead(g, w, h, { beard: 'short', beardC: '#5a4a3a', cloth: 'wrap', clothC: '#c9b48a', eye: e, nose: 0.95, faceRight: false })]),
+  armNear: [0.075, 0.26, [0.5, 0.04], sleeve('#6a7a7a')], armFar: [0.075, 0.26, [0.5, 0.04], sleeve('#5a6a6a')] }, stage);
+const staffG = piece(0.02, 0.62, [0.5, 1], (g, w, h) => fill(g, '#6a4a2a', [[w * 0.2, 0], [w * 0.8, 0], [w * 0.8, h], [w * 0.2, h]]), { rim: 0 }); guest.add(staffG); staffG.position.set(-0.08, 0.02, 0.02);
+guest.position.set(0.9, 0.3, 0); guest.visible = false;
+
+// ---------- light rig: follows the active stage ----------
+const rig = new THREE.Group(); scene.add(rig);
+const hemi = new THREE.HemisphereLight('#ffe7c8', '#4a3218', 0.8); rig.add(hemi);
+const key = new THREE.SpotLight('#fff0d8', 30, 10, Math.PI / 6, 0.9, 1.2); key.position.set(-1.6, 3.4, 3.2); key.target.position.set(0.05, 0.9, -0.1); key.castShadow = true; rig.add(key, key.target);
+const fill2 = new THREE.SpotLight('#ffd9b0', 9, 8, Math.PI / 5, 1, 1.5); fill2.position.set(2.2, 1.6, 2.6); fill2.target.position.set(0, 0.9, 0); rig.add(fill2, fill2.target);
+
+// ---------- camera and renderer ----------
+const camera = new THREE.PerspectiveCamera(32, W / H, 0.05, 30); camera.position.set(0.02, 1.16, 3.35); camera.lookAt(0.02, 1.16, 0);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(RW, RH, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05; renderer.outputColorSpace = THREE.SRGBColorSpace;
+key.shadow.mapSize.set(4096, 4096); key.shadow.bias = -0.0003; key.shadow.normalBias = 0.004; key.shadow.radius = 10;
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(RW, RH, { samples: 4, type: THREE.HalfFloatType })); composer.setSize(RW, RH); composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new OutputPass());
+const out = document.getElementById('out'); out.width = RW; out.height = RH; const o = out.getContext('2d');
+
+// ---------- the paper shots of the David short (absolute voiceover time, production/david/shotlist_v2.json) ----------
+const sm = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x), seg = (t, a, b) => sm((t - a) / (b - a)), lerp = (a, b, k) => a + (b - a) * k;
+/* [t0, t1, stage, camera centre x, centre y, distance, push (+ in, - out), mood] */
+window.SHOTS = [
+  [5.32, 7.06, 'lambsolo', 0.0, 1.02, 1.25, 0, 'day'], [9.48, 10.60, 'jerusalem', 0.0, 1.16, 3.35, 0, 'eve'], [10.60, 12.54, 'jerusalem', 0.02, 1.2, 1.45, 0, 'eve'],
+  [12.54, 13.84, 'table', 0.0, 1.0, 1.05, 0, 'lamp'], [13.84, 15.32, 'table', 0.0, 1.0, 1.05, 0, 'lamp'], [15.32, 17.22, 'battle', 0.0, 0.85, 2.0, 0, 'day'],
+  [17.22, 18.56, 'wedding', 0.0, 0.82, 1.9, 0, 'warm'], [18.56, 19.98, 'jerusalem', 0.0, 1.16, 3.35, 0, 'day'],
+  [24.46, 25.74, 'village', 0.3, 1.02, 1.7, -0.25, 'day'], [25.74, 27.44, 'village', 0.42, 0.9, 1.9, 0, 'day'],
+  [27.44, 29.96, 'village', 0.02, 1.16, 3.35, 0, 'day'], [29.96, 31.72, 'village', 0.02, 0.98, 2.7, 0, 'day'],
+  [31.72, 33.10, 'village', -0.24, 0.84, 0.95, 0, 'day'], [33.10, 34.58, 'memory', 0.0, 1.0, 1.0, 0, 'warm'], [34.58, 35.90, 'memory', 0.0, 1.0, 1.0, 0, 'warm'],
+  [35.90, 37.48, 'memory', 0.0, 1.05, 1.05, 0.02, 'warm'], [79.58, 80.48, 'lambsolo', 0.0, 1.02, 1.25, 0, 'day']];
+window.RANGES = window.SHOTS.map(s => [s[0], s[1]]); window.DURATION = 102.2; window.AUDIO = [0, 102.2];
+const MOODS = { day: ['#ffe7c8', 0.8, '#fff0d8', 30], eve: ['#e8b0a0', 0.55, '#ffb070', 34], lamp: ['#ffd8a8', 0.5, '#ffd090', 34], warm: ['#ffe0b8', 0.7, '#ffe0b0', 30] };
+const HOLD_POOR = new THREE.Vector3(), HAND_RICH = new THREE.Vector3();
+let cur = null;
+function lambAnim(t) { const P = poor.userData.parts, R = rich.userData.parts; /* the tested grab, t relative to 27.4 s */
+  const goL = seg(t, 1.84, 2.5), back = seg(t, 3.0, 3.8), x = 0.36 - 0.24 * goL + 0.2 * back;
+  const hop = (goL > 0 && goL < 1) || (back > 0 && back < 1) ? Math.abs(Math.sin(t * Math.PI * 3)) * 0.012 : 0;
+  rich.position.set(x, 0.3 + hop, 0); rich.rotation.y = 0; setHead(rich, t < 1.6 ? 0 : 1); R.head.rotation.z = t < 1.6 ? -0.12 : 0; R.armFar.rotation.z = 0.35;
+  const taken = t >= 2.95; setHead(poor, t < 2.95 ? 0 : t < 3.9 ? 1 : 2);
+  const after = seg(t, 3.05, 3.45) * (1 - 0.35 * seg(t, 4.2, 4.7));
+  P.armNear.rotation.z = 0.9 * after; P.armFar.rotation.z = 0.75 * after; P.head.rotation.z = -0.05 * after + 0.12 * seg(t, 4.2, 4.7); poor.position.set(-0.27 + 0.025 * after, 0.3, 0);
+  stage.updateMatrixWorld(true);
+  const seat = P.armNear.localToWorld(LAMB_SEAT.clone()), scruff = seat.clone().add(new THREE.Vector3(0.0, 0.1, 0));
+  const sh = R.armNear.getWorldPosition(new THREE.Vector3()), aim = Math.atan2(scruff.y - sh.y, scruff.x - sh.x) - FIST_ANGLE;
+  const reach = seg(t, 2.56, 2.92); let ang = 0.95 + (aim - 0.95) * reach; if (taken) ang = aim + (aim - 0.35 - aim) * seg(t, 3.0, 3.5);
+  R.armNear.rotation.z = ang; stage.updateMatrixWorld(true);
+  const fist = R.armNear.localToWorld(FIST.clone());
+  if (!taken) { lamb.position.set(seat.x, seat.y, 0.007); lamb.rotation.z = 0; }
+  else { const sw = back > 0 && back < 1 ? 0.18 * Math.sin(t * 9) : 0.06; lamb.rotation.z = sw; lamb.position.set(fist.x + Math.sin(sw) * 0.1, fist.y - 0.1 * Math.cos(sw), 0.032); }
+  lambPieces[0].visible = !taken; lambPieces[1].visible = taken; }
+window.POSE = (t0) => { const t = Math.floor(t0 * 12) / 12, S = window.SHOTS.find(s => t0 >= s[0] && t0 < s[1]) || window.SHOTS[0], [s0, s1, st, cx, cy, dist, push, mood] = S;
+  for (const [k, g] of Object.entries(STAGES)) g.visible = k === st; const X = STAGES[st].position.x;
+  rig.position.x = X; const m = MOODS[mood]; hemi.color.set(m[0]); hemi.intensity = m[1]; key.color.set(m[2]); key.intensity = m[3];
+  const u = Math.min(1, (t0 - s0) / ((s1 - s0) * 0.65)), k = push * (1 - (1 - u) * (1 - u)); const d = dist * (1 - k);
+  camera.position.set(X + cx, cy, d); camera.lookAt(X + cx, cy, 0); camera.updateMatrixWorld();
+  /* defaults for the village */
+  guest.visible = false; rich.rotation.y = 0;
+  if (st === 'village') { if (t0 < 27.44) { lambAnim(0); rich.position.set(0.36, 0.3, 0); if (t0 >= 25.74) { rich.rotation.y = Math.PI; rich.position.x = 0.3; guest.visible = true; const arr = seg(t, 25.8, 26.6); guest.position.set(lerp(0.9, 0.56, arr), 0.3 + (arr > 0 && arr < 1 ? Math.abs(Math.sin(t * Math.PI * 3)) * 0.012 : 0), 0); } }
+    else if (t0 < 31.72) lambAnim(t0 - 27.4); else { lambAnim(4.4); setHead(poor, 2); } }
+  if (st === 'jerusalem') { const day = mood === 'day'; jDay.visible = day; jSun.visible = day; if (day) { const a = seg(t, 18.56, 19.98); jSun.position.set(lerp(-0.7, 0.7, a), 1.3 + Math.sin(a * Math.PI) * 0.45, -0.205); }
+    bird.position.set(-0.6 + ((t * 0.12) % 1.3), 1.75 + Math.sin(t * 4) * 0.01, -0.2); setHead(davidP, t0 > 11.6 ? 1 : 0); davidP.userData.parts.head.rotation.z = t0 > 11.6 ? 0.06 : 0; }
+  if (st === 'table') { const msg = t0 < 13.84; tMsgArm.visible = msg; tUriahArm.visible = !msg && t < 14.5; tUriahFist.visible = !msg && t >= 14.5;
+    if (msg) { const inn = seg(t, 12.54, 12.95), take = seg(t, 13.05, 13.35); tMsgArm.position.set(lerp(-0.9, -0.5, inn) - 0.06 * take, 0.98, 0.02); tDavidArm.position.set(lerp(0.9, 0.42, seg(t, 12.85, 13.15)) + 0.1 * seg(t, 13.4, 13.8), 1.0, 0.03); tScroll.position.set(t < 13.3 ? tMsgArm.position.x + 0.47 : tDavidArm.position.x - 0.47, 1.0, 0.04); }
+    else { const go = seg(t, 13.9, 14.4), pull = seg(t, 14.6, 15.2); tDavidArm.position.set(lerp(0.75, 0.42, go) + 0.3 * seg(t, 14.55, 14.9), 1.0, 0.03); for (const a of [tUriahArm, tUriahFist]) a.position.set(lerp(-0.5, -0.9, pull), 0.99, 0.02); tScroll.position.set(t < 14.5 ? tDavidArm.position.x - 0.47 : tUriahFist.position.x + 0.47, 1.0, 0.04); } }
+  if (st === 'battle') { const back = seg(t, 15.7, 16.6); ranks.forEach((r, i) => r.position.x = (-0.4 + i * 0.13 + (i > 2 ? 0.12 : 0)) + (i < 3 ? -0.5 : 0.5) * back); arrows.forEach((a, i) => { const ft = (t - 16.3 - i * 0.18) / 0.5; a.visible = ft > 0 && ft < 1; a.position.set(lerp(-0.25 + i * 0.25, 0.0 + i * 0.05, ft), lerp(1.45, 0.75, ft), 0.0 + i * 0.004); a.rotation.z = -1.0; }); }
+  if (st === 'wedding') petals.forEach((p, i) => { const ph = (t * 0.25 + p.userData.ph) % 1; p.position.set(p.userData.x0 + Math.sin(t * 2 + i) * 0.03, lerp(1.25, 0.5, ph), 0.04 + i * 0.003); p.rotation.z = t * 2 + i; });
+  if (st === 'memory') { const plate = t0 < 34.58, sleep = t0 >= 34.58 && t0 < 35.9, hold = t0 >= 35.9;
+    mPlate.visible = mHand.visible = lambEat.visible = plate; lambSleep.visible = mArmA.visible = mArmB.visible = sleep; mHead.visible = lambNuzzle.visible = hold; mTorso.visible = !hold;
+    if (plate) { mHand.position.set(0.42, 0.93, 0.036); mPlate.position.set(0.1, 0.96, 0.03); lambEat.position.set(-0.07, 0.86 + (Math.floor(t * 4) % 2) * 0.006, 0.018); lambEat.rotation.z = -0.32 - (Math.floor(t * 4) % 2) * 0.05; } /* his hand holds the plate; her head is down in it */
+    if (sleep) { const br = 1 + 0.02 * Math.sin(t * 3); lambSleep.position.set(0.02, 0.96, 0.02); lambSleep.scale.set(1, br, 1); mArmA.position.set(-0.4, 0.92, 0.035); mArmA.rotation.z = 0.08; mArmB.position.set(0.44, 1.0, 0.01); mArmB.rotation.z = -0.05; }
+    if (hold) { mHead.position.set(-0.08, 0.84, 0.02); lambNuzzle.position.set(0.16, 1.06, 0.03); lambNuzzle.rotation.z = -0.1; } } /* the lamb's head against his cheek */
+  if (st === 'lambsolo') lambS.rotation.z = (Math.floor(t * 2) % 2) * 0.015;
+  return JSON.stringify([t, st, +camera.position.z.toFixed(5)]);
+};
+/* paper checks for the visible stage: layers too close (z-fighting), puppet bottoms above their ground strip, puppets cut by the frame */
+window.QC = () => { const st = Object.values(STAGES).find(g => g.visible); st.updateMatrixWorld(true); const issues = [], pieces = []; const shown = m => { for (let p = m; p; p = p.parent) if (!p.visible) return false; return true; }; st.traverse(m => { if (m.isMesh && shown(m)) pieces.push(m); });
+  const bx = pieces.map(m => new THREE.Box3().setFromObject(m)), z = pieces.map(m => m.getWorldPosition(new THREE.Vector3()).z);
+  for (let i = 0; i < pieces.length; i++) for (let j = i + 1; j < pieces.length; j++) { const a = bx[i], b = bx[j]; if (a.max.x < b.min.x || b.max.x < a.min.x || a.max.y < b.min.y || b.max.y < a.min.y) continue; if (Math.abs(z[i] - z[j]) < 0.002) issues.push({ kind: 'z-fight', part: pieces[i].parent?.name || 'piece', into: 'piece', depth: 0.01, dz: +(z[i] - z[j]).toFixed(4) }); }
+  return { hits: { issues, allowed: [] } }; };
+window.PREP = (t) => window.POSE(t);
+window.drawFrame = (t = 0) => { window.POSE(t); composer.render(); o.drawImage(renderer.domElement, 0, 0, RW, RH);
+  const g = o.createRadialGradient(RW / 2, RH / 2, RH * 0.3, RW / 2, RH / 2, RH * 0.8); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.4)'); o.fillStyle = g; o.fillRect(0, 0, RW, RH);
+  return out.toDataURL('image/png'); };
+window.GAZE = () => [];
+window.DBGP = () => { const st = STAGES.lambsolo; st.updateMatrixWorld(true); return st.children.map(c => { const b = new THREE.Box3().setFromObject(c); return [c.visible, b.min.toArray().map(v => +v.toFixed(2)), b.max.toArray().map(v => +v.toFixed(2))]; }); };
+window.DBGR = () => [rich.rotation.y, rich.visible, rich.position.toArray()];
+window.DBG3 = () => { const m = lsFront.userData.mesh; m.material.color.set('#ff0000'); window.TEX = m.material.map.image.toDataURL('image/png'); return JSON.stringify([m.material.map.image.width, m.material.map.image.height, m.material.alphaTest, m.visible, lsFront.visible, m.getWorldPosition(new THREE.Vector3()).toArray()]); };
+window.TESTP = () => { const first = (im) => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, im.width, im.height).data; for (let y = 0; y < im.height; y++) if (d[(y * im.width + (im.width >> 1)) * 4 + 3] > 128) return y; return -1; };
+  if (window.SKIPT) return ""; const dr = (g, w, h) => { fill(g, '#6f7a34', [[0, h], [0, h * 0.04], [w * 0.3, 0, w * 0.6, h * 0.05], [w * 0.8, h * 0.02, w, h * 0.04], [w, h]]); for (let i = 0; i < 90; i++) { const x = rand() * w; g.fillStyle = rand() < 0.5 ? '#5a6428' : '#8a9448'; g.beginPath(); g.moveTo(x, h * 0.06); g.lineTo(x + 7, h * 0.06 - 22 - rand() * 18); g.lineTo(x + 14, h * 0.06); g.fill(); } };
+  const viaLay = lay(STAGES.lambsolo, 1.9, 0.8, 0, 0.18, 0.031, dr, 10), viaPiece = piece(1.9, 0.8, [0.5, 1], dr, { rim: 10 }), viaLayNoRim = lay(STAGES.lambsolo, 1.9, 0.8, 0, 0.18, 0.032, dr, 0);
+  return JSON.stringify({ viaLay: first(viaLay.userData.mesh.material.map.image), viaPiece: first(viaPiece.userData.mesh.material.map.image), viaLayNoRim: first(viaLayNoRim.userData.mesh.material.map.image), wh: [viaLay.userData.mesh.material.map.image.width, viaPiece.userData.mesh.material.map.image.width] }); };
+window.STAGES = STAGES;
+window.READY = true;
+</script>
+</body></html>
