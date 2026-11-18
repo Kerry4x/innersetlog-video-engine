@@ -29,7 +29,7 @@ const HP = [[0, 0], [0.11, 0.008], [0.19, 0.05], [0.228, 0.13], [0.238, 0.24], [
 const hr = y => { for (let i = 1; i < HP.length; i++) if (y <= HP[i][1]) { const [r0, y0] = HP[i - 1], [r1, y1] = HP[i]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return 0; };
 const SZ = 0.94, surf = (x, y) => Math.sqrt(Math.max(0.0001, hr(y) ** 2 - x * x)) * SZ;
 
-function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, crown, lidTop = 0.36 }, R) {
+function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth = 0.85, beardLocks = 0, crown, lidTop = 0.36 }, R) {
   const g = new THREE.Group(), sk = clay(skin), hm = clay(hair), ink = clay('#120b08', { roughness: 0.25, bumpScale: 0 }), white = clay('#f4efe2', { roughness: 0.32, bumpScale: 0.15 });
   const skull = M(lathe(HP, 72), sk, g); skull.scale.z = SZ;
   const eY = 0.33, eX = 0.09, eR = 0.076;
@@ -79,12 +79,12 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, crown, lidT
     const t = 0.03, pts = []; for (let y = 0.0; y <= 0.04; y += 0.01) pts.push([hr(y) + t, y]); pts.unshift([hr(0) * 0.6 + t, -0.02]);
     /* one sculpted piece: the jaw band and the mass under the chin are merged, then ONE strand pattern is cut into both */
     const bandG = lathe(pts, 144, Math.PI * 0.5 - 1.75, 3.5); bandG.applyMatrix4(new THREE.Matrix4().compose(V(0, -0.2, 0), new THREE.Quaternion(), V(1, 1, SZ * 1.04)));
-    const massG = new THREE.SphereGeometry(0.15, 96, 64); massG.applyMatrix4(new THREE.Matrix4().compose(V(0, 0.03 - beardLen * 0.9 - 0.2, surf(0, 0.05) - 0.08), new THREE.Quaternion(), V(1.25, 0.8 + beardLen * 5, 0.85)));
+    const massG = new THREE.SphereGeometry(0.15, 96, 64); massG.applyMatrix4(new THREE.Matrix4().compose(V(0, 0.03 - beardLen * 0.9 - 0.2, surf(0, 0.05) - 0.08), new THREE.Quaternion(), V(1.25, 0.8 + beardLen * 5, beardDepth))); /* beardDepth: front-to-back volume (seen in profile) */
     const bg = mergeGeometries([bandG, massG]); bg.computeVertexNormals(); const nb = bg.attributes.normal.array.slice(); /* smooth, indexed */
     /* strands are stored separately from the shape, so draping can move the shape and the strands are cut back in afterwards */
     const base = bg.attributes.position.array.slice(), n = base.length / 3, gx = new Float32Array(n), gz = new Float32Array(n);
     for (let i = 0; i < n; i++) { const x = base[i * 3], y = base[i * 3 + 1], z = base[i * 3 + 2], r = Math.hypot(x, z); if (r < 1e-4) continue;
-      const k = 0.006 * Math.max(0, Math.min(1, (-0.165 - y) / 0.025)) * Math.sin(Math.atan2(x, z) * 26 + y * 9 + Math.sin(y * 23) * 0.8); gx[i] = x / r * k; gz[i] = z / r * k; } /* strands fade out at the top edge: a clean line under the mustache */
+      const fade = Math.max(0, Math.min(1, (-0.165 - y) / 0.025)), a = Math.atan2(x, z); const k = fade * (0.006 * Math.sin(a * 26 + y * 9 + Math.sin(y * 23) * 0.8) + beardLocks * 0.022 * Math.pow(0.5 + 0.5 * Math.sin(a * 8 + 1.3 + y * 4), 2) * Math.min(1, (-0.18 - y) / 0.08)); /* + chunky locks: depth in profile, not even grooves */ gx[i] = x / r * k; gz[i] = z / r * k; } /* strands fade out at the top edge: a clean line under the mustache */
     const beardM = M(bg, clay(beard, { side: THREE.DoubleSide, bumpScale: 0.08 }), R.jaw); R.beardMeshes = [beardM]; R.beardStrands = { base, gx, gz, nb };
     { const p = bg.attributes.position; for (let i = 0; i < n; i++) p.setXYZ(i, base[i * 3] + gx[i], base[i * 3 + 1], base[i * 3 + 2] + gz[i]); bg.computeVertexNormals(); smoothSeams(bg); }
     for (const s of [-1, 1]) { sausage(V(hr(0.3) * 0.95 * s, 0.29, 0.0), V(hr(0.07) * 0.98 * s, 0.05, 0.06), 0.032, clay(beard), g);
