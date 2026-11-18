@@ -14,3 +14,5 @@ production/david/*/frames/
 production/david/check_*/
 production/david/T/frames/
 production/david/T/log_*.txt
+production/david/P/frames/
+production/david/P/log_*.txt
