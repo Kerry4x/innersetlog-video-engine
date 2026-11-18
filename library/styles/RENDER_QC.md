@@ -33,6 +33,44 @@ Kerry, 2026-11-18: "Watch out for little glitches, where things glitch together.
    - Correct but ugly: soften it.
    - Wrong: fix the object.
 
+## Automatic checks (look_tests/kit/qc.js), run on every rendered pose
+Kerry, 2026-11-18: "I don't want it to be things that I myself point out only."
+- **Intersections (`qc()`):** every character part is tested against every prop, the other character, the floors and the walls.
+  - The test uses ray parity, so robes open at the hem still count as closed.
+  - Light contact up to 6 mm is allowed.
+  - Designed soft contact is listed as an allowance with a limit and a reason, for example David 6 cm into the seat cushion. Anything deeper, or any new pair, is an issue.
+- **Contact (`gap()`):** hands that should rest on something are within a few millimetres of it; feet are on the floor or dais (0 = touching, below 0 = buried).
+- **Gaze (`GAZE()`):** each eye's direction against its target. More than 12° off is flagged unless the beat says otherwise (`GAZE_SKIP`, for example the bowed head at "I have sinned").
+- **Aim (`AIMSEARCH()`):** a pointing finger is aimed at its target by search, not by eye.
+- **Pose search (`HANDSEARCH()`):** finds an arm pose where the hand rests on a prop with no penetration.
+- **Where they run:**
+  - `look_tests/stills.js` writes `<key>_qc.json` next to every still.
+  - `look_tests/anim.js` checks every new pose of an animated shot and writes `qc.json`.
+- **Motion check:** the mean change from frame to frame over the whole shot.
+  - Moves should ramp up and down over several frames.
+  - An isolated spike is a pop.
+  - Holds should read 0.
+
+## What the automatic checks have caught so far (fixed)
+- **Legs:** David's shins sat 13 cm inside the throne base (the seat was deeper than his thighs). The base is now shallower, with front legs.
+- **Hands:**
+  - They sank 3–4 cm into the lion heads. The lions are now carved on the armrest ends and the hand pose is found by search.
+  - Breathing scaled the whole upper body, so resting hands rode 1 cm into the lion. Breathing now moves the chest only.
+  - Lowering a hand in a straight blend dragged it 2.3 cm through the lion's mane. The move now lifts over the lion, then sets the hand down.
+- **Recoil:** in shock, David's head and cloak went 2.7 cm into the backrest, and so did the crown. Seated characters don't recoil; the head lifts and freezes.
+- **Gaze:**
+  - David looked 16–21° short of Nathan.
+  - Nathan looked 77° away from David (he was cheated toward the camera). Restaged so they face each other across the frame.
+
+## Things only a look at full size catches (my review, every shot)
+- **Faces:** under mustaches, hairlines, crown edges, and the edges of beard strands.
+- **Lighting on faces:** a character facing away from the key light needs a fill.
+- **Framing:**
+  - objects cut by the frame edge;
+  - dark shapes directly behind a head (tangents);
+  - characters cut off.
+- **Camera after re-staging:** check that it still sees the faces.
+
 ## Debug hooks in throne.html
 - `PICK(x, y)` gives the meshes under a screen point.
 - `DBG()` colour-codes David's cloth pieces.

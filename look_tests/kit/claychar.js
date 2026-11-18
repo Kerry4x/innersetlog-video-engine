@@ -13,6 +13,10 @@ const print = (() => { const c = document.createElement('canvas'); c.width = c.h
 const cache = {};
 export const clay = (c, o = {}) => { const k = c + JSON.stringify(o); return cache[k] || (cache[k] = new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.58, bumpMap: print, bumpScale: 0.8, sheen: 0.06, ...o })); };
 export const M = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; if (parent) parent.add(m); return m; };
+/* a tube bent along an arc with rounded, closed ends (an open TorusGeometry end shows a hollow) */
+function arcTube(R, r, rs, ts, arc) { const parts = [new THREE.TorusGeometry(R, r, rs, ts, arc)];
+  for (const a of [0, arc]) { const c = new THREE.SphereGeometry(r, rs + 4, Math.max(8, rs)); c.translate(R * Math.cos(a), R * Math.sin(a), 0); parts.push(c); }
+  const g = mergeGeometries(parts); g.computeVertexNormals(); return g; }
 /* average normals of vertices that share a position (lathe seams, capsule poles): no hard line where a surface wraps around */
 export function smoothSeams(geo) { const p = geo.attributes.position, n = geo.attributes.normal; if (!n) return geo; const m = new Map(); for (let i = 0; i < p.count; i++) { const k = `${p.getX(i).toFixed(4)},${p.getY(i).toFixed(4)},${p.getZ(i).toFixed(4)}`; (m.get(k) || m.set(k, []).get(k)).push(i); }
   const v = new THREE.Vector3(); for (const ids of m.values()) { if (ids.length < 2) continue; v.set(0, 0, 0); for (const i of ids) v.x += n.getX(i), v.y += n.getY(i), v.z += n.getZ(i); v.normalize(); for (const i of ids) n.setXYZ(i, v.x, v.y, v.z); } n.needsUpdate = true; return geo; }
@@ -41,27 +45,34 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, crown, lidT
     const top = lid(lidTop, eR * 0.25, false), bot = lid(0.15, eR * 0.21, true);
     R.eyes.push({ aim, top, bot, s });
     const bg = new THREE.Group(); bg.position.set(eX * s + 0.004 * s, eY + 0.06, surf(eX, eY + 0.09) + 0.002); g.add(bg);
-    const bw = M(new THREE.TorusGeometry(0.062, 0.019, 14, 40, Math.PI * 0.62), clay(browC), bg); bw.rotation.set(-0.25, 0, Math.PI * 0.19 + (s > 0 ? -0.08 : 0.08)); bw.scale.set(1, 1, 1.3);
+    const bw = M(arcTube(0.062, 0.019, 14, 40, Math.PI * 0.62), clay(browC), bg); bw.rotation.set(-0.25, 0, Math.PI * 0.19 + (s > 0 ? -0.08 : 0.08)); bw.scale.set(1, 1, 1.3);
     R.brows.push({ g: bg, s, y0: bg.position.y });
     const ear = new THREE.Group(); ear.position.set(hr(0.25) * 0.97 * s, 0.25, -0.01); ear.rotation.y = 0.25 * s; g.add(ear);
     const lobe = M(new THREE.SphereGeometry(0.06, 24, 18), sk, ear); lobe.scale.set(0.35, 1, 0.75);
-    const rim = M(new THREE.TorusGeometry(0.052, 0.017, 12, 32, Math.PI * 1.55), sk, ear); rim.rotation.set(0, Math.PI / 2, Math.PI * 0.72); rim.position.x = 0.012 * s;
+    const rim = M(arcTube(0.052, 0.017, 12, 32, Math.PI * 1.55), sk, ear); rim.rotation.set(0, Math.PI / 2, Math.PI * 0.72); rim.position.x = 0.012 * s;
   }
   const n0 = V(0, eY + 0.03, surf(0, eY + 0.03) - 0.015), n1 = V(0, 0.185, surf(0, 0.185) + 0.1);
   sausage(n0, n1, 0.05, sk, g);
   const tip = M(new THREE.SphereGeometry(0.07, 32, 24), sk, g); tip.position.copy(n1); tip.scale.set(1, 0.92, 1);
   for (const s of [-1, 1]) { const w = M(new THREE.SphereGeometry(0.03, 16, 12), sk, g); w.position.set(0.04 * s, n1.y - 0.015, n1.z - 0.035); }
-  if (lidTop > 0.33) for (const y of [0.47, 0.505]) { const c = M(new THREE.TorusGeometry(hr(y) * 0.98, 0.006, 8, 48, Math.PI * 0.32), sk, g); c.rotation.set(Math.PI / 2, 0, Math.PI * 0.34); c.position.y = y; c.scale.y = SZ; }
+  if (lidTop > 0.33) for (const y of [0.47, 0.505]) { const c = M(arcTube(hr(y) * 0.98, 0.006, 8, 48, Math.PI * 0.32), sk, g); c.rotation.set(Math.PI / 2, 0, Math.PI * 0.34); c.position.y = y; c.scale.y = SZ; }
   // mouth: a dark opening behind the lips; the jaw (with the beard) swings down to show it
   const mY = 0.062;
   R.mouth = M(new THREE.SphereGeometry(0.05, 24, 16), clay('#2a0d08', { bumpScale: 0 }), g); R.mouth.scale.set(1, 0.15, 0.5); R.mouth.position.set(0, mY, surf(0, mY) - 0.02);
-  const lip = M(new THREE.TorusGeometry(0.042, 0.0075, 10, 32, Math.PI * 0.62), clay('#4a1e14', { bumpScale: 0 }), g); lip.rotation.z = Math.PI * 0.19; lip.position.set(0, mY - 0.03, surf(0, mY) - 0.004); R.lip = lip;
+  const lip = M(arcTube(0.042, 0.0075, 10, 32, Math.PI * 0.62), clay('#4a1e14', { bumpScale: 0 }), g); lip.rotation.z = Math.PI * 0.19; lip.position.set(0, mY - 0.03, surf(0, mY) - 0.004); R.lip = lip; if (beard) lip.visible = false; /* a beard covers the lower lip: a half-hidden lip reads as a dark blob with legs */
   R.jaw = new THREE.Group(); R.jaw.position.set(0, 0.2, 0); g.add(R.jaw); // pivot near the ears
   if (bald) {
     for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { const t = M(grooves(new THREE.SphereGeometry(0.06, 28, 20), 0.004, 10), hm, g); t.scale.set(0.55, 0.75, 1.3); const y = 0.43 - i * 0.045; t.position.set(hr(y) * 0.98 * s, y, -0.04 - i * 0.03); t.rotation.set(0.2, 0.5 * s, 0.25 * s); }
-    const back = M(new THREE.TorusGeometry(0.215, 0.05, 16, 48, Math.PI * 0.9), hm, g); back.rotation.set(Math.PI / 2, 0, Math.PI * 1.05); back.position.y = 0.37; back.scale.z = 1.5;
+    const back = M(arcTube(0.215, 0.05, 16, 48, Math.PI * 0.9), hm, g); back.rotation.set(Math.PI / 2, 0, Math.PI * 1.05); back.position.y = 0.37; back.scale.z = 1.5;
   } else {
-    const cap = M(grooves(new THREE.SphereGeometry(0.245, 56, 32, Math.PI / 2 + 0.9, Math.PI * 2 - 1.8, 0, Math.PI * 0.58), 0.006, 28), clay(hair, { side: THREE.DoubleSide }), g); cap.position.y = 0.39; cap.scale.set(1.0, 1.0, SZ * 1.02);
+    /* the hair is a thick clay slab that follows the skull (2.4 cm proud of it, so the grooves never let skin through).
+       At the hairline and the nape it slopes down under the skin: one closed surface, no thin cut edge. */
+    const T = 0.024, hp = []; for (let y = 0.15; y < 0.62; y += 0.01) hp.push([hr(y) + T, y]); hp.push([hr(0.625) + T * 0.8, 0.629 + T * 0.55], [0, 0.629 + T]);
+    const hg = lathe(hp, 120), hpos = hg.attributes.position, sm = (v, a, b) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+    for (let i = 0; i < hpos.count; i++) { const x = hpos.getX(i), y = hpos.getY(i), z = hpos.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue; const c = z / r; /* 1 = front */
+      const lim = c >= 0 ? 0.33 + 0.14 * sm(c, 0.25, 0.75) : 0.33 - 0.13 * sm(-c, 0.2, 0.8); /* forehead 0.47, sides above the ears, nape 0.2 */
+      const k = sm(y, lim - 0.03, lim + 0.004), rn = Math.max(0.001, hr(Math.min(y, 0.628)) - 0.012 + k * (T + 0.012)); hpos.setX(i, x * rn / r); hpos.setZ(i, z * rn / r); }
+    const cap = M(grooves(hg, 0.005, 30), hm, g); cap.scale.z = SZ;
     for (const s of [-1, 1]) { const sb = M(new THREE.CapsuleGeometry(0.03, 0.09, 8, 16), hm, g); sb.position.set(hr(0.3) * 0.95 * s, 0.31, 0.05); }
   }
   if (beard) {
@@ -73,8 +84,8 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, crown, lidT
     /* strands are stored separately from the shape, so draping can move the shape and the strands are cut back in afterwards */
     const base = bg.attributes.position.array.slice(), n = base.length / 3, gx = new Float32Array(n), gz = new Float32Array(n);
     for (let i = 0; i < n; i++) { const x = base[i * 3], y = base[i * 3 + 1], z = base[i * 3 + 2], r = Math.hypot(x, z); if (r < 1e-4) continue;
-      const k = 0.006 * Math.sin(Math.atan2(x, z) * 26 + y * 9 + Math.sin(y * 23) * 0.8); gx[i] = x / r * k; gz[i] = z / r * k; }
-    const beardM = M(bg, clay(beard, { side: THREE.DoubleSide, bumpScale: 0.25 }), R.jaw); R.beardMeshes = [beardM]; R.beardStrands = { base, gx, gz, nb };
+      const k = 0.006 * Math.max(0, Math.min(1, (-0.165 - y) / 0.025)) * Math.sin(Math.atan2(x, z) * 26 + y * 9 + Math.sin(y * 23) * 0.8); gx[i] = x / r * k; gz[i] = z / r * k; } /* strands fade out at the top edge: a clean line under the mustache */
+    const beardM = M(bg, clay(beard, { side: THREE.DoubleSide, bumpScale: 0.08 }), R.jaw); R.beardMeshes = [beardM]; R.beardStrands = { base, gx, gz, nb };
     { const p = bg.attributes.position; for (let i = 0; i < n; i++) p.setXYZ(i, base[i * 3] + gx[i], base[i * 3 + 1], base[i * 3 + 2] + gz[i]); bg.computeVertexNormals(); smoothSeams(bg); }
     for (const s of [-1, 1]) { sausage(V(hr(0.3) * 0.95 * s, 0.29, 0.0), V(hr(0.07) * 0.98 * s, 0.05, 0.06), 0.032, clay(beard), g);
       sausage(V(0.015 * s, n1.y - 0.07, n1.z - 0.06), V(0.1 * s, mY + 0.03, surf(0.1, mY + 0.03) + 0.004), 0.026, clay(beard), g); }
@@ -119,16 +130,16 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, se
     }
     { const kb = M(new THREE.CapsuleGeometry(0.115, 0.24, 10, 24), tm, R.body); kb.rotation.z = Math.PI / 2; kb.position.set(0, 0.6, 0.33); } /* cloth bridging the knees: no dark gap between the thighs */
     /* the robe falls from the knees to the ankles as one skirt in front of both shins (no trouser legs) */
-    const skirt = M(folds(lathe([[0.3, 0.0], [0.285, 0.2], [0.26, 0.45], [0.24, 0.6], [0.2, 0.66], [0.1, 0.685], [0, 0.69]], 64), 0.014, 9, 0, 0.6), clay(tunic, { side: THREE.DoubleSide }), R.body); skirt.scale.set(1, 1, 0.75); skirt.position.set(0, 0.03, 0.36);
+    const skirt = M(folds(lathe([[0.3, 0.0], [0.285, 0.2], [0.26, 0.45], [0.24, 0.6], [0.2, 0.66], [0.1, 0.685], [0, 0.69]], 64), 0.014, 9, 0, 0.6), clay(tunic, { side: THREE.DoubleSide }), R.body); skirt.scale.set(1, 1, 0.75); skirt.position.set(0, 0.03, 0.42); /* hangs in front of the calves; its back stays clear of the seat front */
     const lapDrape = M(folds(lathe([[0, 0.0], [0.29, 0.0], [0.28, 0.1], [0.25, 0.14], [0, 0.15]], 56), 0.01, 8, 0, 0.15), tm, R.body); lapDrape.scale.set(1, 1, 1.3); lapDrape.position.set(0, 0.56, 0.12); /* stays behind the skirt top: poking through made a dark notch */
-    R.feet = [-1, 1].map(sd => { const ft = M(new THREE.SphereGeometry(0.075, 24, 16), clay('#8a5a34'), root); ft.scale.set(0.85, 0.5, 1.5); ft.position.set(0.12 * sd, 0.038, 0.53); /* toes show past the hem, resting on the floor */ return ft; });
+    R.feet = [-1, 1].map(sd => { const ft = M(new THREE.SphereGeometry(0.075, 24, 16), clay('#8a5a34'), root); ft.scale.set(0.85, 0.5, 1.5); ft.position.set(0.12 * sd, 0.058, 0.58); /* toes show past the hem, resting on the floor */ return ft; });
   }
   const neck = M(new THREE.CylinderGeometry(0.1, 0.12, 0.1, 28), clay(skin), R.body); neck.position.y = 1.33;
   const col = M(new THREE.TorusGeometry(0.12, 0.024, 14, 40), clay(trim), R.body); col.rotation.x = Math.PI / 2 + 0.25; col.position.set(0, 1.3, 0.015);
   const belt = M(new THREE.TorusGeometry(0.232, 0.028, 14, 56), clay(sash), R.body); belt.rotation.x = Math.PI / 2; belt.position.y = 0.72;
   const knot = M(new THREE.SphereGeometry(0.038, 16, 12), clay(sash), R.body); knot.position.set(0.07, 0.71, 0.222);
   for (const s of [-1, 1]) { const tail = M(new THREE.CapsuleGeometry(0.02, 0.17, 8, 12), clay(sash), R.body); tail.position.set(0.08 + s * 0.016, 0.59, 0.228); tail.rotation.z = 0.08 * s; }
-  if (mantle) { const mp = [[0.31, 0.35], [0.28, 0.65], [0.265, 0.95], [0.255, 1.14], [0.225, 1.24], [0.14, 1.3]];
+  if (mantle) { const mp = seated ? [[0.3, 0.58], [0.275, 0.7], [0.265, 0.95], [0.255, 1.14], [0.225, 1.24], [0.14, 1.3]] : [[0.31, 0.35], [0.28, 0.65], [0.265, 0.95], [0.255, 1.14], [0.225, 1.24], [0.14, 1.3]]; /* seated: the cloak ends on the seat, not through it */
     const m = M(folds(lathe(mp, 64, Math.PI * 0.6, Math.PI * 0.8), 0.01, 7, 0.35, 1.0), clay(mantle, { side: THREE.DoubleSide }), R.body); m.scale.set(1.08, 1, 1.1); } // a cloak hanging behind the arms
   R.arms = [-1, 1].map(s => {
     const sh = new THREE.Group(); sh.position.set(0.3 * s, 1.17, 0); R.body.add(sh); /* shoulder at the edge of the chest: arms hang against the body */
@@ -144,7 +155,7 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, se
   R.lidRest = h.lidTop || 0.36;
 
   // ---------- posing API (all angles in radians) ----------
-  R.setBody = ({ lean = 0, sway = 0, twist = 0, bob = 0, breathe = 0 } = {}) => { R.body.rotation.set(lean, twist, sway); R.body.position.y = bob; R.body.scale.set(1, 1 + breathe * 0.012, 1); };
+  R.setBody = ({ lean = 0, sway = 0, twist = 0, bob = 0, breathe = 0 } = {}) => { R.body.rotation.set(lean, twist, sway); R.body.position.y = bob; R.robe.scale.set(1 + breathe * 0.008, 1, 1 + breathe * 0.012); }; /* breathing moves the chest only: hands resting on things stay planted */
   R.setHead = ({ nod = 0, turn = 0, tilt = 0 } = {}) => R.head.rotation.set(nod, turn, tilt);
   // lid: + closes (1 = shut), - widens; squint raises the lower lid; brows: raise (up/down), angry (inner down), sad (inner up)
   R.setFace = ({ lid = 0, blink = 0, look = [0, 0], squint = 0, raise = 0, angry = 0, sad = 0, open = 0, browL = 0 } = {}) => {

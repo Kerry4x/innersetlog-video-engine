@@ -19,6 +19,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { buildCharacter, clay, M, lathe } from './kit/claychar.js';
+import { qc, gap } from './kit/qc.js';
 
 const W = 1080, H = 1920, SHOT = new URLSearchParams(location.search).get('shot') || 'ws';
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -86,28 +87,28 @@ const dais = box(2.4, 0.2, 1.7, clay('#bfa27c'), 0.04); dais.position.set(1.0, 0
   const rug = box(1.5, 0.025, 2.6, new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.95, sheen: 0.6, sheenColor: new THREE.Color('#ffd0a0'), bumpMap: lumpBump, bumpScale: 1.2 }), 0.01); rug.position.set(0.7, 0.013, 0.65); rug.rotation.y = -0.12; scene.add(rug); }
 
 // ---------- the throne: wood, lion armrests, cushions, footstool (seat top at 0.5 above the dais) ----------
-const lions = []; const throne = new THREE.Group(); throne.position.set(1.0, 0.2, -1.4); throne.rotation.y = -0.35; scene.add(throne);
+const lions = [], rests = []; const throne = new THREE.Group(); throne.position.set(1.0, 0.2, -1.4); throne.rotation.y = 0; /* square to the room like the dais and rug; David turns his head toward Nathan instead */ scene.add(throne);
 { const seatTop = 0.5;
-  const base = box(0.86, seatTop - 0.06, 0.78, wood, 0.05); base.position.set(0, (seatTop - 0.06) / 2, 0); throne.add(base);
-  const cush = M(new THREE.SphereGeometry(0.38, 32, 20).scale(1.0, 0.13, 0.9), cushionR); cush.position.set(0, seatTop - 0.01, 0.03); throne.add(cush);
+  const base = box(0.86, seatTop - 0.06, 0.6, wood, 0.05); base.position.set(0, (seatTop - 0.06) / 2, -0.09); /* front at z 0.21: the sitter's calves hang in front of it, not inside it */ throne.add(base);
+  const cush = M(new THREE.SphereGeometry(0.38, 32, 20).scale(1.0, 0.13, 0.7), cushionR); cush.position.set(0, seatTop - 0.01, -0.06); throne.add(cush);
   const backB = box(1.0, 1.7, 0.16, wood, 0.06); backB.position.set(0, seatTop + 0.75, -0.38); throne.add(backB);
   const backP = M(new THREE.SphereGeometry(0.42, 32, 20).scale(0.85, 1.55, 0.15), cushionR); backP.position.set(0, seatTop + 0.62, -0.28); throne.add(backP);
   for (const k of [-1, 1]) { const fin = M(new THREE.SphereGeometry(0.075, 20, 16), gold); fin.position.set(0.44 * k, seatTop + 1.66, -0.38); throne.add(fin); }
   for (const s of [-1, 1]) {
-    const arm = box(0.12, 0.1, 0.72, wood, 0.04); arm.position.set(0.41 * s, seatTop + 0.3, -0.02); throne.add(arm);
-    const post = box(0.1, 0.3, 0.1, wood, 0.03); post.position.set(0.41 * s, seatTop + 0.15, 0.28); throne.add(post);
+    const arm = box(0.12, 0.1, 0.72, wood, 0.04); arm.position.set(0.41 * s, seatTop + 0.3, -0.02); throne.add(arm); rests.push(arm);
+    const post = box(0.1, seatTop + 0.3, 0.1, wood, 0.03); post.position.set(0.41 * s, (seatTop + 0.3) / 2, 0.28); /* front legs reach the floor: nothing hangs in the air past the shallower base */ throne.add(post);
     // lion head on the end of each armrest
-    const lion = new THREE.Group(); lion.position.set(0.41 * s, seatTop + 0.33, 0.36); throne.add(lion); lions.push(lion);
+    const lion = new THREE.Group(); lion.position.set(0.41 * s, seatTop + 0.29, 0.385); lion.scale.setScalar(0.75); throne.add(lion); lions.push(lion); /* carved on the front of the armrest end: the hand rests on the wood and curls over the lion's head */
     const mane = M(new THREE.TorusGeometry(0.075, 0.04, 14, 28), clay('#a8742e')); lion.add(mane);
     M(new THREE.SphereGeometry(0.07, 24, 18), gold, lion).position.z = 0.02;
     const snout = M(new THREE.SphereGeometry(0.035, 16, 12), gold, lion); snout.position.set(0, -0.015, 0.075);
     for (const e of [-1, 1]) { const eye = M(new THREE.SphereGeometry(0.011, 8, 8), clay('#140d09', { bumpScale: 0 }), lion); eye.position.set(0.028 * e, 0.022, 0.07); const ear = M(new THREE.SphereGeometry(0.022, 10, 8), gold, lion); ear.position.set(0.055 * e, 0.06, 0); }
   }
-  const stool = box(0.62, 0.1, 0.22, wood, 0.03); stool.position.set(0, 0.05, 0.79); stool.castShadow = false; throne.add(stool); /* in front of the feet (front edge 0.68): feet and hem rest on the dais, nothing buried */
+  const stool = box(0.62, 0.1, 0.18, wood, 0.03); stool.position.set(0, 0.05, 0.81); stool.castShadow = false; throne.add(stool); /* in front of the feet (front edge 0.68): feet and hem rest on the dais, nothing buried */
 }
 // ---------- dressing: lamps (practical light), jars, low table with bread and figs, lyre, niches ----------
 const lamps = [];
-for (const [x, z] of [[-0.25, -1.75], [2.35, -1.6]]) {
+for (const [x, z] of [[-1.6, -1.9], [2.35, -1.6]]) {
   const stand = M(lathe([[0, 0], [0.17, 0], [0.12, 0.06], [0.04, 0.12], [0.035, 1.12], [0.13, 1.18], [0.13, 1.22], [0, 1.22]], 28), wood); stand.position.set(x, 0, z); scene.add(stand);
   const lamp = M(lathe([[0, 0], [0.06, 0], [0.09, 0.03], [0.07, 0.045], [0, 0.04]], 24), terra); lamp.position.set(x, 1.22, z); scene.add(lamp);
   const flame = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 10), new THREE.MeshBasicMaterial({ color: '#ffd27a' })); flame.scale.set(0.8, 1.9, 0.8); flame.position.set(x + 0.07, 1.31, z); scene.add(flame);
@@ -127,7 +128,7 @@ for (const [x, z, h, m] of [[2.75, -1.95, 0.85, terra], [3.05, -1.6, 0.7, terraD
   for (const s of [-1, 1]) { const arm = M(new THREE.CapsuleGeometry(0.028, 0.62, 6, 12), wood); arm.position.set(0.17 * s, 0.55, 0); arm.rotation.z = -0.15 * s; lyre.add(arm); }
   const yoke = M(new THREE.CapsuleGeometry(0.028, 0.5, 6, 12), wood); yoke.rotation.z = Math.PI / 2; yoke.position.y = 0.9; lyre.add(yoke);
   for (let i = 0; i < 6; i++) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.66, 4), new THREE.MeshStandardMaterial({ color: '#e8dcc0' })); st.position.set(-0.11 + i * 0.044, 0.56, 0.04); lyre.add(st); } }
-for (const [x, y] of [[-0.55, 1.55], [-2.75, 1.55]]) { const n = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.55, 0.05), new THREE.MeshStandardMaterial({ color: '#2a1d15', roughness: 1 })); n.position.set(x, y, -2.38); scene.add(n);
+for (const [x, y] of [[-2.2, 1.55], [-2.95, 1.55]]) { /* niche kept clear of Nathan's head in the wide shot */ const n = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.55, 0.05), new THREE.MeshStandardMaterial({ color: '#2a1d15', roughness: 1 })); n.position.set(x, y, -2.38); scene.add(n);
   const j = jar(0.32, rand() < 0.5 ? terra : terraD); j.position.set(x, y - 0.27, -2.32); scene.add(j); }
 for (const [x, z, m] of [[-3.0, 0.2, cushionR], [-2.9, -0.45, clay('#2d4a6a')]]) { const c = M(new THREE.SphereGeometry(0.32, 28, 18).scale(1, 0.35, 0.85), m); c.position.set(x, 0.11, z); c.rotation.y = rand(); scene.add(c); }
 
@@ -135,28 +136,65 @@ for (const [x, z, m] of [[-3.0, 0.2, cushionR], [-2.9, -0.45, clay('#2d4a6a')]])
 const david = buildCharacter({ seated: true, tunic: '#5b3591', trim: '#d6a640', mantle: '#8b2c3a', sash: '#c99a32', hair: '#3a2416', browC: '#3a2416', bald: false, beard: '#3a2416', beardLen: 0.02, crown: true, lidTop: 0.3 });
 throne.add(david.root); david.root.position.set(0, 0.5 - 0.55 + 0.03, 0.02); // seat top
 // David at ease: right forearm on the armrest, hand curled over the lion; left hand resting on his thigh
-david.setArm('R', { fwd: 0.05, out: 0.2, bend: 1.45, curl: 0.6 }); david.setArm('L', { fwd: 0.05, out: 0.2, bend: 1.45, curl: 0.6 }); /* forearms along the armrests, hands over the lions */
-david.setFace({ lid: 0.2, look: [-0.55, 0] }); david.setHead({ turn: 0.32, tilt: 0.05 });
+david.setBody({ twist: -0.15 }); /* shoulders turn a little toward Nathan */ david.setArm('L', { fwd: 0.2, out: 0.24, bend: 1.5, wrist: -0.4, curl: 0.6 }); david.setArm('R', { fwd: 0.2, out: 0.31, bend: 1.35, wrist: 0, curl: 0.6 }); /* found by HANDSEARCH: on the wood, 0 mm inside, gap 0-4 mm; one hand over the lion, the other further back along the armrest */
+david.setFace({ lid: 0.2, look: [-0.6, 0] }); david.setHead({ turn: -0.8, tilt: 0.05 });
 const nathan = buildCharacter({ tunic: '#d9c7a3', trim: '#a8865a', mantle: '#7a5536', sash: '#8a6a44', hair: '#ece7dc', browC: '#ece7dc', bald: true, beard: '#ece7dc', beardLen: 0.12, lidTop: 0.36 });
-scene.add(nathan.root); nathan.root.position.set(-0.6, 0, 0.35); nathan.root.rotation.y = 0.75;
+scene.add(nathan.root); nathan.root.position.set(-0.55, 0, -0.8); nathan.root.rotation.y = 1.45; /* beside the dais, level with the king: the two face each other across the frame, so the front camera sees both faces (checked by GAZE) */
 nathan.setArm('R', { fwd: 0.8, out: 0.3, bend: 1.0, curl: 0.1, twist: -0.4 }); nathan.setArm('L', { fwd: 0.45, out: 0.14, bend: 1.15, curl: 0.5 });
-nathan.setFace({ lid: 0.1, look: [0.5, 0.1], open: 0.35 }); nathan.setHead({ turn: 0.15, nod: -0.04 });
+nathan.setFace({ lid: 0.1, look: [0.25, 0.1], open: 0.35 }); nathan.setHead({ turn: 0.3, nod: -0.04 });
 // story beats for the animatic: ?dm=calm|listen|angry|still|sad  &nm=tell|point|still
 { const P = new URLSearchParams(location.search), dm = P.get('dm') || 'calm', nm = P.get('nm') || 'tell';
-  if (dm === 'listen') { david.setFace({ lid: 0.05, look: [-0.6, 0.05] }); david.setHead({ turn: 0.36, tilt: 0.1, nod: 0.05 }); }
-  if (dm === 'angry') { david.setFace({ lid: 0.2, squint: 0.4, angry: 1, open: 0.45, look: [-0.6, 0] }); david.setHead({ turn: 0.34, nod: 0.08 });
+  if (dm === 'listen') { david.setFace({ lid: 0.05, look: [-0.6, 0.05] }); david.setHead({ turn: -0.8, tilt: 0.1, nod: 0.05 }); }
+  if (dm === 'angry') { david.setFace({ lid: 0.2, squint: 0.4, angry: 1, open: 0.45, look: [-0.6, 0] }); david.setHead({ turn: -0.8, nod: 0.08 });
     david.setArm('L', { fwd: 1.15, out: 0.45, bend: 0.15, point: true }); }
-  if (dm === 'still') { david.setFace({ lid: -0.35, raise: 0.6, open: 0.12, look: [-0.6, 0] }); david.setHead({ turn: 0.34, nod: -0.05 }); }
-  if (dm === 'sad') { david.setFace({ lid: 0.55, sad: 1, look: [-0.1, -0.7] }); david.setHead({ turn: 0.2, nod: 0.32 }); }
-  if (nm === 'point') { nathan.setArm('R', { fwd: 1.45, out: 0.25, bend: 0.05, point: true }); nathan.setFace({ lid: 0.3, angry: 0.25, look: [0.55, 0.05] }); nathan.setHead({ turn: 0.2 }); }
-  if (nm === 'still') { nathan.setArm('R', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5 }); nathan.setFace({ lid: 0.25, sad: 0.3, look: [0.55, 0] }); nathan.setHead({ turn: 0.2, nod: 0.05 }); }
+  if (dm === 'still') { david.setFace({ lid: -0.35, raise: 0.6, open: 0.12, look: [-0.6, 0] }); david.setHead({ turn: -0.8, nod: -0.05 }); }
+  window.GAZE_SKIP = dm === 'sad' ? ['david'] : []; /* bowed head: he looks down on purpose */
+  if (dm === 'sad') { david.setFace({ lid: 0.55, sad: 1, look: [-0.1, -0.7] }); david.setHead({ turn: -0.22, nod: 0.32 }); }
+  if (nm === 'point') { nathan.setArm('R', { fwd: 1.75, out: 0.35, twist: -0.4, bend: 0.05, point: true }) /* aimed by AIMSEARCH: 5 degrees off David's face */; nathan.setFace({ lid: 0.3, angry: 0.25, look: [0.25, 0.05] }); nathan.setHead({ turn: 0.3 }); }
+  if (nm === 'still') { nathan.setArm('R', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5 }); nathan.setFace({ lid: 0.25, sad: 0.3, look: [0.25, 0] }); nathan.setHead({ turn: 0.3, nod: 0.05 }); }
 }
-const staff = M(lathe([[0, 0], [0.032, 0], [0.034, 1.0], [0.03, 1.95], [0.045, 2.0], [0, 2.04]], 14), wood); staff.position.set(-1.12, 0, 0.55); staff.rotation.z = 0.04; scene.add(staff);
+/* ---------- animation: ?anim=verdict  (voiceover 47.4-52.4 s: "...lamb four times over. Then Nathan said, Thou art the man.") ----------
+   Clay motion rules (CLAY_MOTION_SPEC): bodies on 2s (12 poses/s), faces swap in 1 frame and hold, blinks 1-4-1 frames,
+   anticipation before a move and a settle after it, one main event per character. */
+if (new URLSearchParams(location.search).get('anim') === 'verdict') {
+  window.DURATION = 5.0; window.AUDIO = [47.4, 52.4];
+  const sm = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x), seg = (t, a, b) => sm((t - a) / (b - a));
+  const mix = (a, b, k) => { const o = {}; for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) { const va = a[key] ?? b[key], vb = b[key] ?? a[key]; o[key] = typeof va === 'number' ? va + (vb - va) * k : Array.isArray(va) ? va.map((v, i) => v + (vb[i] - v) * k) : (k < 0.5 ? va : vb); } return o; };
+  const talk = (t, words) => { for (const [a, b] of words) if (t >= a && t < b) return 0.2 + 0.5 * Math.sin(Math.PI * Math.min(1, (t - a) / (b - a) * 1.15)); return 0; };
+  const blink = (f, at) => { const d = f - Math.round(at * 24); return d === 0 || d === 5 ? 0.5 : d >= 1 && d <= 4 ? 1 : 0; }; /* 1-4-1 frames */
+  const DW = [[-0.12, 0.2], [0.2, 0.66], [0.66, 1.08], [1.08, 1.36]], NW = [[3.38, 3.66], [3.66, 3.9], [3.9, 4.1], [4.1, 4.36]];
+  const D = { point: { fwd: 1.15, out: 0.45, bend: 0.15, point: true }, hover: { fwd: 0.5, out: 0.26, bend: 1.35, wrist: -0.3, curl: 0.55 }, rest: { fwd: 0.2, out: 0.24, bend: 1.5, wrist: -0.4, curl: 0.6 }, restR: { fwd: 0.2, out: 0.31, bend: 1.35, wrist: 0, curl: 0.6 } };
+  const N = { tellR: { fwd: 0.8, out: 0.3, bend: 1.0, curl: 0.1, twist: -0.4 }, dipR: { fwd: 0.62, out: 0.3, bend: 1.25, curl: 0.3, twist: -0.4 }, pointR: { fwd: 1.75, out: 0.35, twist: -0.4, bend: 0.05, point: true },
+    tellL: { fwd: 0.45, out: 0.14, bend: 1.15, curl: 0.5 }, downL: { fwd: 0.18, out: 0.16, bend: 0.55, curl: 0.5 } };
+  window.POSE = (t0) => {
+    const f = Math.round(t0 * 24), t = Math.floor(t0 * 12) / 12; /* bodies on 2s */
+    /* David: finishes the verdict pointing, lowers his hand to the lion, then freezes on "art" */
+    const shocked = t0 >= 3.66;
+    let dArm = t < 1.55 ? D.point : t < 1.95 ? mix({ ...D.point, point: false, curl: 0.55 }, D.hover, seg(t, 1.55, 1.95)) : mix(D.hover, D.rest, seg(t, 1.95, 2.3)); /* lift over the lion, then set the hand down on it */
+    if (t < 1.55) dArm = { ...D.point, fwd: D.point.fwd + 0.08 * Math.max(0, 1 - Math.abs(t - 0.75) / 0.12) }; /* small jab on "times" */
+    david.setArm('L', dArm); david.setArm('R', D.restR);
+    const dB = blink(f, 1.6);
+    david.setFace(shocked ? { lid: -0.35, raise: 0.6, open: 0.12, look: [-0.6, 0], blink: 0 } : { lid: 0.2, squint: 0.4, angry: 1, open: talk(t, DW) * 0.9, look: [-0.6, 0], blink: dB });
+    const back = seg(t, 3.66, 3.92); david.setHead({ turn: -0.8, nod: 0.08 - 0.08 * back, tilt: 0.03 * back }); /* he is against the backrest: the head lifts and freezes, no recoil */
+    david.setBody({ twist: -0.15, lean: 0.015 * back, bob: 0.006 * back, breathe: shocked ? 0 : Math.sin(t * 1.8) }); /* shoulders rise a touch and the breath stops */
+    /* Nathan: listens, goes stern, dips, raises the finger with a small overshoot, then speaks the line */
+    const stern = t0 >= 2.2, up = seg(t, 2.65, 3.25), dip = seg(t, 2.42, 2.62) * (1 - up), over = Math.sin(Math.PI * seg(t, 3.17, 3.5)) * 0.07;
+    let nR = mix(N.tellR, N.dipR, dip); if (t >= 2.65) nR = { ...mix(N.dipR, N.pointR, up), point: true }; nR.fwd += over;
+    nathan.setArm('R', nR); nathan.setArm('L', mix(N.tellL, N.downL, up));
+    nathan.setFace({ lid: stern ? 0.3 : 0.1, angry: stern ? 0.25 : 0, look: [0.25, 0.08 + 0.3 * up], open: talk(t, NW), blink: blink(f, 0.9) });
+    nathan.setHead({ turn: 0.3, nod: -0.04 + 0.08 * up - 0.03 * over });
+    nathan.setBody({ lean: 0.03 * up, breathe: Math.sin(t * 1.5 + 1) });
+    return JSON.stringify([t, shocked, stern, dB, blink(f, 0.9), +talk(t, DW).toFixed(3), +talk(t, NW).toFixed(3)]); /* identical key = identical image: reuse the frame */
+  };
+}
+const staff = M(lathe([[0, 0], [0.032, 0], [0.034, 1.0], [0.03, 1.95], [0.045, 2.0], [0, 2.04]], 14), wood); staff.position.set(-1.0, 0, -2.15); staff.rotation.x = -0.1; /* leans on the back wall: top touches the plaster, nothing balancing on its own */ scene.add(staff);
 
 // ---------- light: window sun, cool fill, practical lamps, soft god ray ----------
 scene.add(new THREE.HemisphereLight('#ffe3c4', '#2a1c12', 0.35));
 const sun = new THREE.SpotLight('#ffcf8f', 190, 16, Math.PI / 7, 0.65, 1.5); sun.position.set(-2.9, 4.6, -4.6); sun.target.position.set(0.4, 0, 0.4);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0003; scene.add(sun, sun.target);
+/* face fill for Nathan from the throne side: he faces the king, away from the key light */
+const fillN = new THREE.SpotLight('#ffe2c0', 9, 6, Math.PI / 9, 0.9, 1.5); fillN.position.set(1.3, 2.3, 0.3); fillN.target.position.set(-0.55, 1.75, -0.8); scene.add(fillN, fillN.target);
 const key = new THREE.SpotLight('#fff0dc', 45, 14, Math.PI / 5, 0.9, 1.5); key.position.set(-1.8, 3.6, 4.2); key.target.position.set(0.3, 1, -0.5); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 5; scene.add(key, key.target);
 const rim = new THREE.DirectionalLight('#9ab8ff', 0.6); rim.position.set(3, 3, -3); scene.add(rim);
 { const from = V(-1.7, 2.6, -2.3), to = V(0.4, 0, 0.6), len = from.distanceTo(to);
@@ -170,31 +208,50 @@ const dust = (() => { const N = 300, pos = new Float32Array(N * 3); for (let i =
 // ---------- shots (from the shot grammar: EST, WS, MS, INS, CU) ----------
 const SHOTS = {
   est: { pos: [0.9, 3.3, 8.6], look: [0.1, 1.4, -0.8], fov: 40, focus: [0.2, 1.0, -0.6], ap: 0.0006 },   // the room
-  ws:  { pos: [0.2, 1.5, 6.4], look: [0.2, 1.05, -0.5], fov: 32, focus: [0.2, 1.1, -0.4], ap: 0.0012 },   // both, full figure
-  ms:  { pos: [-0.15, 1.6, 2.2], look: [0.85, 1.45, -1.2], fov: 30, focus: [0.95, 1.5, -1.3], ap: 0.0025 }, // David on the throne
-  ms2: { pos: [0.9, 1.75, 2.2], look: [-0.6, 1.6, 0.3], fov: 30, focus: [-0.6, 1.65, 0.35], ap: 0.0025 },  // Nathan telling
+  ws:  { pos: [0.3, 1.55, 6.9], look: [0.3, 1.1, -0.6], fov: 33, focus: [0.25, 1.1, -0.9], ap: 0.0012 },   // both, full figure
+  ms:  { pos: [-1.1, 1.6, 1.25], look: [0.85, 1.45, -1.2], fov: 30, focus: [0.95, 1.5, -1.3], ap: 0.0025 }, // David on the throne
+  ms2: { pos: [1.7, 1.75, -0.6], look: [-0.55, 1.6, -0.8], fov: 30, focus: [-0.55, 1.65, -0.75], ap: 0.0025 },  // Nathan telling
   ins: { pos: [1.85, 1.25, -0.35], look: [1.42, 0.98, -1.1], fov: 30, focus: [1.45, 1.0, -1.05], ap: 0.006 }, // David's hand on the lion
   cu:  { pos: [0.45, 1.95, 0.2], look: [1.05, 1.88, -1.25], fov: 28, focus: [1.05, 1.9, -1.25], ap: 0.004 },  // David's face
 };
 const S = SHOTS[SHOT];
 scene.updateMatrixWorld(true);
-if (SHOT === 'ins') { const h = new THREE.Vector3(); david.arms[1].wr.getWorldPosition(h); S.look = [h.x, h.y - 0.05, h.z]; S.focus = S.look; S.pos = [h.x + 0.45, h.y + 0.35, h.z + 0.75]; }
-if (SHOT === 'cu') { const h = new THREE.Vector3(); david.head.getWorldPosition(h); S.look = [h.x, h.y + 0.25, h.z]; S.focus = [h.x, h.y + 0.3, h.z + 0.2]; S.pos = [h.x - 0.75, h.y + 0.4, h.z + 2.1]; }
+if (SHOT === 'ins') { const h = new THREE.Vector3(); david.arms[0].wr.getWorldPosition(h); S.look = [h.x, h.y - 0.05, h.z]; S.focus = S.look; S.pos = [h.x + 0.45, h.y + 0.35, h.z + 0.75]; }
+if (SHOT === 'cu') { const h = new THREE.Vector3(); david.head.getWorldPosition(h); S.look = [h.x, h.y + 0.25, h.z]; S.focus = [h.x, h.y + 0.3, h.z + 0.2]; S.pos = [h.x - 1.4, h.y + 0.4, h.z + 1.75]; }
 const camera = new THREE.PerspectiveCamera(S.fov, W / H, 0.05, 60); camera.position.set(...S.pos); camera.lookAt(...S.look);
 /* quality: render at SS x the final size with multisampling, then shrink (sharp edges, smoother shadows and contact shading) */
 const SS = +(new URLSearchParams(location.search).get('ss') || 2), RW = W * SS, RH = H * SS;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(RW, RH, false);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; renderer.outputColorSpace = THREE.SRGBColorSpace;
-scene.traverse(o => { if (o.isLight && o.castShadow) { o.shadow.mapSize.set(o.isPointLight ? 1024 : 4096, o.isPointLight ? 1024 : 4096); o.shadow.bias = -0.0004; o.shadow.normalBias = 0.012; o.shadow.radius = o.isPointLight ? 3 : (o === key ? 9 : 5); /* soft-box shadows like a real miniature set */ o.shadow.map?.dispose(); o.shadow.map = null; } });
+scene.traverse(o => { if (o.isLight && o.castShadow) { o.shadow.mapSize.set(o.isPointLight ? 2048 : 4096, o.isPointLight ? 2048 : 4096); o.shadow.bias = -0.0004; o.shadow.normalBias = 0.012; o.shadow.radius = o.isPointLight ? 3 : (o === key ? 9 : 5); /* soft-box shadows like a real miniature set */ o.shadow.map?.dispose(); o.shadow.map = null; } });
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(RW, RH, { samples: 4, type: THREE.HalfFloatType })); composer.setSize(RW, RH); composer.addPass(new RenderPass(scene, camera));
 const ao = new GTAOPass(scene, camera, RW, RH); ao.updateGtaoMaterial({ radius: 0.25, samples: 32 }); ao.updatePdMaterial({ samples: 32, rings: 4, radius: 8 }); if (!new URLSearchParams(location.search).has("noao")) composer.addPass(ao);
 composer.addPass(new BokehPass(scene, camera, { focus: camera.position.distanceTo(V(...S.focus)), aperture: S.ap, maxblur: S.ap * 2.5 }));
 composer.addPass(new OutputPass());
+window.ARMQC = (i, o) => { const a = david.arms[i]; david.setArm(i === 0 ? "L" : "R", { curl: 0.6, ...o }); david.root.updateMatrixWorld(true); return qc({ chars: [a.sh], world: [throne], ignore: [david.root], pairs: false, tol: 0.006 }).issues.map(h => [h.part, h.into, h.points, h.depth]); };
 const out = document.getElementById('out'); out.width = RW; out.height = RH; const o = out.getContext('2d');
+window.AIMSEARCH = () => { const a = nathan.arms[1]; let best = [1e9]; for (let fwd = 1.0; fwd <= 1.8; fwd += 0.05) for (let out = -0.4; out <= 1.0; out += 0.05) for (const twist of [-0.4, -0.2, 0, 0.2]) { nathan.setArm("R", { fwd, out, twist, bend: 0.05, point: true }); nathan.root.updateMatrixWorld(true); const e = a.el.getWorldPosition(new THREE.Vector3()), w = a.wr.getWorldPosition(new THREE.Vector3()), T = david.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.3, 0)); const ang = Math.acos(Math.min(1, w.clone().sub(e).normalize().dot(T.sub(w).normalize()))) * 57.3; if (ang < best[0]) best = [+ang.toFixed(1), +fwd.toFixed(2), +out.toFixed(2), twist]; } return best; };
+window.QC = () => { david.root.name = 'David'; nathan.root.name = 'Nathan'; throne.name = 'throne';
+  return { hits: qc({ chars: [david.root, nathan.root], world: [scene], floorY: 0, floors: [{ y: 0.2, minX: -0.2, maxX: 2.2, minZ: -2.2, maxZ: -0.5 }], walls: [{ axis: 'z', at: -2.4, sign: -1 }, { axis: 'x', at: -3.5, sign: -1 }, { axis: 'x', at: 3.5, sign: 1 }],
+      allow: [{ part: '^throne/David:', into: '^throne:Sphere#8b2c3a$', max: 0.06, why: 'seat and back cushions compress under the sitter' },
+              { part: '^throne/David:Lathe#8b2c3a$', into: '^throne:Box#6a4426$', max: 0.012, why: 'cloak pressed against the backrest' }] }),
+    handsOnRests: rests.map((r, i) => Math.min(gap(david.arms[i].hand.g, r), gap(david.arms[i].hand.g, lions[i]))), feetDavid: david.feet.map(f => +(new THREE.Box3().setFromObject(f).min.y - 0.2).toFixed(3)), feetNathan: nathan.feet.map(f => +new THREE.Box3().setFromObject(f).min.y.toFixed(3)) }; };
+window.HANDSEARCH = (i) => { const a = david.arms[i], side = i === 0 ? 'L' : 'R', lion = lions[i]; let best = [1e9];
+  const L = rests[i].localToWorld(new THREE.Vector3(0, 0.05, 0.3));
+  for (const fwd of [0, 0.1, 0.2, 0.3, 0.4, 0.5]) for (const out of [0.1, 0.17, 0.24, 0.31]) for (const bend of [1.2, 1.35, 1.5, 1.65]) for (const wrist of [-0.4, -0.2, 0, 0.2]) {
+    david.setArm(side, { fwd, out, bend, wrist, curl: 0.6 }); david.root.updateMatrixWorld(true);
+    const pen = qc({ chars: [a.sh], world: [throne], ignore: [david.root], pairs: false, tol: 0.006 }).issues.reduce((m, h) => Math.max(m, h.depth), 0);
+    if (pen > 0.02) continue;
+    const H = a.hand.g.getWorldPosition(new THREE.Vector3()), g = Math.min(gap(a.hand.g, rests[i]), gap(a.hand.g, lion)), off = Math.hypot(H.x - L.x, H.z - L.z);
+    const score = pen * 20 + Math.max(0, g - 0.006) * 10 + off;
+    if (score < best[0]) best = [+score.toFixed(3), fwd, out, bend, wrist, +pen.toFixed(3), g, +off.toFixed(3)]; }
+  return best; };
+window.GAZE = () => { const r = []; for (const [who, tgt] of [[david, nathan], [nathan, david]]) { const T = tgt.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.3, 0)); for (const e of who.eyes) { const c = e.aim.getWorldPosition(new THREE.Vector3()), p = e.aim.children[0].getWorldPosition(new THREE.Vector3()); const d = p.sub(c).normalize(), w = T.clone().sub(c).normalize(); r.push([who === david ? "david" : "nathan", e.s, +(Math.acos(Math.min(1, d.dot(w))) * 57.3).toFixed(1), +(Math.atan2(d.x, d.z) * 57.3).toFixed(0), +(Math.atan2(w.x, w.z) * 57.3).toFixed(0)]); } } { const a = nathan.arms[1], e = a.el.getWorldPosition(new THREE.Vector3()), w = a.wr.getWorldPosition(new THREE.Vector3()), T = david.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.3, 0)); const d = w.clone().sub(e).normalize(), t = T.sub(w).normalize(); r.push(["point", +(Math.acos(Math.min(1, d.dot(t))) * 57.3).toFixed(1)]); } return r; };
 window.OCC = (x, y, z) => { const P = new THREE.Vector3(x, y, z), out = []; scene.traverse(L => { if (!L.isLight || !L.castShadow) return; const lp = L.getWorldPosition(new THREE.Vector3()); let dir; if (L.isDirectionalLight) dir = lp.clone().sub(L.target.getWorldPosition(new THREE.Vector3())).normalize(); else dir = lp.clone().sub(P).normalize(); const rc = new THREE.Raycaster(P.clone().addScaledVector(dir, 0.02), dir); const h = rc.intersectObjects(scene.children, true).filter(h => h.object.isMesh && h.object.castShadow && !h.object.material.transparent)[0]; out.push([L.type, L.intensity, lp.toArray().map(v => +v.toFixed(2)), h ? [h.object.geometry.type, h.object.material.color?.getHexString(), +h.distance.toFixed(3), h.point.toArray().map(v => +v.toFixed(2))] : null]); }); return out; };
 window.DBG = () => { const cols = ["#ff0000","#00ff00","#0000ff","#ffff00","#ff00ff","#00ffff","#ffffff","#ff8800","#000000","#888888"]; const out = []; [...david.body.children, ...david.root.children].forEach((o, i) => { if (o.isMesh && ["5b3591","6a4426","8a5a34"].includes(o.material.color?.getHexString())) { o.material = o.material.clone(); o.material.color.set(cols[out.length % 10]); out.push([i, o.geometry.type, cols[out.length % 10]]); } }); return out; };
 window.PICK = (x, y) => { const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(x, y), camera); return rc.intersectObjects(scene.children, true).filter(h => h.object.isMesh && !h.object.material.transparent).slice(0, 3).map(h => { const o = h.object, wp = o.getWorldPosition(new THREE.Vector3()); return [o.geometry.type, o.geometry.attributes.position.count, o.material.color?.getHexString(), o.material.side, wp.toArray().map(v => +v.toFixed(3)), h.point.toArray().map(v => +v.toFixed(3)), o.parent?.type, o.parent?.children.indexOf(o)]; }); };
 window.drawFrame = (t = 0) => {
+  if (window.POSE) window.POSE(t);
   david.solve(); nathan.solve();
   composer.render(); o.drawImage(renderer.domElement, 0, 0, RW, RH);
   const g = o.createRadialGradient(RW / 2, RH / 2, RH * 0.3, RW / 2, RH / 2, RH * 0.8); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.45)'); o.fillStyle = g; o.fillRect(0, 0, RW, RH);

@@ -4,3 +4,6 @@ video_analysis/
 sep/
 __pycache__/
 production/david/stills/*_2x.png
+production/david/stills/*_qc.json
+production/david/anim_test*/frames/
+production/david/anim_test*/small/
