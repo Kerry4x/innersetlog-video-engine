@@ -141,6 +141,16 @@ const nathan = buildCharacter({ tunic: '#d9c7a3', trim: '#a8865a', mantle: '#7a5
 scene.add(nathan.root); nathan.root.position.set(-0.6, 0, 0.35); nathan.root.rotation.y = 0.75;
 nathan.setArm('R', { fwd: 0.8, out: 0.3, bend: 1.0, curl: 0.1, twist: -0.4 }); nathan.setArm('L', { fwd: 0.45, out: 0.14, bend: 1.15, curl: 0.5 });
 nathan.setFace({ lid: 0.1, look: [0.5, 0.1], open: 0.35 }); nathan.setHead({ turn: 0.15, nod: -0.04 });
+// story beats for the animatic: ?dm=calm|listen|angry|still|sad  &nm=tell|point|still
+{ const P = new URLSearchParams(location.search), dm = P.get('dm') || 'calm', nm = P.get('nm') || 'tell';
+  if (dm === 'listen') { david.setFace({ lid: 0.05, look: [-0.6, 0.05] }); david.setHead({ turn: 0.36, tilt: 0.1, nod: 0.05 }); }
+  if (dm === 'angry') { david.setFace({ lid: 0.2, squint: 0.4, angry: 1, open: 0.45, look: [-0.6, 0] }); david.setHead({ turn: 0.34, nod: 0.08 });
+    david.setArm('L', { fwd: 1.15, out: 0.45, bend: 0.15, point: true }); }
+  if (dm === 'still') { david.setFace({ lid: -0.35, raise: 0.6, open: 0.12, look: [-0.6, 0] }); david.setHead({ turn: 0.34, nod: -0.05 }); }
+  if (dm === 'sad') { david.setFace({ lid: 0.55, sad: 1, look: [-0.1, -0.7] }); david.setHead({ turn: 0.2, nod: 0.32 }); }
+  if (nm === 'point') { nathan.setArm('R', { fwd: 1.45, out: 0.25, bend: 0.05, point: true }); nathan.setFace({ lid: 0.3, angry: 0.25, look: [0.55, 0.05] }); nathan.setHead({ turn: 0.2 }); }
+  if (nm === 'still') { nathan.setArm('R', { fwd: 0.6, out: 0.12, bend: 1.15, curl: 0.5 }); nathan.setFace({ lid: 0.25, sad: 0.3, look: [0.55, 0] }); nathan.setHead({ turn: 0.2, nod: 0.05 }); }
+}
 const staff = M(lathe([[0, 0], [0.032, 0], [0.034, 1.0], [0.03, 1.95], [0.045, 2.0], [0, 2.04]], 14), wood); staff.position.set(-1.12, 0, 0.55); staff.rotation.z = 0.04; scene.add(staff);
 
 // ---------- light: window sun, cool fill, practical lamps, soft god ray ----------
