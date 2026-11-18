@@ -11,11 +11,16 @@ const s = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split('?
   const p = await b.newPage({ viewport: { width: 1080, height: 1920 } }); p.on('pageerror', e => console.log('PAGE ERROR', e.message));
   await p.goto(`http://127.0.0.1:${s.address().port}/${PAGE}`); await p.waitForFunction(() => window.READY, null, { timeout: 300000 });
   const DUR = await p.evaluate(() => window.DURATION), AUDIO = await p.evaluate(() => window.AUDIO || null), n = Math.round(DUR * FPS);
-  const report = { page: PAGE, fps: FPS, frames: n, audio: AUDIO, unique: 0, issues: [], gaze: [] }; let lastKey = null, t0 = Date.now();
+  const RANGES = await p.evaluate(() => window.RANGES || null), ONLY = process.env.ONLY ? process.env.ONLY.split(',').map(Number) : null;
+  const want = i => { if (!RANGES) return true; const t = i / FPS; return RANGES.some(([a, b], k) => (!ONLY || ONLY.includes(k)) && t >= a && t < b); }; /* only the frames of the chosen shots */
+  const tag = ONLY ? '_' + ONLY.join('-') : '';
+  const report = { page: PAGE, fps: FPS, frames: n, audio: AUDIO, unique: 0, issues: [], gaze: [] }; let lastKey = null, prevFile = null, t0 = Date.now();
   for (let i = 0; i < n; i++) {
+    if (!want(i)) { lastKey = null; continue; }
     const f = path.join(OUT, 'frames', `f${String(i).padStart(4, '0')}.png`), key = await p.evaluate(t => window.POSE(t), i / FPS);
-    if (key === lastKey) { fs.copyFileSync(path.join(OUT, 'frames', `f${String(i - 1).padStart(4, '0')}.png`), f); continue; }
-    lastKey = key; report.unique++;
+    if (key === lastKey && prevFile) { fs.copyFileSync(prevFile, f); prevFile = f; continue; }
+    if (process.env.RESUME && fs.existsSync(f)) { lastKey = key; prevFile = f; continue; }
+    lastKey = key; prevFile = f; report.unique++;
     const d = await p.evaluate(t => window.drawFrame(t), i / FPS); fs.writeFileSync(f, Buffer.from(d.split(',')[1], 'base64'));
     const r = await p.evaluate(() => ({ qc: window.QC ? window.QC() : null, gaze: window.GAZE ? window.GAZE() : null }));
     const iss = r.qc ? r.qc.hits.issues : []; if (iss.length) report.issues.push({ frame: i, t: +(i / FPS).toFixed(3), list: iss.slice(0, 6) });
@@ -23,6 +28,6 @@ const s = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split('?
     report.gaze.push({ frame: i, g: r.gaze });
     console.log(`frame ${i} (${report.unique} unique, ${((Date.now() - t0) / 1000 / report.unique).toFixed(0)}s each)`, iss.length ? `ISSUES ${iss.length} worst ${iss[0].depth} ${iss[0].part} -> ${iss[0].into}` : 'clean');
   }
-  fs.writeFileSync(path.join(OUT, 'qc.json'), JSON.stringify(report, null, 1)); await b.close(); s.close();
+  fs.writeFileSync(path.join(OUT, `qc${tag}.json`), JSON.stringify(report, null, 1)); await b.close(); s.close();
   console.log('done', n, 'frames,', report.unique, 'rendered,', report.issues.length, 'frames with issues');
 });
