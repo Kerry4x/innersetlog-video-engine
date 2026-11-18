@@ -55,6 +55,7 @@ File: ElevenLabs v3, stability 50, similarity 75 (`video_analysis/voice/vo_take1
 - **Fixable in the edit (no regeneration):** longer silence before "Thou art the man", after it, and before the last line. **Needs a regeneration if wanted:** a slower read of the verdict line.
 
 ## Directing the voice (Kerry, 2026-11-18)
-- Emotion/delivery tags like [thoughtful] or [quiet] don't sound good with our voice: **don't use them**.
-- Direct with the text itself: short sentences, ellipses (…) for weight on a few lines, CAPS on one or two stressed words, paragraph breaks between beats.
-- Pause lengths are set **in the edit** (I cut or extend the silences to the plan, using the word timings), not with tags.
+- Tags are fine, but vague mood tags like [thoughtful] or [quiet] don't sound good with our voice: **don't use those**.
+- Use tags that set **pace and pauses**, plus a plain emotion only on **quoted dialogue**: [short pause], [long pause], [slower], [faster], [angry], [frustrated].
+- Placement follows the monks voiceover study (`library/notes/voiceover_monks_S06.md`): setups move, payoff lines slow down, the longest pause sits right before the line that changes the story, dialogue is acted while the narrator stays steady, the turn to today slows, the close is slow.
+- Generate in one go. I fine-tune pause lengths in the edit from the word timings.
