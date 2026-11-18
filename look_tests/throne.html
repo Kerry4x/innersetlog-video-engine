@@ -103,7 +103,7 @@ const lions = []; const throne = new THREE.Group(); throne.position.set(1.0, 0.2
     const snout = M(new THREE.SphereGeometry(0.035, 16, 12), gold, lion); snout.position.set(0, -0.015, 0.075);
     for (const e of [-1, 1]) { const eye = M(new THREE.SphereGeometry(0.011, 8, 8), clay('#140d09', { bumpScale: 0 }), lion); eye.position.set(0.028 * e, 0.022, 0.07); const ear = M(new THREE.SphereGeometry(0.022, 10, 8), gold, lion); ear.position.set(0.055 * e, 0.06, 0); }
   }
-  const stool = box(0.62, 0.12, 0.3, wood, 0.03); stool.position.set(0, 0.06, 0.62); throne.add(stool);
+  const stool = box(0.62, 0.1, 0.22, wood, 0.03); stool.position.set(0, 0.05, 0.79); stool.castShadow = false; throne.add(stool); /* in front of the feet (front edge 0.68): feet and hem rest on the dais, nothing buried */
 }
 // ---------- dressing: lamps (practical light), jars, low table with bread and figs, lyre, niches ----------
 const lamps = [];
@@ -181,18 +181,24 @@ scene.updateMatrixWorld(true);
 if (SHOT === 'ins') { const h = new THREE.Vector3(); david.arms[1].wr.getWorldPosition(h); S.look = [h.x, h.y - 0.05, h.z]; S.focus = S.look; S.pos = [h.x + 0.45, h.y + 0.35, h.z + 0.75]; }
 if (SHOT === 'cu') { const h = new THREE.Vector3(); david.head.getWorldPosition(h); S.look = [h.x, h.y + 0.25, h.z]; S.focus = [h.x, h.y + 0.3, h.z + 0.2]; S.pos = [h.x - 0.75, h.y + 0.4, h.z + 2.1]; }
 const camera = new THREE.PerspectiveCamera(S.fov, W / H, 0.05, 60); camera.position.set(...S.pos); camera.lookAt(...S.look);
-const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(W, H, false);
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; renderer.outputColorSpace = THREE.SRGBColorSpace;
-const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
-const ao = new GTAOPass(scene, camera, W, H); ao.updateGtaoMaterial({ radius: 0.25, samples: 16 }); composer.addPass(ao);
+/* quality: render at SS x the final size with multisampling, then shrink (sharp edges, smoother shadows and contact shading) */
+const SS = +(new URLSearchParams(location.search).get('ss') || 2), RW = W * SS, RH = H * SS;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.setSize(RW, RH, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; renderer.outputColorSpace = THREE.SRGBColorSpace;
+scene.traverse(o => { if (o.isLight && o.castShadow) { o.shadow.mapSize.set(o.isPointLight ? 1024 : 4096, o.isPointLight ? 1024 : 4096); o.shadow.bias = -0.0004; o.shadow.normalBias = 0.012; o.shadow.radius = o.isPointLight ? 3 : (o === key ? 9 : 5); /* soft-box shadows like a real miniature set */ o.shadow.map?.dispose(); o.shadow.map = null; } });
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(RW, RH, { samples: 4, type: THREE.HalfFloatType })); composer.setSize(RW, RH); composer.addPass(new RenderPass(scene, camera));
+const ao = new GTAOPass(scene, camera, RW, RH); ao.updateGtaoMaterial({ radius: 0.25, samples: 32 }); ao.updatePdMaterial({ samples: 32, rings: 4, radius: 8 }); if (!new URLSearchParams(location.search).has("noao")) composer.addPass(ao);
 composer.addPass(new BokehPass(scene, camera, { focus: camera.position.distanceTo(V(...S.focus)), aperture: S.ap, maxblur: S.ap * 2.5 }));
 composer.addPass(new OutputPass());
-const out = document.getElementById('out'), o = out.getContext('2d');
+const out = document.getElementById('out'); out.width = RW; out.height = RH; const o = out.getContext('2d');
+window.OCC = (x, y, z) => { const P = new THREE.Vector3(x, y, z), out = []; scene.traverse(L => { if (!L.isLight || !L.castShadow) return; const lp = L.getWorldPosition(new THREE.Vector3()); let dir; if (L.isDirectionalLight) dir = lp.clone().sub(L.target.getWorldPosition(new THREE.Vector3())).normalize(); else dir = lp.clone().sub(P).normalize(); const rc = new THREE.Raycaster(P.clone().addScaledVector(dir, 0.02), dir); const h = rc.intersectObjects(scene.children, true).filter(h => h.object.isMesh && h.object.castShadow && !h.object.material.transparent)[0]; out.push([L.type, L.intensity, lp.toArray().map(v => +v.toFixed(2)), h ? [h.object.geometry.type, h.object.material.color?.getHexString(), +h.distance.toFixed(3), h.point.toArray().map(v => +v.toFixed(2))] : null]); }); return out; };
+window.DBG = () => { const cols = ["#ff0000","#00ff00","#0000ff","#ffff00","#ff00ff","#00ffff","#ffffff","#ff8800","#000000","#888888"]; const out = []; [...david.body.children, ...david.root.children].forEach((o, i) => { if (o.isMesh && ["5b3591","6a4426","8a5a34"].includes(o.material.color?.getHexString())) { o.material = o.material.clone(); o.material.color.set(cols[out.length % 10]); out.push([i, o.geometry.type, cols[out.length % 10]]); } }); return out; };
+window.PICK = (x, y) => { const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(x, y), camera); return rc.intersectObjects(scene.children, true).filter(h => h.object.isMesh && !h.object.material.transparent).slice(0, 3).map(h => { const o = h.object, wp = o.getWorldPosition(new THREE.Vector3()); return [o.geometry.type, o.geometry.attributes.position.count, o.material.color?.getHexString(), o.material.side, wp.toArray().map(v => +v.toFixed(3)), h.point.toArray().map(v => +v.toFixed(3)), o.parent?.type, o.parent?.children.indexOf(o)]; }); };
 window.drawFrame = (t = 0) => {
   david.solve(); nathan.solve();
-  composer.render(); o.drawImage(renderer.domElement, 0, 0, W, H);
-  const g = o.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.45)'); o.fillStyle = g; o.fillRect(0, 0, W, H);
-  return out.toDataURL('image/jpeg', 0.92);
+  composer.render(); o.drawImage(renderer.domElement, 0, 0, RW, RH);
+  const g = o.createRadialGradient(RW / 2, RH / 2, RH * 0.3, RW / 2, RH / 2, RH * 0.8); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.45)'); o.fillStyle = g; o.fillRect(0, 0, RW, RH);
+  return out.toDataURL('image/png');
 };
 window.READY = true;
 </script></body></html>

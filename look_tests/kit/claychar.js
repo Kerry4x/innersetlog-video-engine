@@ -13,9 +13,12 @@ const print = (() => { const c = document.createElement('canvas'); c.width = c.h
 const cache = {};
 export const clay = (c, o = {}) => { const k = c + JSON.stringify(o); return cache[k] || (cache[k] = new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.58, bumpMap: print, bumpScale: 0.8, sheen: 0.06, ...o })); };
 export const M = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; if (parent) parent.add(m); return m; };
-export const lathe = (pts, seg = 64, p0 = 0, pl = Math.PI * 2) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg, p0, pl);
-function folds(geo, amp, n, y0, y1) { const p = geo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue; const t = Math.max(0, Math.min(1, (y1 - y) / (y1 - y0))); const k = amp * t * Math.sin(Math.atan2(x, z) * n + Math.sin(y * 7) * 0.6); p.setX(i, x * (r + k) / r); p.setZ(i, z * (r + k) / r); } geo.computeVertexNormals(); return geo; }
-function grooves(geo, amp, n) { const p = geo.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const L = v.length(); if (L < 1e-5) continue; v.multiplyScalar((L + amp * Math.sin(Math.atan2(v.x, v.z) * n + v.y * 6)) / L); p.setXYZ(i, v.x, v.y, v.z); } geo.computeVertexNormals(); return geo; }
+/* average normals of vertices that share a position (lathe seams, capsule poles): no hard line where a surface wraps around */
+export function smoothSeams(geo) { const p = geo.attributes.position, n = geo.attributes.normal; if (!n) return geo; const m = new Map(); for (let i = 0; i < p.count; i++) { const k = `${p.getX(i).toFixed(4)},${p.getY(i).toFixed(4)},${p.getZ(i).toFixed(4)}`; (m.get(k) || m.set(k, []).get(k)).push(i); }
+  const v = new THREE.Vector3(); for (const ids of m.values()) { if (ids.length < 2) continue; v.set(0, 0, 0); for (const i of ids) v.x += n.getX(i), v.y += n.getY(i), v.z += n.getZ(i); v.normalize(); for (const i of ids) n.setXYZ(i, v.x, v.y, v.z); } n.needsUpdate = true; return geo; }
+export const lathe = (pts, seg = 64, p0 = 0, pl = Math.PI * 2) => { const full = pl >= Math.PI * 2 - 1e-6; const g = new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg, full ? Math.PI : p0, pl); /* full turns start at the back: the texture seam never faces the camera */ return pl >= Math.PI * 2 - 1e-6 ? smoothSeams(g) : g; };
+function folds(geo, amp, n, y0, y1) { const p = geo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue; const t = Math.max(0, Math.min(1, (y1 - y) / (y1 - y0))); const k = amp * t * Math.sin(Math.atan2(x, z) * n + Math.sin(y * 7) * 0.6); p.setX(i, x * (r + k) / r); p.setZ(i, z * (r + k) / r); } geo.computeVertexNormals(); return smoothSeams(geo); }
+function grooves(geo, amp, n) { const p = geo.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const L = v.length(); if (L < 1e-5) continue; v.multiplyScalar((L + amp * Math.sin(Math.atan2(v.x, v.z) * n + v.y * 6)) / L); p.setXYZ(i, v.x, v.y, v.z); } geo.computeVertexNormals(); return smoothSeams(geo); }
 function sausage(a, b, r, mat, parent) { const d = b.clone().sub(a), m = M(new THREE.CapsuleGeometry(r, d.length(), 10, 20), mat, parent); m.position.copy(a).lerp(b, 0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); return m; }
 
 const HP = [[0, 0], [0.11, 0.008], [0.19, 0.05], [0.228, 0.13], [0.238, 0.24], [0.232, 0.36], [0.218, 0.45], [0.2, 0.51], [0.168, 0.565], [0.12, 0.605], [0.062, 0.624], [0, 0.629]];
@@ -72,13 +75,16 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, crown, lidT
     for (let i = 0; i < n; i++) { const x = base[i * 3], y = base[i * 3 + 1], z = base[i * 3 + 2], r = Math.hypot(x, z); if (r < 1e-4) continue;
       const k = 0.006 * Math.sin(Math.atan2(x, z) * 26 + y * 9 + Math.sin(y * 23) * 0.8); gx[i] = x / r * k; gz[i] = z / r * k; }
     const beardM = M(bg, clay(beard, { side: THREE.DoubleSide, bumpScale: 0.25 }), R.jaw); R.beardMeshes = [beardM]; R.beardStrands = { base, gx, gz, nb };
-    { const p = bg.attributes.position; for (let i = 0; i < n; i++) p.setXYZ(i, base[i * 3] + gx[i], base[i * 3 + 1], base[i * 3 + 2] + gz[i]); bg.computeVertexNormals(); }
+    { const p = bg.attributes.position; for (let i = 0; i < n; i++) p.setXYZ(i, base[i * 3] + gx[i], base[i * 3 + 1], base[i * 3 + 2] + gz[i]); bg.computeVertexNormals(); smoothSeams(bg); }
     for (const s of [-1, 1]) { sausage(V(hr(0.3) * 0.95 * s, 0.29, 0.0), V(hr(0.07) * 0.98 * s, 0.05, 0.06), 0.032, clay(beard), g);
       sausage(V(0.015 * s, n1.y - 0.07, n1.z - 0.06), V(0.1 * s, mY + 0.03, surf(0.1, mY + 0.03) + 0.004), 0.026, clay(beard), g); }
   }
-  if (crown) { const band = M(new THREE.CylinderGeometry(0.205, 0.215, 0.085, 56, 1, true), clay('#d6a640', { roughness: 0.38, side: THREE.DoubleSide }), g); band.position.y = 0.55;
-    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; const k = M(new THREE.ConeGeometry(0.026, 0.09, 16), clay('#d6a640', { roughness: 0.38 }), g); k.position.set(Math.cos(a) * 0.205, 0.63, Math.sin(a) * 0.205);
-      const gem = M(new THREE.SphereGeometry(0.014, 12, 10), clay('#8a1c2a', { roughness: 0.25, bumpScale: 0 }), g); gem.position.set(Math.cos(a) * 0.214, 0.55, Math.sin(a) * 0.214); } }
+  if (crown) { /* the band sits ON the hair: tapered to the skull at y 0.46-0.54, squashed front-to-back like the head (no floating gap) */
+    const cg = new THREE.Group(); cg.position.y = 0.515; cg.scale.z = SZ * 1.03; g.add(cg); const gold = clay('#d6a640', { roughness: 0.38, side: THREE.DoubleSide });
+    M(new THREE.CylinderGeometry(0.222, 0.245, 0.085, 64, 1, true), gold, cg);
+    for (const [y, r] of [[0.0425, 0.222], [-0.0425, 0.245]]) { const rim = M(new THREE.TorusGeometry(r, 0.006, 8, 64), gold, cg); rim.rotation.x = Math.PI / 2; rim.position.y = y; }
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; const k = M(new THREE.ConeGeometry(0.026, 0.09, 16), clay('#d6a640', { roughness: 0.38 }), cg); k.position.set(Math.cos(a) * 0.217, 0.087, Math.sin(a) * 0.217);
+      const gem = M(new THREE.SphereGeometry(0.014, 12, 10), clay('#8a1c2a', { roughness: 0.25, bumpScale: 0 }), cg); gem.position.set(Math.cos(a) * 0.24, 0, Math.sin(a) * 0.24); } }
   return g;
 }
 
@@ -111,10 +117,11 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, se
       const th = M(new THREE.CapsuleGeometry(0.12, 0.34, 10, 24), tm, R.body); th.rotation.x = Math.PI / 2; th.position.set(0.12 * sd, 0.6, 0.2);
       const sh = M(lathe([[0, 0], [0.13, 0], [0.12, 0.25], [0.105, 0.48], [0, 0.5]], 40, 0, Math.PI * 2), tm, R.body); sh.position.set(0.12 * sd, 0.05, 0.39);
     }
+    { const kb = M(new THREE.CapsuleGeometry(0.115, 0.24, 10, 24), tm, R.body); kb.rotation.z = Math.PI / 2; kb.position.set(0, 0.6, 0.33); } /* cloth bridging the knees: no dark gap between the thighs */
     /* the robe falls from the knees to the ankles as one skirt in front of both shins (no trouser legs) */
-    const skirt = M(folds(lathe([[0.3, 0.0], [0.285, 0.2], [0.26, 0.45], [0.24, 0.6], [0.2, 0.66]], 56, -Math.PI / 2, Math.PI), 0.014, 9, 0, 0.6), clay(tunic, { side: THREE.DoubleSide }), R.body); skirt.scale.set(1, 1, 0.75); skirt.position.set(0, 0.03, 0.36);
-    const lapDrape = M(folds(lathe([[0, 0.0], [0.29, 0.0], [0.28, 0.1], [0.25, 0.14], [0, 0.15]], 56), 0.01, 8, 0, 0.15), tm, R.body); lapDrape.scale.set(1, 1, 1.5); lapDrape.position.set(0, 0.56, 0.12);
-    R.feet = [-1, 1].map(sd => { const ft = M(new THREE.SphereGeometry(0.075, 24, 16), clay('#6a4426'), root); ft.scale.set(0.85, 0.5, 1.5); ft.position.set(0.12 * sd, 0.04, 0.47); return ft; });
+    const skirt = M(folds(lathe([[0.3, 0.0], [0.285, 0.2], [0.26, 0.45], [0.24, 0.6], [0.2, 0.66], [0.1, 0.685], [0, 0.69]], 64), 0.014, 9, 0, 0.6), clay(tunic, { side: THREE.DoubleSide }), R.body); skirt.scale.set(1, 1, 0.75); skirt.position.set(0, 0.03, 0.36);
+    const lapDrape = M(folds(lathe([[0, 0.0], [0.29, 0.0], [0.28, 0.1], [0.25, 0.14], [0, 0.15]], 56), 0.01, 8, 0, 0.15), tm, R.body); lapDrape.scale.set(1, 1, 1.3); lapDrape.position.set(0, 0.56, 0.12); /* stays behind the skirt top: poking through made a dark notch */
+    R.feet = [-1, 1].map(sd => { const ft = M(new THREE.SphereGeometry(0.075, 24, 16), clay('#8a5a34'), root); ft.scale.set(0.85, 0.5, 1.5); ft.position.set(0.12 * sd, 0.038, 0.53); /* toes show past the hem, resting on the floor */ return ft; });
   }
   const neck = M(new THREE.CylinderGeometry(0.1, 0.12, 0.1, 28), clay(skin), R.body); neck.position.y = 1.33;
   const col = M(new THREE.TorusGeometry(0.12, 0.024, 14, 40), clay(trim), R.body); col.rotation.x = Math.PI / 2 + 0.25; col.position.set(0, 1.3, 0.015);
@@ -127,7 +134,7 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, se
     const sh = new THREE.Group(); sh.position.set(0.3 * s, 1.17, 0); R.body.add(sh); /* shoulder at the edge of the chest: arms hang against the body */
     M(new THREE.SphereGeometry(0.08, 24, 18), tm, sh); sausage(V(0, 0, 0), V(0, -0.24, 0.0), 0.07, tm, sh);
     const el = new THREE.Group(); el.position.y = -0.24; sh.add(el);
-    M(lathe([[0.055, 0.0], [0.075, -0.1], [0.1, -0.2], [0.093, -0.21], [0.065, -0.11], [0.05, 0.0]], 40), clay(tunic, { side: THREE.DoubleSide }), el);
+    M(lathe([[0.055, 0.0], [0.072, -0.1], [0.08, -0.185], [0.077, -0.205], [0.064, -0.214], [0.049, -0.212], [0.047, -0.19]], 40), clay(tunic, { side: THREE.DoubleSide }), el); /* closed rolled cuff hugging the wrist: no open hole */
     sausage(V(0, 0, 0), V(0, -0.22, 0), 0.046, clay(skin), el);
     const wr = new THREE.Group(); wr.position.y = -0.27; el.add(wr);
     const hand = buildHand(skin, s); hand.g.scale.setScalar(1.35); wr.add(hand.g);
@@ -189,7 +196,7 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, se
           P.applyMatrix4(back); }
         pos.setXYZ(i, P.x + gx[i], P.y, P.z + gz[i]);
       }
-      pos.needsUpdate = true; m.geometry.computeVertexNormals();
+      pos.needsUpdate = true; m.geometry.computeVertexNormals(); smoothSeams(m.geometry);
     });
     return report; // remaining arm penetration in metres (the clip checker)
   };

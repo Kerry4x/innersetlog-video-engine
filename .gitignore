@@ -3,3 +3,4 @@ video_analysis/
 *.wav
 sep/
 __pycache__/
+production/david/stills/*_2x.png
