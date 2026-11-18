@@ -207,14 +207,14 @@ lay(J, 0.55, 0.42, -0.06, 0.4, -0.1, (g, w, h) => { fill(g, '#b08a6a', [[0, h], 
 lay(J, 0.09, 0.09, -0.12, 0.8, -0.106, (g, w, h) => { ell(g, '#3a2a40', w * 0.5, h * 0.3, w * 0.22, h * 0.26); fill(g, '#3a2a40', [[w * 0.18, h], [w * 0.3, h * 0.5], [w * 0.7, h * 0.5], [w * 0.82, h]]); }, 0); /* a silhouette, far off */
 lay(J, 0.2, 0.16, -0.12, 0.8, -0.103, (g, w, h) => { g.strokeStyle = '#6a4a32'; g.lineWidth = 9; for (let x = 0; x <= w; x += 34) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } for (let y = 0; y <= h; y += 34) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); } g.strokeRect(0, 0, w, h); }, 5); /* lattice screen in front of her */
 /* the palace: terraces, columns, a roof parapet David stands behind */
-lay(J, 1.0, 0.75, 0.36, 0.2, -0.05, (g, w, h) => { fill(g, '#e2c79a', [[0, h], [0, h * 0.28], [w, h * 0.28], [w, h]]); fill(g, '#cdb07e', [[w * 0.1, h * 0.28], [w * 0.1, h * 0.1], [w * 0.6, h * 0.1], [w * 0.6, h * 0.28]]);
-  for (let k = 0; k < 5; k++) fill(g, '#b8956a', [[w * (0.08 + k * 0.2), h], [w * (0.12 + k * 0.2), h], [w * (0.12 + k * 0.2), h * 0.42], [w * (0.08 + k * 0.2), h * 0.42]]); for (let k = 0; k < 4; k++) fill(g, '#ffcf7a', [[w * (0.17 + k * 0.2), h * 0.5], [w * (0.24 + k * 0.2), h * 0.5], [w * (0.24 + k * 0.2), h * 0.6], [w * (0.17 + k * 0.2), h * 0.6]]); shade(g, 'rgba(120,60,40,0.3)', w * 0.85, h * 0.6, w * 0.3, h * 0.6); }, 8);
-const jParapet = lay(J, 1.0, 0.09, 0.36, 0.94, 0.03, (g, w, h) => { fill(g, '#d8bc8a', [[0, h], [0, h * 0.2], [w, h * 0.2], [w, h]]); for (let x = 0; x < w; x += 70) fill(g, '#d8bc8a', [[x, h * 0.2], [x, 0], [x + 40, 0], [x + 40, h * 0.2]]); }, 7);
+lay(J, 1.0, 0.75, 0.52, 0.2, 0.02, (g, w, h) => { fill(g, '#e2c79a', [[0, h], [0, 0], [w, 0], [w, h]]); /* one solid front up to the parapet: nothing of him shows below the roofline */
+  for (let k = 0; k < 5; k++) fill(g, '#b8956a', [[w * (0.08 + k * 0.2), h], [w * (0.12 + k * 0.2), h], [w * (0.12 + k * 0.2), h * 0.25], [w * (0.08 + k * 0.2), h * 0.25]]); for (let k = 0; k < 4; k++) fill(g, '#ffcf7a', [[w * (0.17 + k * 0.2), h * 0.35], [w * (0.24 + k * 0.2), h * 0.35], [w * (0.24 + k * 0.2), h * 0.47], [w * (0.17 + k * 0.2), h * 0.47]]); shade(g, 'rgba(120,60,40,0.3)', w * 0.85, h * 0.6, w * 0.3, h * 0.6); }, 8);
+const jParapet = lay(J, 1.0, 0.09, 0.52, 0.94, 0.03, (g, w, h) => { fill(g, '#d8bc8a', [[0, h], [0, h * 0.2], [w, h * 0.2], [w, h]]); for (let x = 0; x < w; x += 70) fill(g, '#d8bc8a', [[x, h * 0.2], [x, 0], [x + 40, 0], [x + 40, h * 0.2]]); }, 7);
 const davidP = puppet({ z: 0.0, dir: -1, neck: [-0.01, 0.44, 0], shoulder: [-0.04, 0.4, 0],
   body: [0.24, 0.6, [0.5, 1], robe('#5b3591', '#d6a640')],
   heads: ['calm', 'sly'].map(e => [0.21, 0.24, [0.4, 0.92], (g, w, h) => profileHead(g, w, h, { beard: 'short', beardC: '#3a2416', hair: '#3a2416', cloth: 'crown', eye: e, nose: 1.05, faceRight: false })]),
   armNear: [0.08, 0.26, [0.5, 0.04], sleeve('#4c2b7a')], armFar: [0.08, 0.26, [0.5, 0.04], sleeve('#3f2366')] }, J);
-davidP.position.set(0.3, 0.72, 0); davidP.scale.set(0.6, 0.6, 1); /* smaller on the far roof, but the layer spacing stays (no z-fighting) */
+davidP.position.set(0.2, 0.86, 0); /* stands on the roof behind the facade: only his head and shoulders rise above the parapet */ davidP.scale.set(0.6, 0.6, 1); /* smaller on the far roof, but the layer spacing stays (no z-fighting) */
 const bird = piece(0.05, 0.02, [0.5, 0.5], (g, w, h) => { g.strokeStyle = '#3a2a3a'; g.lineWidth = 8; g.beginPath(); g.moveTo(0, h); g.quadraticCurveTo(w * 0.25, 0, w * 0.5, h * 0.6); g.quadraticCurveTo(w * 0.75, 0, w, h); g.stroke(); }, { rim: 0 }); bird.position.set(-0.6, 1.75, -0.2); J.add(bird);
 
 /* ---------- a paper tabletop for the hand inserts: the message (11:5) and the sealed letter Uriah carries (11:14) ---------- */
@@ -240,7 +240,7 @@ const soldier = (cloak, plume) => (g, w, h) => { fill(g, cloak, [[w * 0.25, h], 
 const ranks = []; for (let k = 0; k < 6; k++) { const s = piece(0.18, 0.44, [0.5, 1], soldier(['#6a5a4a', '#7a6248', '#5e5244'][k % 3], false), { rim: 6 }); s.position.set(-0.4 + k * 0.13 + (k > 2 ? 0.12 : 0), 0.38, -0.02 + k * 0.004); B.add(s); ranks.push(s); }
 const uriah = piece(0.19, 0.46, [0.5, 1], soldier('#9a3a32', true), { rim: 7 }); uriah.position.set(0.02, 0.36, 0.03); B.add(uriah);
 const arrows = []; for (let k = 0; k < 3; k++) { const a = piece(0.11, 0.012, [0.5, 0.5], (g, w, h) => { fill(g, '#4a3424', [[0, h * 0.4], [w * 0.85, h * 0.4], [w * 0.85, h * 0.6], [0, h * 0.6]]); fill(g, '#2a2a2a', [[w * 0.85, 0], [w, h * 0.5], [w * 0.85, h]]); fill(g, '#e8e0d0', [[0, 0], [w * 0.1, h * 0.4], [w * 0.1, h * 0.6], [0, h]]); }, { rim: 0 }); B.add(a); arrows.push(a); a.visible = false; }
-front(B, 0.45, '#9a7a50');
+front(B, 0.42, '#9a7a50');
 
 /* ---------- the wedding (11:27): David and Bathsheba under a canopy ---------- */
 const Wd = mkStage('wedding', 40);
@@ -304,10 +304,10 @@ const out = document.getElementById('out'); out.width = RW; out.height = RH; con
 const sm = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x), seg = (t, a, b) => sm((t - a) / (b - a)), lerp = (a, b, k) => a + (b - a) * k;
 /* [t0, t1, stage, camera centre x, centre y, distance, push (+ in, - out), mood] */
 window.SHOTS = [
-  [5.32, 7.06, 'lambsolo', 0.0, 1.02, 1.25, 0, 'day'], [9.48, 10.60, 'jerusalem', 0.0, 1.16, 3.35, 0, 'eve'], [10.60, 12.54, 'jerusalem', 0.02, 1.2, 1.45, 0, 'eve'],
-  [12.54, 13.84, 'table', 0.0, 1.0, 1.05, 0, 'lamp'], [13.84, 15.32, 'table', 0.0, 1.0, 1.05, 0, 'lamp'], [15.32, 17.22, 'battle', 0.0, 0.85, 2.0, 0, 'day'],
+  [5.32, 7.06, 'lambsolo', 0.0, 1.02, 1.25, 0, 'day'], [9.48, 10.60, 'jerusalem', 0.0, 1.16, 3.35, 0, 'eve'], [10.60, 12.54, 'jerusalem', 0.08, 1.02, 1.35, 0, 'eve'],
+  [12.54, 13.84, 'table', 0.0, 1.0, 0.72, 0, 'lamp'], [13.84, 15.32, 'table', 0.0, 1.0, 0.72, 0, 'lamp'], [15.32, 17.22, 'battle', 0.0, 0.72, 1.6, 0, 'day'],
   [17.22, 18.56, 'wedding', 0.0, 0.82, 1.9, 0, 'warm'], [18.56, 19.98, 'jerusalem', 0.0, 1.16, 3.35, 0, 'day'],
-  [24.46, 25.74, 'village', 0.3, 1.02, 1.7, -0.25, 'day'], [25.74, 27.44, 'village', 0.42, 0.9, 1.9, 0, 'day'],
+  [24.46, 25.74, 'village', 0.32, 0.98, 2.2, -0.18, 'day'], [25.74, 27.44, 'village', 0.42, 0.9, 1.9, 0, 'day'],
   [27.44, 29.96, 'village', 0.02, 1.16, 3.35, 0, 'day'], [29.96, 31.72, 'village', 0.02, 0.98, 2.7, 0, 'day'],
   [31.72, 33.10, 'village', -0.24, 0.84, 0.95, 0, 'day'], [33.10, 34.58, 'memory', 0.0, 1.0, 1.0, 0, 'warm'], [34.58, 35.90, 'memory', 0.0, 1.0, 1.0, 0, 'warm'],
   [35.90, 37.48, 'memory', 0.0, 1.05, 1.05, 0.02, 'warm'], [79.58, 80.48, 'lambsolo', 0.0, 1.02, 1.25, 0, 'day']];
@@ -349,9 +349,9 @@ window.POSE = (t0) => { const t = Math.floor(t0 * 12) / 12, S = window.SHOTS.fin
   if (st === 'wedding') petals.forEach((p, i) => { const ph = (t * 0.25 + p.userData.ph) % 1; p.position.set(p.userData.x0 + Math.sin(t * 2 + i) * 0.03, lerp(1.25, 0.5, ph), 0.04 + i * 0.003); p.rotation.z = t * 2 + i; });
   if (st === 'memory') { const plate = t0 < 34.58, sleep = t0 >= 34.58 && t0 < 35.9, hold = t0 >= 35.9;
     mPlate.visible = mHand.visible = lambEat.visible = plate; lambSleep.visible = mArmA.visible = mArmB.visible = sleep; mHead.visible = lambNuzzle.visible = hold; mTorso.visible = !hold;
-    if (plate) { mHand.position.set(0.42, 0.93, 0.036); mPlate.position.set(0.1, 0.96, 0.03); lambEat.position.set(-0.07, 0.86 + (Math.floor(t * 4) % 2) * 0.006, 0.018); lambEat.rotation.z = -0.32 - (Math.floor(t * 4) % 2) * 0.05; } /* his hand holds the plate; her head is down in it */
-    if (sleep) { const br = 1 + 0.02 * Math.sin(t * 3); lambSleep.position.set(0.02, 0.96, 0.02); lambSleep.scale.set(1, br, 1); mArmA.position.set(-0.4, 0.92, 0.035); mArmA.rotation.z = 0.08; mArmB.position.set(0.44, 1.0, 0.01); mArmB.rotation.z = -0.05; }
-    if (hold) { mHead.position.set(-0.08, 0.84, 0.02); lambNuzzle.position.set(0.16, 1.06, 0.03); lambNuzzle.rotation.z = -0.1; } } /* the lamb's head against his cheek */
+    if (plate) { mHand.position.set(0.42, 0.93, 0.036); mPlate.position.set(0.1, 0.96, 0.03); lambEat.scale.x = -1; mPlate.position.set(0.08, 0.9, 0.03); mHand.position.set(0.42, 0.88, 0.036); lambEat.position.set(-0.1, 0.8 + (Math.floor(t * 4) % 2) * 0.006, 0.018); lambEat.rotation.z = 0.28 + (Math.floor(t * 4) % 2) * 0.05; } /* faces the plate, head down into it, the plate's rim in front of her muzzle */ /* his hand holds the plate; her head is down in it */
+    if (sleep) { const br = 1 + 0.02 * Math.sin(t * 3); lambSleep.position.set(-0.04, 0.96, 0.02); lambSleep.scale.set(1, br, 1); mArmA.position.set(-0.4, 0.92, 0.035); mArmA.rotation.z = 0.08; mArmB.position.set(0.44, 1.0, 0.01); mArmB.rotation.z = -0.05; }
+    if (hold) { mHead.position.set(-0.12, 0.84, 0.02); lambNuzzle.position.set(0.1, 0.98, 0.03); lambNuzzle.rotation.z = -0.15; } } /* the lamb's head against his cheek */
   if (st === 'lambsolo') lambS.rotation.z = (Math.floor(t * 2) % 2) * 0.015;
   return JSON.stringify([t, st, +camera.position.z.toFixed(5)]);
 };
