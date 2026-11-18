@@ -7,3 +7,5 @@ production/david/stills/*_2x.png
 production/david/stills/*_qc.json
 production/david/anim_test*/frames/
 production/david/anim_test*/small/
+production/david/*_test/frames/
+production/david/*_test_1x/
