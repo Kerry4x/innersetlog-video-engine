@@ -1,0 +1,569 @@
+[
+ {
+  "t0": 0.0,
+  "t1": 2.0,
+  "set": "T",
+  "size": "EST",
+  "camera": "drift in",
+  "picture": "The throne room from the far side: sunlit doorway, the king on his throne",
+  "words": "Around 1000 BC,"
+ },
+ {
+  "t0": 2.0,
+  "t1": 3.78,
+  "set": "T",
+  "size": "WS",
+  "camera": "pan with him",
+  "picture": "Nathan walks in through the sunlit doorway toward the throne",
+  "words": "a prophet went to the most"
+ },
+ {
+  "t0": 3.78,
+  "t1": 5.32,
+  "set": "T",
+  "size": "MS",
+  "camera": "locked, low angle",
+  "picture": "David on the throne, powerful, at ease",
+  "words": "powerful king in Israel and told him"
+ },
+ {
+  "t0": 5.32,
+  "t1": 7.06,
+  "set": "P",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "A paper lamb: a first glimpse of the story",
+  "words": "a story about a stolen lamb."
+ },
+ {
+  "t0": 7.06,
+  "t1": 9.48,
+  "set": "T",
+  "size": "CU",
+  "camera": "push in 2%",
+  "picture": "David's face, calm; introduces him",
+  "words": "The king was David."
+ },
+ {
+  "t0": 9.48,
+  "t1": 10.6,
+  "set": "P",
+  "size": "EST",
+  "camera": "locked",
+  "picture": "Paper Jerusalem at evening, the palace roof, David small on it",
+  "words": "Months earlier, he had"
+ },
+ {
+  "t0": 10.6,
+  "t1": 12.54,
+  "set": "P",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "David on his roof looking out; far across, a woman's figure behind a screen on another roof (seen only from afar)",
+  "words": "taken another man's wife."
+ },
+ {
+  "t0": 12.54,
+  "t1": 13.84,
+  "set": "P",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "A messenger hands David a small sealed message (2 Sam 11:5)",
+  "words": "When she became pregnant,"
+ },
+ {
+  "t0": 13.84,
+  "t1": 15.32,
+  "set": "P",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "David's sealed letter placed in Uriah's hand: he carries his own orders (11:14)",
+  "words": "he had her husband sent"
+ },
+ {
+  "t0": 15.32,
+  "t1": 17.22,
+  "set": "P",
+  "size": "WS",
+  "camera": "locked",
+  "picture": "Paper battle at the city wall: the soldiers draw back, Uriah left alone at the front (11:15)",
+  "words": "to the front of the battle to die."
+ },
+ {
+  "t0": 17.22,
+  "t1": 18.56,
+  "set": "P",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "The wedding: David and Bathsheba under a canopy",
+  "words": "Then he married her,"
+ },
+ {
+  "t0": 18.56,
+  "t1": 19.98,
+  "set": "P",
+  "size": "EST",
+  "camera": "locked",
+  "picture": "The palace; the paper sun slides across the sky",
+  "words": "and life went on."
+ },
+ {
+  "t0": 19.98,
+  "t1": 21.38,
+  "set": "T",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "Nathan standing before the king, calm",
+  "words": "The prophet, Nathan,"
+ },
+ {
+  "t0": 21.38,
+  "t1": 22.92,
+  "set": "T",
+  "size": "CU",
+  "camera": "drift",
+  "picture": "Nathan's face: measured, saying nothing about it",
+  "words": "didn't mention any of it."
+ },
+ {
+  "t0": 22.92,
+  "t1": 24.46,
+  "set": "T",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "Nathan's hands open: he begins to tell",
+  "words": "He just told a story."
+ },
+ {
+  "t0": 24.46,
+  "t1": 25.74,
+  "set": "P",
+  "size": "EST",
+  "camera": "pull out 2%",
+  "picture": "Paper hills: the rich man's house and his huge flocks",
+  "words": "A rich man with huge flocks"
+ },
+ {
+  "t0": 25.74,
+  "t1": 27.44,
+  "set": "P",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "A traveller arrives at the rich man's door",
+  "words": "needed to feed a guest."
+ },
+ {
+  "t0": 27.44,
+  "t1": 29.96,
+  "set": "P",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "He glances at his own flock and decides (built)",
+  "words": "Instead of taking one of his own animals,"
+ },
+ {
+  "t0": 29.96,
+  "t1": 31.72,
+  "set": "P",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "He hops over and takes the poor man's lamb by the scruff (built)",
+  "words": "he took his poor neighbor's only"
+ },
+ {
+  "t0": 31.72,
+  "t1": 33.1,
+  "set": "P",
+  "size": "CU",
+  "camera": "locked",
+  "picture": "The poor man's face, empty arms",
+  "words": "lamb, a lamb that"
+ },
+ {
+  "t0": 33.1,
+  "t1": 34.58,
+  "set": "P",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "Memory: the lamb eating from the poor man's plate",
+  "words": "ate from the poor man's plate"
+ },
+ {
+  "t0": 34.58,
+  "t1": 35.9,
+  "set": "P",
+  "size": "INS",
+  "camera": "drift",
+  "picture": "Memory: the lamb asleep in his arms",
+  "words": "and slept in his arms"
+ },
+ {
+  "t0": 35.9,
+  "t1": 37.48,
+  "set": "P",
+  "size": "CU",
+  "camera": "push in 2%",
+  "picture": "The poor man holding the lamb like a child, eyes closed",
+  "words": "like a daughter."
+ },
+ {
+  "t0": 37.48,
+  "t1": 39.38,
+  "set": "T",
+  "size": "CU",
+  "camera": "push in 2%",
+  "picture": "David: the face swaps to fury on \"furious\"",
+  "words": "David was furious."
+ },
+ {
+  "t0": 39.38,
+  "t1": 41.46,
+  "set": "T",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "David leans forward off the backrest",
+  "words": "He said, As the Lord liveth,"
+ },
+ {
+  "t0": 41.46,
+  "t1": 42.94,
+  "set": "T",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "His fist tightens on the carved armrest",
+  "words": "the man that hath done this thing"
+ },
+ {
+  "t0": 42.94,
+  "t1": 44.56,
+  "set": "T",
+  "size": "CU",
+  "camera": "drift",
+  "picture": "David, the sentence",
+  "words": "shall surely die."
+ },
+ {
+  "t0": 44.56,
+  "t1": 46.48,
+  "set": "T",
+  "size": "WS",
+  "camera": "locked",
+  "picture": "Two-shot: David ranting, Nathan still and listening",
+  "words": "And because the man had no pity,"
+ },
+ {
+  "t0": 46.48,
+  "t1": 48.8,
+  "set": "T",
+  "size": "MS",
+  "camera": "drift in",
+  "picture": "David's jab: \"four times over\" (built)",
+  "words": "he would pay for that lamb four times over."
+ },
+ {
+  "t0": 48.8,
+  "t1": 49.7,
+  "set": "T",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "His hand comes down onto the lion (built)",
+  "words": "Then Nathan"
+ },
+ {
+  "t0": 49.7,
+  "t1": 50.65,
+  "set": "T",
+  "size": "MS",
+  "camera": "push in 2.5%",
+  "picture": "Nathan goes stern and raises his finger (built)",
+  "words": "said,"
+ },
+ {
+  "t0": 50.65,
+  "t1": 51.25,
+  "set": "T",
+  "size": "WS",
+  "camera": "locked",
+  "picture": "The finger aimed across the room at the king (built)",
+  "words": "Thou art"
+ },
+ {
+  "t0": 51.25,
+  "t1": 52.44,
+  "set": "T",
+  "size": "CU",
+  "camera": "push in 2%",
+  "picture": "David's face changes on \"man.\" (built)",
+  "words": "the man."
+ },
+ {
+  "t0": 52.44,
+  "t1": 53.82,
+  "set": "M",
+  "size": "CU",
+  "camera": "locked",
+  "picture": "A modern man's face, framed like David's: match cut",
+  "words": "We still do this."
+ },
+ {
+  "t0": 53.82,
+  "t1": 55.28,
+  "set": "M",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "His thumb scrolls other people's drama on his phone",
+  "words": "We can see the stolen lamb"
+ },
+ {
+  "t0": 55.28,
+  "t1": 56.94,
+  "set": "M",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "The phone screen goes dark: his own reflection in it",
+  "words": "in everyone's life but our own."
+ },
+ {
+  "t0": 56.94,
+  "t1": 59.28,
+  "set": "M",
+  "size": "WS",
+  "camera": "locked",
+  "picture": "Caf\u00e9 table: a friend talks through her problem, he listens",
+  "words": "A friend tells you about her situation,"
+ },
+ {
+  "t0": 59.28,
+  "t1": 60.5,
+  "set": "M",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "Coffee cups; her hands twisting a napkin",
+  "words": "and in one minute"
+ },
+ {
+  "t0": 60.5,
+  "t1": 62.54,
+  "set": "M",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "He leans in, sure of himself, counting points on his fingers",
+  "words": "you know exactly what she should do."
+ },
+ {
+  "t0": 62.54,
+  "t1": 64.5,
+  "set": "M",
+  "size": "MS",
+  "camera": "drift",
+  "picture": "Night, his apartment: alone with his phone, the same situation",
+  "words": "Then the same thing happens to you,"
+ },
+ {
+  "t0": 64.5,
+  "t1": 66.66,
+  "set": "M",
+  "size": "CU",
+  "camera": "push in 2%",
+  "picture": "His face, unsure, looking away",
+  "words": "and suddenly it's complicated."
+ },
+ {
+  "t0": 66.66,
+  "t1": 68.86,
+  "set": "M",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "Phone: a message typed, deleted, retyped with excuses",
+  "words": "Suddenly there were reasons."
+ },
+ {
+  "t0": 68.86,
+  "t1": 70.66,
+  "set": "M",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "Over his shoulder: a friend says it to his face",
+  "words": "And when someone says it to our face,"
+ },
+ {
+  "t0": 70.66,
+  "t1": 71.62,
+  "set": "M",
+  "size": "CU",
+  "camera": "locked",
+  "picture": "His jaw sets: defensive",
+  "words": "we defend it."
+ },
+ {
+  "t0": 71.62,
+  "t1": 72.94,
+  "set": "M",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "Hands up, shaking his head",
+  "words": "It's not like that."
+ },
+ {
+  "t0": 72.94,
+  "t1": 75.08,
+  "set": "M",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "His arms cross",
+  "words": "You don't know what I was dealing with."
+ },
+ {
+  "t0": 75.08,
+  "t1": 76.38,
+  "set": "M",
+  "size": "WS",
+  "camera": "locked",
+  "picture": "The two facing off",
+  "words": "A direct accusation"
+ },
+ {
+  "t0": 76.38,
+  "t1": 78.1,
+  "set": "M",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "A finger pointed at him",
+  "words": "gives us something to fight."
+ },
+ {
+  "t0": 78.1,
+  "t1": 79.58,
+  "set": "T",
+  "size": "WS",
+  "camera": "locked",
+  "picture": "Back in the throne room: Nathan telling, open hands",
+  "words": "That's why Nathan told a story"
+ },
+ {
+  "t0": 79.58,
+  "t1": 80.48,
+  "set": "P",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "The paper lamb",
+  "words": "first."
+ },
+ {
+  "t0": 80.48,
+  "t1": 81.74,
+  "set": "T",
+  "size": "CU",
+  "camera": "locked",
+  "picture": "David, frozen",
+  "words": "David couldn't argue"
+ },
+ {
+  "t0": 81.74,
+  "t1": 83.92,
+  "set": "T",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "David sinks back against the throne",
+  "words": "with a verdict he had just given himself."
+ },
+ {
+  "t0": 83.92,
+  "t1": 86.18,
+  "set": "T",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "His grip on the armrest loosens",
+  "words": "But seeing it wasn't the end."
+ },
+ {
+  "t0": 86.18,
+  "t1": 87.64,
+  "set": "M",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "A phone held up, showing someone the proof",
+  "words": "Plenty of people are shown the truth"
+ },
+ {
+  "t0": 87.64,
+  "t1": 89.68,
+  "set": "M",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "He shrugs, waves it off, turns away",
+  "words": "and still make excuses."
+ },
+ {
+  "t0": 89.68,
+  "t1": 91.24,
+  "set": "T",
+  "size": "WS",
+  "camera": "drift",
+  "picture": "Low wide: the king on his throne, the whole room",
+  "words": "David was the king."
+ },
+ {
+  "t0": 91.24,
+  "t1": 92.48,
+  "set": "T",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "His face hardens for a moment: he could fight this",
+  "words": "He could have argued."
+ },
+ {
+  "t0": 92.48,
+  "t1": 94.06,
+  "set": "T",
+  "size": "CU",
+  "camera": "locked",
+  "picture": "His face softens on \"Instead\"; eyes lower",
+  "words": "Instead, he said,"
+ },
+ {
+  "t0": 94.06,
+  "t1": 96.2,
+  "set": "T",
+  "size": "CU",
+  "camera": "push in 2%",
+  "picture": "He bows his head",
+  "words": "I have sinned against the Lord."
+ },
+ {
+  "t0": 96.2,
+  "t1": 97.28,
+  "set": "T",
+  "size": "INS",
+  "camera": "locked",
+  "picture": "His hand opens on the armrest",
+  "words": "And he didn't add"
+ },
+ {
+  "t0": 97.28,
+  "t1": 98.58,
+  "set": "T",
+  "size": "MS",
+  "camera": "drift",
+  "picture": "David bowed, silent: no excuse follows",
+  "words": "a single reason after it."
+ },
+ {
+  "t0": 98.58,
+  "t1": 100.3,
+  "set": "T",
+  "size": "MS",
+  "camera": "locked",
+  "picture": "Nathan lowers his hand; he looks at the king with compassion",
+  "words": "Nathan could make him see it."
+ },
+ {
+  "t0": 100.3,
+  "t1": 102.2,
+  "set": "T",
+  "size": "WS",
+  "camera": "pull out 2%",
+  "picture": "The room: David bowed on his throne, light through the doorway",
+  "words": "Only David could own it."
+ }
+]
