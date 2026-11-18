@@ -53,3 +53,8 @@ File: ElevenLabs v3, stability 50, similarity 75 (`video_analysis/voice/vo_take1
 - **Key lines:** the verdict "As the Lord liveth…" runs fast (~237 wpm in that stretch); "Thou art the man" ~162 wpm with a 0.68 s pause after it (the longest in the take).
 - **Loudness:** -19.7 LUFS integrated, true peak -1.4 dBTP, range 3 LU. Fine as a source; the final mix gets normalised for the platforms.
 - **Fixable in the edit (no regeneration):** longer silence before "Thou art the man", after it, and before the last line. **Needs a regeneration if wanted:** a slower read of the verdict line.
+
+## Directing the voice (Kerry, 2026-11-18)
+- Emotion/delivery tags like [thoughtful] or [quiet] don't sound good with our voice: **don't use them**.
+- Direct with the text itself: short sentences, ellipses (…) for weight on a few lines, CAPS on one or two stressed words, paragraph breaks between beats.
+- Pause lengths are set **in the edit** (I cut or extend the silences to the plan, using the word timings), not with tags.
