@@ -59,3 +59,9 @@ File: ElevenLabs v3, stability 50, similarity 75 (`video_analysis/voice/vo_take1
 - Use tags that set **pace and pauses**, plus a plain emotion only on **quoted dialogue**: [short pause], [long pause], [slower], [faster], [angry], [frustrated].
 - Placement follows the monks voiceover study (`library/notes/voiceover_monks_S06.md`): setups move, payoff lines slow down, the longest pause sits right before the line that changes the story, dialogue is acted while the narrator stays steady, the turn to today slows, the close is slow.
 - Generate in one go. I fine-tune pause lengths in the edit from the word timings.
+
+## Take 2 (directed v3, 2026-11-18): `video_analysis/voice/vo_take2.mp3`
+- 308/308 words correct; 1:46; 175 wpm overall (same as the monks VO); -19.6 LUFS, peak -1.2 dBTP.
+- Worked: payoff lines slowed ("David was furious" 143 wpm; "Then Nathan said, Thou art the man" 135, the slowest; "Suddenly there were reasons" 162; close 163 and the quietest line); verdict now 205 wpm (take 1: 237) with raised pitch; excuses acted fast/louder/higher like the monk's outburst.
+- Not enough: [long pause] gave only 0.72-0.78 s around "Thou art the man" (normal gaps are 0.4-0.7). Fix in the edit: ~1.3 s before "Thou", ~1.5 s after "man", ~1.0 s before the close.
+- Check by ear: "He could have argued." spikes (353 wpm, +136 Hz).
