@@ -44,3 +44,12 @@ Descriptions (each run = 3 voices):
 10. **Engaged storyteller, 27:** "A 27-year-old man telling a gripping story with quiet intensity. Warm mid voice, natural rises and falls, leans in on key moments but never shouts or overacts. Neutral American accent. Clean studio recording."
 
 Tip: run each description once with Preview B; rerun a favourite with Preview A only if it sounds too flat.
+
+## Chosen voice, first full take (David and Nathan v4, 2026-11-18)
+File: ElevenLabs v3, stability 50, similarity 75 (`video_analysis/voice/vo_take1.mp3`, not committed; word timings in `vo_take1_words.json`).
+- **Accuracy:** 309 of 309 words read as written (Whisper transcript matches the script).
+- **Length:** 1:42. **Pace:** 182 words/min overall (story 180, modern part 184).
+- **Pauses:** 24 pauses over 0.45 s, all 0.54–0.68 s, at sentence ends. Even, but little variation at the big moments.
+- **Key lines:** the verdict "As the Lord liveth…" runs fast (~237 wpm in that stretch); "Thou art the man" ~162 wpm with a 0.68 s pause after it (the longest in the take).
+- **Loudness:** -19.7 LUFS integrated, true peak -1.4 dBTP, range 3 LU. Fine as a source; the final mix gets normalised for the platforms.
+- **Fixable in the edit (no regeneration):** longer silence before "Thou art the man", after it, and before the last line. **Needs a regeneration if wanted:** a slower read of the verdict line.
