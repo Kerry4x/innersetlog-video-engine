@@ -8,7 +8,7 @@ import * as THREE from 'three';
 const DIRS = [[0, 1, 0], [0, -1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]].map(d => new THREE.Vector3(...d));
 const rc = new THREE.Raycaster(); rc.firstHitOnly = false;
 
-function meshes(root, skip = []) { const out = []; root.traverse(o => { if (o.isMesh && o.visible && !o.material.transparent && o.geometry.attributes.position && !/Plane|Shape/.test(o.geometry.type) && !skip.some(c => isUnder(o, c))) out.push(o); }); return out; }
+function meshes(root, skip = []) { const out = []; root.traverse(o => { if (o.isMesh && o.visible && !o.userData.noQC && !o.material.transparent && o.geometry.attributes.position && !/Plane|Shape/.test(o.geometry.type) && !skip.some(c => isUnder(o, c))) out.push(o); }); return out; }
 const isUnder = (o, c) => { for (let p = o; p; p = p.parent) if (p === c) return true; return false; };
 export function label(o) { const names = []; for (let p = o; p; p = p.parent) if (p.name) names.push(p.name); return `${names.reverse().join('/') || 'scene'}:${o.geometry.type.replace('Geometry', '')}#${o.material.color?.getHexString?.() || ''}`; }
 
@@ -34,7 +34,10 @@ export function qc({ chars, world = [], ignore = [], allow = [], floorY = null, 
       /* floor: nothing below the surface it stands on (floors: [{ y, minX, maxX, minZ, maxZ }]) */
       if (floorY !== null) { let worst = 0; for (const P of pts) { let y = floorY; for (const f of floors) if (P.x > f.minX && P.x < f.maxX && P.z > f.minZ && P.z < f.maxZ) y = Math.max(y, f.y); if (y - P.y > tol) worst = Math.max(worst, y - P.y); }
         if (worst) issues.push({ part: label(m), into: 'floor', depth: +worst.toFixed(3) }); }
-      for (const w of walls) { let worst = 0; for (const P of pts) { const d = (P[w.axis] - w.at) * w.sign; if (d > tol) worst = Math.max(worst, d); } if (worst) issues.push({ part: label(m), into: `wall ${w.axis}${w.sign > 0 ? '>' : '<'}${w.at}`, depth: +worst.toFixed(3) }); }
+      for (const w of walls) { let worst = 0; for (const P of pts) { const d = (P[w.axis] - w.at) * w.sign; if (d <= tol) continue;
+        if (w.thick && d > w.thick + 0.02) continue; /* beyond a wall of known thickness = outside the room, not inside the wall */
+        if (w.opening && P[w.opening.axis] > w.opening.min && P[w.opening.axis] < w.opening.max && P.y < w.opening.ymax) continue; /* passing through a doorway */
+        worst = Math.max(worst, d); } if (worst) issues.push({ part: label(m), into: `wall ${w.axis}${w.sign > 0 ? '>' : '<'}${w.at}`, depth: +worst.toFixed(3) }); }
     }
   });
   /* allowances: designed soft contact (a cushion under a sitter), each with a limit and a reason; anything deeper or any new pair is still an issue */
