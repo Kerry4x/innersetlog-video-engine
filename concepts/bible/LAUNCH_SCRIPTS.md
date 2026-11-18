@@ -24,17 +24,15 @@ David was furious. He said, "As the Lord liveth, the man that hath done this thi
 
 Then Nathan said, "Thou art the man."
 
-David didn't argue. He didn't explain. He said, "I have sinned against the Lord."
-
 We still do this. We can see the stolen lamb in everyone's life but our own. A friend tells you about her situation, and in one minute you know exactly what she should do. Then the same thing happens to you, and suddenly it's complicated. Suddenly there were reasons.
 
-That's why pointing at someone rarely works. Tell someone straight to their face, and they'll defend it. "It's not like that." "You don't know what I was dealing with." But let them judge it in someone else's story, and they get it right every time.
+And when someone says it to our face, we defend it. "It's not like that." "You don't know what I was dealing with." A direct accusation gives us something to fight. That's why Nathan told a story first. David couldn't argue with a verdict he had just given himself.
 
-Seeing it is the easy part. Saying "I did that" with no excuse after it is where most of us stop.
+But seeing it wasn't the end. Plenty of people are shown the truth and still make excuses. David was the king. He could have argued. Instead he said, "I have sinned against the Lord," and he didn't add a single reason after it.
 
-So the next time someone else's story makes you angry, stop and ask yourself one thing. Am I the man?
+Nathan could make him see it. Only David could own it.
 ```
-**v3 (2026-11-17), built on the clay-script anatomy (library/notes/clayrified_script_anatomy.md):** 309 words ≈ 1:50. Story carries the why; one sentence names the mechanism; today mirrors the story's steps (see it in others → defend when pointed at → seeing isn't owning); closes on "Am I the man?".
+**v4 (2026-11-18): new ending (Kerry: the old close didn't make sense). The confession is held back for the end, the "pointing" paragraph is told from the viewer's side, and it closes on seeing vs owning. Earlier note, v3 (2026-11-17), built on the clay-script anatomy (library/notes/clayrified_script_anatomy.md):** 309 words ≈ 1:50. Story carries the why; one sentence names the mechanism; today mirrors the story's steps (see it in others → defend when pointed at → seeing isn't owning); closes on "Am I the man?".
 
 **Accuracy:** 2 Sam 11:3-27 (Bathsheba, Uriah set "in the forefront of the hottest battle", marriage); 12:1-4 parable (lamb "did eat of his own meat… lay in his bosom, and was unto him as a daughter", 12:3); verdict 12:5 (quoted); "Thou art the man" 12:7 (quoted, four words). "Around 1000 BC" = traditional dating of David's reign (approximate). The hook says "passed judgment on himself without knowing it", not "sentenced himself to death", because David was spared (12:13).
 **v2 additions checked (ebible KJV):** "because he had no pity" (12:6); "I have sinned against the LORD" (12:13). "It was war, men die in battle" echoes David's own message to Joab after Uriah's death: "the sword devoureth one as well as another" (11:25, recalled). **Interpretation, labelled:** the text says "the LORD sent Nathan" (12:1) and that the speech is God's message (12:7); *why* a story works better than an accusation is our reading, written as "Think about why". Left for long-form: forgiveness with consequences (12:13-14), Psalm 51.
