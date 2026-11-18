@@ -45,25 +45,68 @@ function blocks(base, mortar, rows, plaster) { // coursed stone with patches of 
 const wallT = blocks('#b8936a', '#5c4532', 9, true); wallT.map.repeat.set(2.2, 1.3); wallT.bm.repeat.copy(wallT.map.repeat);
 const floorT = blocks('#9c7c5c', '#3e2e22', 6, false); floorT.map.repeat.set(2, 2); floorT.bm.repeat.copy(floorT.map.repeat);
 const wallM = new THREE.MeshPhysicalMaterial({ map: wallT.map, bumpMap: wallT.bm, bumpScale: 5, roughness: 0.85, sheen: 0.05 });
+/* lime plaster (David's "house of cedar", 2 Sam 7:2: cedar panelling below, plaster above). One painted map across the wall
+   (darker toward the ceiling, trowel marks, soft mottling) plus a finely tiled bump. */
+const plaster = (() => { const c = document.createElement('canvas'); c.width = 2048; c.height = 1346; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, c.height); gr.addColorStop(0, '#6e5238'); gr.addColorStop(0.35, '#a8865e'); gr.addColorStop(0.7, '#c4a074'); gr.addColorStop(1, '#b08c64'); g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+  for (let i = 0; i < 900; i++) { const x = rand() * c.width, y = rand() * c.height, r = 20 + rand() * 120; const q = g.createRadialGradient(x, y, 0, x, y, r); const l = rand() > 0.5; q.addColorStop(0, l ? 'rgba(255,240,215,0.07)' : 'rgba(60,40,20,0.07)'); q.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = q; g.fillRect(x - r, y - r, 2 * r, 2 * r); }
+  for (let i = 0; i < 260; i++) { g.save(); g.translate(rand() * c.width, rand() * c.height); g.rotate(rand() * 3.14); g.fillStyle = rand() > 0.5 ? 'rgba(255,235,205,0.06)' : 'rgba(70,45,25,0.06)'; g.beginPath(); g.ellipse(0, 0, 60 + rand() * 90, 8 + rand() * 10, 0, 0, 6.283); g.fill(); g.restore(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; })();
+const fineBump = (() => { const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d'); g.fillStyle = '#808080'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 6000; i++) { const v = 100 + rand() * 60 | 0; g.fillStyle = `rgba(${v},${v},${v},0.5)`; g.beginPath(); g.arc(rand() * 512, rand() * 512, 0.5 + rand() * 2.5, 0, 6.283); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(9, 6); return t; })();
+const plasterM = new THREE.MeshPhysicalMaterial({ map: plaster, bumpMap: fineBump, bumpScale: 1.2, roughness: 0.92 });
+const grain = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 1024; const g = c.getContext('2d'); g.fillStyle = '#808080'; g.fillRect(0, 0, 256, 1024);
+  for (let i = 0; i < 160; i++) { const x = rand() * 256, w = 0.6 + rand() * 2.2, v = rand() > 0.5 ? 165 : 95; g.strokeStyle = `rgba(${v},${v},${v},0.5)`; g.lineWidth = w; g.beginPath(); g.moveTo(x, 0); for (let y = 0; y <= 1024; y += 32) g.lineTo(x + Math.sin(y * 0.01 + i) * 6, y); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })();
+const cedarPanel = new THREE.MeshPhysicalMaterial({ color: '#7a3f24', roughness: 0.55, bumpMap: grain, bumpScale: 1.5, sheen: 0.1 });
+const cedarPanelL = new THREE.MeshPhysicalMaterial({ color: '#8c4b2c', roughness: 0.5, bumpMap: grain, bumpScale: 1.5, sheen: 0.1 });
 const floorM = new THREE.MeshPhysicalMaterial({ map: floorT.map, bumpMap: floorT.bm, bumpScale: 4, roughness: 0.8 });
-const cedar = clay('#7a3f24'), wood = clay('#6a4426'), darkWood = clay('#4a2e1c'), gold = clay('#d6a640', { roughness: 0.38 }), terra = clay('#b0643c'), terraD = clay('#8a4a2c');
+const cedar = clay('#7a3f24'), wood = new THREE.MeshPhysicalMaterial({ color: '#6a4426', roughness: 0.55, bumpMap: grain, bumpScale: 1.4, sheen: 0.08 }), darkWood = clay('#4a2e1c'), gold = clay('#d6a640', { roughness: 0.38 }), terra = clay('#b0643c'), terraD = clay('#8a4a2c');
 const cushionR = clay('#8b2c3a'), straw = clay('#c9a45a'), bread = clay('#c88a4a'), fig = clay('#5a2f4a'), linen = clay('#e6dcc6');
 
 // ---------- the room: ~ 3.2 character-heights high (character ≈ 2.0) ----------
 const ROOM_W = 7, ROOM_D = 6, ROOM_H = 4.6;
 { const f = M(new THREE.PlaneGeometry(ROOM_W + 4, ROOM_D + 4), floorM); f.rotation.x = -Math.PI / 2; scene.add(f); }
-const back = M(new THREE.PlaneGeometry(ROOM_W, ROOM_H), wallM); back.position.set(0, ROOM_H / 2, -2.4); scene.add(back);
-const left = M(new THREE.PlaneGeometry(ROOM_D, ROOM_H), wallM); left.rotation.y = Math.PI / 2; left.position.set(-ROOM_W / 2, ROOM_H / 2, 0.6); scene.add(left);
-const right = M(new THREE.PlaneGeometry(ROOM_D, ROOM_H), wallM); right.rotation.y = -Math.PI / 2; right.position.set(ROOM_W / 2, ROOM_H / 2, 0.6); scene.add(right);
+const DOOR = { x: -1.45, w: 1.2, h: 2.25 }; /* arched doorway behind Nathan, out to a sunlit courtyard */
+const archPath = (p, x, w, h) => { p.moveTo(x - w / 2, 0); p.lineTo(x - w / 2, h); p.absarc(x, h, w / 2, Math.PI, 0, true); p.lineTo(x + w / 2, 0); };
+{ const sh = new THREE.Shape(); sh.moveTo(-ROOM_W / 2, 0); sh.lineTo(ROOM_W / 2, 0); sh.lineTo(ROOM_W / 2, ROOM_H); sh.lineTo(-ROOM_W / 2, ROOM_H); sh.lineTo(-ROOM_W / 2, 0);
+  const hole = new THREE.Path(); hole.moveTo(DOOR.x - DOOR.w / 2, 0.001); hole.lineTo(DOOR.x + DOOR.w / 2, 0.001); hole.lineTo(DOOR.x + DOOR.w / 2, DOOR.h); hole.absarc(DOOR.x, DOOR.h, DOOR.w / 2, 0, Math.PI, false); hole.lineTo(DOOR.x - DOOR.w / 2, 0.001); sh.holes.push(hole);
+  const geo = new THREE.ShapeGeometry(sh, 48), uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) + ROOM_W / 2) / ROOM_W, uv.getY(i) / ROOM_H);
+  const back = M(geo, plasterM); back.position.set(0, 0, -2.4); scene.add(back); }
+const left = M(new THREE.PlaneGeometry(ROOM_D, ROOM_H), plasterM); left.rotation.y = Math.PI / 2; left.position.set(-ROOM_W / 2, ROOM_H / 2, 0.6); scene.add(left);
+const right = M(new THREE.PlaneGeometry(ROOM_D, ROOM_H), plasterM); right.rotation.y = -Math.PI / 2; right.position.set(ROOM_W / 2, ROOM_H / 2, 0.6); scene.add(right);
 // cedar ceiling beams (2 Sam 5:11), with a plank ceiling
 for (let i = 0; i < 7; i++) { const b = box(0.24, 0.24, ROOM_D + 0.4, cedar, 0.04); b.position.set(-3 + i, ROOM_H - 0.12, 0.6); scene.add(b); }
 { const c = M(new THREE.PlaneGeometry(ROOM_W, ROOM_D), darkWood); c.rotation.x = Math.PI / 2; c.position.set(0, ROOM_H, 0.6); scene.add(c); }
-// window in the back wall (left), deep sill, bars; bright sky behind
-{ const s = new THREE.Shape(); s.moveTo(-0.42, 0); s.lineTo(-0.42, 0.9); s.absarc(0, 0.9, 0.42, Math.PI, 0, true); s.lineTo(0.42, 0);
-  const sky = new THREE.Mesh(new THREE.ShapeGeometry(s, 32), new THREE.MeshBasicMaterial({ color: '#ffe6bf' })); sky.position.set(-1.7, 2.1, -2.39); scene.add(sky);
-  const reveal = M(new THREE.ExtrudeGeometry(s, { depth: 0.3, bevelEnabled: false }), wallM); reveal.position.set(-1.7, 2.1, -2.4); reveal.material = new THREE.MeshPhysicalMaterial({ color: '#b8936a', roughness: 0.9, side: THREE.BackSide }); scene.add(reveal);
-  const sill = box(0.9, 0.1, 0.36, clay('#d8c4a2'), 0.03); sill.position.set(-1.7, 2.06, -2.25); scene.add(sill);
-  for (const x of [-0.14, 0.14]) { const bar = M(new THREE.CylinderGeometry(0.025, 0.025, 1.3, 10), darkWood); bar.position.set(-1.7 + x, 2.75, -2.3); scene.add(bar); } }
+// cedar wainscot, pilasters and the arched doorway with a carved cedar frame
+const setNew = new THREE.Group(); scene.add(setNew); setNew.name = 'set';
+{ const add = (m) => { setNew.add(m); return m; };
+  const frameS = new THREE.Shape(); archPath(frameS, DOOR.x, DOOR.w + 0.26, DOOR.h); frameS.lineTo(DOOR.x - DOOR.w / 2 - 0.13, 0);
+  const inner = new THREE.Path(); archPath(inner, DOOR.x, DOOR.w, DOOR.h); inner.lineTo(DOOR.x - DOOR.w / 2, 0); frameS.holes.push(inner);
+  const fr = add(M(new THREE.ExtrudeGeometry(frameS, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 3, curveSegments: 40 }), cedarPanel)); fr.position.set(0, 0, -2.4);
+  /* reveal: the wall's thickness inside the opening, a hollow sleeve along the arch (a capped solid would plug the doorway) */
+  { const P = [[DOOR.x - DOOR.w / 2, 0], [DOOR.x - DOOR.w / 2, DOOR.h]]; for (let k = 1; k < 40; k++) { const a = Math.PI - k / 40 * Math.PI; P.push([DOOR.x + Math.cos(a) * DOOR.w / 2, DOOR.h + Math.sin(a) * DOOR.w / 2]); } P.push([DOOR.x + DOOR.w / 2, DOOR.h], [DOOR.x + DOOR.w / 2, 0]);
+    const pos = [], idx = []; P.forEach(([x, y], k) => { pos.push(x, y, -2.4, x, y, -2.72); if (k) { const b = (k - 1) * 2; idx.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); } });
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+    add(M(g, new THREE.MeshPhysicalMaterial({ color: '#b8956c', roughness: 0.9, side: THREE.DoubleSide }))); }
+  const runs = [[-ROOM_W / 2, DOOR.x - DOOR.w / 2 - 0.13], [DOOR.x + DOOR.w / 2 + 0.13, ROOM_W / 2]];
+  for (const [a, b] of runs) { const L = b - a, cx = (a + b) / 2;
+    add(box(L, 1.45, 0.04, cedarPanel, 0.01)).position.set(cx, 0.725, -2.378);
+    add(box(L, 0.09, 0.08, cedarPanelL, 0.02)).position.set(cx, 1.47, -2.36); add(box(L, 0.14, 0.06, cedarPanel, 0.02)).position.set(cx, 0.07, -2.365);
+    const n = Math.max(1, Math.round(L / 0.85)), pw = L / n; for (let k = 0; k < n; k++) add(box(pw - 0.2, 1.0, 0.03, cedarPanelL, 0.012)).position.set(a + pw * (k + 0.5), 0.76, -2.343); }
+  for (const x of [-2.85, -0.25, 2.85]) { const pl = add(box(0.3, ROOM_H - 0.25, 0.14, cedarPanel, 0.02)); pl.position.set(x, (ROOM_H - 0.25) / 2, -2.33);
+    add(box(0.42, 0.16, 0.2, cedarPanelL, 0.03)).position.set(x, ROOM_H - 0.32, -2.3); add(box(0.4, 0.2, 0.2, cedarPanelL, 0.03)).position.set(x, 0.1, -2.3); }
+  /* the courtyard outside: limestone paving, a pale wall, a palm and a big jar, in strong sun (all soft through the depth of field) */
+  const yard = new THREE.MeshPhysicalMaterial({ color: '#e2d0ac', roughness: 0.9, bumpMap: fineBump, bumpScale: 1 });
+  const yf = add(M(new THREE.PlaneGeometry(4, 3.4), yard)); yf.rotation.x = -Math.PI / 2; yf.position.set(-1.45, 0.003, -4.1);
+  const yw = add(M(new THREE.PlaneGeometry(5, 3.6), new THREE.MeshPhysicalMaterial({ color: '#ead9b8', roughness: 0.95, emissive: '#d9bf92', emissiveIntensity: 0.55 }))); /* sunlit plaster: reads bright through the doorway */ yw.position.set(-1.45, 1.8, -5.3);
+  const arc2 = add(M(new THREE.PlaneGeometry(0.7, 1.6), new THREE.MeshPhysicalMaterial({ color: '#a8835a', roughness: 0.95, emissive: '#7a5a3a', emissiveIntensity: 0.4 }))); arc2.position.set(-0.55, 0.8, -5.28);
+  const sky = add(new THREE.Mesh(new THREE.PlaneGeometry(9, 4), new THREE.MeshBasicMaterial({ color: '#f6e7c6' }))); sky.position.set(-1.45, 5.2, -5.6);
+  const trunk = add(M(new THREE.CylinderGeometry(0.06, 0.09, 2.6, 12), clay('#8a6a44'))); trunk.position.set(-2.2, 1.3, -4.7); trunk.rotation.z = 0.06;
+  for (let k = 0; k < 8; k++) { const fr2 = add(M(new THREE.SphereGeometry(0.5, 16, 8).scale(1, 0.12, 0.25), clay(k % 2 ? '#6f8a3a' : '#5e7a30'))); const a = k / 8 * 6.283; fr2.position.set(-2.2 + Math.cos(a) * 0.4, 2.55 - 0.12, -4.7 + Math.sin(a) * 0.4); /* seen through the doorway in the establishing shot, hidden in the wide and in Nathan's medium */; fr2.rotation.set(0, -a, -0.45); }
+  const bigJar = add(M(lathe([[0, 0], [0.18, 0], [0.28, 0.25], [0.26, 0.5], [0.14, 0.66], [0.15, 0.72], [0, 0.72]], 32), terra)); bigJar.position.set(-0.95, 0, -3.7);
+  const sunOut = new THREE.SpotLight('#ffe6bd', 70, 10, 0.3, 0.6, 1.2); sunOut.position.set(-1.45, 5.5, -4.4); sunOut.target.position.set(-1.45, 0, -4.4); scene.add(sunOut, sunOut.target); }
 // doorway in the left wall: 1.3 x character height (CLAY_WORLD_SYSTEM §2)
 { const dH = 2.6, dW = 1.15, z = 1.3, frameM = darkWood;
   const opening = new THREE.Mesh(new THREE.PlaneGeometry(dW, dH), new THREE.MeshBasicMaterial({ color: '#2a1d14' })); opening.rotation.y = Math.PI / 2; opening.position.set(-ROOM_W / 2 + 0.005, dH / 2, z); scene.add(opening);
@@ -99,16 +142,22 @@ const lions = [], rests = []; const throne = new THREE.Group(); throne.position.
     const post = box(0.1, seatTop + 0.3, 0.1, wood, 0.03); post.position.set(0.41 * s, (seatTop + 0.3) / 2, 0.28); /* front legs reach the floor: nothing hangs in the air past the shallower base */ throne.add(post);
     // lion head on the end of each armrest
     const lion = new THREE.Group(); lion.position.set(0.41 * s, seatTop + 0.29, 0.385); lion.scale.setScalar(0.75); throne.add(lion); lions.push(lion); /* carved on the front of the armrest end: the hand rests on the wood and curls over the lion's head */
-    const mane = M(new THREE.TorusGeometry(0.075, 0.04, 14, 28), clay('#a8742e')); lion.add(mane);
-    M(new THREE.SphereGeometry(0.07, 24, 18), gold, lion).position.z = 0.02;
-    const snout = M(new THREE.SphereGeometry(0.035, 16, 12), gold, lion); snout.position.set(0, -0.015, 0.075);
-    for (const e of [-1, 1]) { const eye = M(new THREE.SphereGeometry(0.011, 8, 8), clay('#140d09', { bumpScale: 0 }), lion); eye.position.set(0.028 * e, 0.022, 0.07); const ear = M(new THREE.SphereGeometry(0.022, 10, 8), gold, lion); ear.position.set(0.055 * e, 0.06, 0); }
+    /* carved and gilded: a ring of mane locks, brow ridge, muzzle pads, nose, sunken eyes, a mouth line (it fills the frame in the insert) */
+    const maneM = clay('#a8742e', { roughness: 0.45 }), giltM = clay('#c99a3e', { roughness: 0.36 });
+    for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283; const lk = M(new THREE.SphereGeometry(0.03, 14, 10).scale(1, 1.9, 0.8), maneM, lion); lk.position.set(Math.cos(a) * 0.085, Math.sin(a) * 0.085, -0.005); lk.rotation.z = a - Math.PI / 2; }
+    for (let k = 0; k < 16; k++) { const a = (k + 0.5) / 16 * 6.283; const lk = M(new THREE.SphereGeometry(0.024, 12, 8).scale(1, 1.7, 0.8), maneM, lion); lk.position.set(Math.cos(a) * 0.105, Math.sin(a) * 0.105, -0.02); lk.rotation.z = a - Math.PI / 2; }
+    M(new THREE.SphereGeometry(0.068, 28, 20).scale(1, 1.05, 0.8), giltM, lion).position.z = 0.02;
+    const brow = M(new THREE.TorusGeometry(0.04, 0.012, 10, 24, Math.PI * 0.8), giltM, lion); brow.position.set(0, 0.026, 0.066); brow.rotation.set(-0.3, 0, Math.PI * 0.1);
+    for (const e of [-1, 1]) { const pad = M(new THREE.SphereGeometry(0.024, 16, 12), giltM, lion); pad.position.set(0.018 * e, -0.028, 0.078); }
+    const snout = M(new THREE.SphereGeometry(0.02, 14, 10).scale(1.2, 0.8, 1), clay('#8a5a2a', { roughness: 0.5 }), lion); snout.position.set(0, -0.008, 0.094);
+    const mouthL = M(new THREE.TorusGeometry(0.022, 0.004, 6, 16, Math.PI * 0.7), clay('#5a3a1a', { bumpScale: 0 }), lion); mouthL.position.set(0, -0.042, 0.088); mouthL.rotation.z = Math.PI * 1.15;
+    for (const e of [-1, 1]) { const eye = M(new THREE.SphereGeometry(0.009, 10, 8), clay('#140d09', { bumpScale: 0 }), lion); eye.position.set(0.026 * e, 0.012, 0.074); const ear = M(new THREE.SphereGeometry(0.022, 10, 8), gold, lion); ear.position.set(0.055 * e, 0.06, 0); }
   }
   const stool = box(0.62, 0.1, 0.18, wood, 0.03); stool.position.set(0, 0.05, 0.81); stool.castShadow = false; throne.add(stool); /* in front of the feet (front edge 0.68): feet and hem rest on the dais, nothing buried */
 }
 // ---------- dressing: lamps (practical light), jars, low table with bread and figs, lyre, niches ----------
 const lamps = [];
-for (const [x, z] of [[-1.6, -1.9], [2.35, -1.6]]) {
+for (const [x, z] of [[-2.5, -1.9], [2.35, -1.6]]) {
   const stand = M(lathe([[0, 0], [0.17, 0], [0.12, 0.06], [0.04, 0.12], [0.035, 1.12], [0.13, 1.18], [0.13, 1.22], [0, 1.22]], 28), wood); stand.position.set(x, 0, z); scene.add(stand);
   const lamp = M(lathe([[0, 0], [0.06, 0], [0.09, 0.03], [0.07, 0.045], [0, 0.04]], 24), terra); lamp.position.set(x, 1.22, z); scene.add(lamp);
   const flame = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 10), new THREE.MeshBasicMaterial({ color: '#ffd27a' })); flame.scale.set(0.8, 1.9, 0.8); flame.position.set(x + 0.07, 1.31, z); scene.add(flame);
@@ -136,7 +185,7 @@ for (const [x, z, m] of [[-3.0, 0.2, cushionR], [-2.9, -0.45, clay('#2d4a6a')]])
 const david = buildCharacter({ seated: true, tunic: '#5b3591', trim: '#d6a640', mantle: '#8b2c3a', sash: '#c99a32', hair: '#3a2416', browC: '#3a2416', bald: false, beard: '#3a2416', beardLen: 0.02, crown: true, lidTop: 0.3 });
 throne.add(david.root); david.root.position.set(0, 0.5 - 0.55 + 0.03, 0.02); // seat top
 // David at ease: right forearm on the armrest, hand curled over the lion; left hand resting on his thigh
-david.setBody({ twist: -0.15 }); /* shoulders turn a little toward Nathan */ david.setArm('L', { fwd: 0.2, out: 0.24, bend: 1.5, wrist: -0.4, curl: 0.6 }); david.setArm('R', { fwd: 0.2, out: 0.31, bend: 1.35, wrist: 0, curl: 0.6 }); /* found by HANDSEARCH: on the wood, 0 mm inside, gap 0-4 mm; one hand over the lion, the other further back along the armrest */
+david.setBody({ twist: -0.15 }); /* shoulders turn a little toward Nathan */ david.setArm('L', { fwd: -0.1, out: 0.38, bend: 1.75, wrist: -0.3, curl: 0.6 }); david.setArm('R', { fwd: -0.4, out: 0.52, bend: 1.9, wrist: -0.5, curl: 0.6 }); /* found by HANDSEARCH: fists resting on the wood of the armrests (not on top of the mane), 0 mm inside, gap 1-2 mm; one hand over the lion, the other further back along the armrest */
 david.setFace({ lid: 0.2, look: [-0.6, 0] }); david.setHead({ turn: -0.8, tilt: 0.05 });
 const nathan = buildCharacter({ tunic: '#d9c7a3', trim: '#a8865a', mantle: '#7a5536', sash: '#8a6a44', hair: '#ece7dc', browC: '#ece7dc', bald: true, beard: '#ece7dc', beardLen: 0.12, lidTop: 0.36 });
 scene.add(nathan.root); nathan.root.position.set(-0.55, 0, -0.8); nathan.root.rotation.y = 1.45; /* beside the dais, level with the king: the two face each other across the frame, so the front camera sees both faces (checked by GAZE) */
@@ -169,7 +218,7 @@ if (new URLSearchParams(location.search).get('anim') === 'verdict') {
   const talk = (t, words) => { for (const [a, b] of words) if (t >= a && t < b) return 0.2 + 0.5 * Math.sin(Math.PI * Math.min(1, (t - a) / (b - a) * 1.15)); return 0; };
   const blink = (f, at) => { const d = f - Math.round(at * 24); return d === 0 || d === 5 ? 0.5 : d >= 1 && d <= 4 ? 1 : 0; }; /* 1-4-1 frames */
   const DW = [[-0.12, 0.2], [0.2, 0.66], [0.66, 1.08], [1.08, 1.36]], NW = [[3.38, 3.66], [3.66, 3.9], [3.9, 4.1], [4.1, 4.36]];
-  const D = { point: { fwd: 1.15, out: 0.45, bend: 0.15, point: true }, hover: { fwd: 0.5, out: 0.26, bend: 1.35, wrist: -0.3, curl: 0.55 }, rest: { fwd: 0.2, out: 0.24, bend: 1.5, wrist: -0.4, curl: 0.6 }, restR: { fwd: 0.2, out: 0.31, bend: 1.35, wrist: 0, curl: 0.6 } };
+  const D = { point: { fwd: 1.15, out: 0.45, bend: 0.15, point: true }, hover: { fwd: 0.25, out: 0.38, bend: 1.55, wrist: -0.2, curl: 0.55 }, rest: { fwd: -0.1, out: 0.38, bend: 1.75, wrist: -0.3, curl: 0.6 }, restR: { fwd: -0.4, out: 0.52, bend: 1.9, wrist: -0.5, curl: 0.6 } };
   const N = { tellR: { fwd: 0.8, out: 0.3, bend: 1.0, curl: 0.1, twist: -0.4 }, dipR: { fwd: 0.62, out: 0.3, bend: 1.25, curl: 0.3, twist: -0.4 }, pointR: { fwd: 1.75, out: 0.35, twist: -0.4, bend: 0.05, point: true },
     tellL: { fwd: 0.45, out: 0.14, bend: 1.15, curl: 0.5 }, downL: { fwd: 0.18, out: 0.16, bend: 0.55, curl: 0.5 } };
   window.POSE = (t0) => {
@@ -195,26 +244,35 @@ if (new URLSearchParams(location.search).get('anim') === 'verdict') {
 }
 const staff = M(lathe([[0, 0], [0.032, 0], [0.034, 1.0], [0.03, 1.95], [0.045, 2.0], [0, 2.04]], 14), wood); staff.position.set(-2.35, 0, -2.15); staff.rotation.x = -0.1; /* away from Nathan: it crossed his pointing arm in the medium shot */ /* leans on the back wall: top touches the plaster, nothing balancing on its own */ scene.add(staff);
 
+const fgLamp = new THREE.Group(); scene.add(fgLamp); fgLamp.visible = false; /* tried as a soft foreground in the wide: read as an unexplained blob at the edge, so it stays off */
+{ const x = 0.74, z = 4.3; /* foreground lamp stand at the right edge of the wide shot: soft, warm, gives depth */
+  const st = M(lathe([[0, 0], [0.17, 0], [0.12, 0.06], [0.04, 0.12], [0.035, 1.12], [0.13, 1.18], [0.13, 1.22], [0, 1.22]], 28), wood); st.position.set(x, 0, z); fgLamp.add(st);
+  const lp = M(lathe([[0, 0], [0.06, 0], [0.09, 0.03], [0.07, 0.045], [0, 0.04]], 24), terra); lp.position.set(x, 1.22, z); fgLamp.add(lp);
+  const fl = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 10), new THREE.MeshBasicMaterial({ color: '#ffd27a' })); fl.scale.set(0.8, 1.9, 0.8); fl.position.set(x + 0.07, 1.3, z); fgLamp.add(fl);
+  const pl = new THREE.PointLight('#ffb35c', 1.4, 3, 1.6); pl.position.set(x + 0.07, 1.42, z); fgLamp.add(pl); }
 // ---------- light: window sun, cool fill, practical lamps, soft god ray ----------
-scene.add(new THREE.HemisphereLight('#ffe3c4', '#2a1c12', 0.35));
+scene.add(new THREE.HemisphereLight('#ffe3c4', '#2a1c12', 0.2)); /* darker room: the light pools on the people, the walls fall away */
 const sun = new THREE.SpotLight('#ffcf8f', 190, 16, Math.PI / 7, 0.65, 1.5); sun.position.set(-2.9, 4.6, -4.6); sun.target.position.set(0.4, 0, 0.4);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0003; scene.add(sun, sun.target);
 /* face fill for Nathan from the throne side: he faces the king, away from the key light */
 const fillN = new THREE.SpotLight('#ffe2c0', 9, 6, Math.PI / 9, 0.9, 1.5); fillN.position.set(1.3, 2.3, 0.3); fillN.target.position.set(-0.55, 1.75, -0.8); scene.add(fillN, fillN.target);
-const key = new THREE.SpotLight('#fff0dc', 45, 14, Math.PI / 5, 0.9, 1.5); key.position.set(-1.8, 3.6, 4.2); key.target.position.set(0.3, 1, -0.5); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 5; scene.add(key, key.target);
+const key = new THREE.SpotLight('#fff0dc', 50, 14, Math.PI / 7, 1.0, 1.5); key.position.set(-1.8, 3.6, 4.2); key.target.position.set(0.3, 1.2, -1.0); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 5; scene.add(key, key.target);
 const rim = new THREE.DirectionalLight('#9ab8ff', 0.6); rim.position.set(3, 3, -3); scene.add(rim);
-{ const from = V(-1.7, 2.6, -2.3), to = V(0.4, 0, 0.6), len = from.distanceTo(to);
+const rimD = new THREE.SpotLight('#ffd8a8', 22, 6, 0.35, 0.8, 1.5); rimD.position.set(1.4, 4.0, -2.2); rimD.target.position.set(1.0, 1.9, -1.35); scene.add(rimD, rimD.target); /* rim on David's head and shoulders: lifts him off the hanging */
+const coolF = new THREE.SpotLight('#9fb6e0', 5, 12, 0.6, 1.0, 1.5); coolF.position.set(3.3, 2.2, 2.6); coolF.target.position.set(0.3, 1.3, -0.9); scene.add(coolF, coolF.target); /* cool fill: colour contrast with the warm key */
+{ const from = V(-1.45, 2.4, -2.35), to = V(0.3, 0, 0.5), len = from.distanceTo(to); /* sunlight through the doorway */
   const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: { op: { value: 0.11 } },
     vertexShader: 'varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position,1.); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }',
     fragmentShader: 'uniform float op; varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ float a = op*pow(abs(dot(vN,vV)),2.)*smoothstep(0.,.4,vUv.y)*smoothstep(1.,.7,vUv.y); gl_FragColor = vec4(vec3(1.,.82,.55)*a, a); }' });
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 1.0, len, 48, 1, true), mat); shaft.position.copy(from).lerp(to, 0.5); shaft.quaternion.setFromUnitVectors(V(0, -1, 0), to.clone().sub(from).normalize()); scene.add(shaft); }
-const dust = (() => { const N = 300, pos = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const k = rand(); pos[i * 3] = -1.7 + 2.1 * k + (rand() - 0.5) * 0.7; pos[i * 3 + 1] = 2.6 - 2.6 * k; pos[i * 3 + 2] = -2.3 + 2.9 * k + (rand() - 0.5) * 0.7; }
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 1.1, len, 48, 1, true), mat); shaft.position.copy(from).lerp(to, 0.5); shaft.quaternion.setFromUnitVectors(V(0, -1, 0), to.clone().sub(from).normalize()); scene.add(shaft); }
+const dust = (() => { const N = 300, pos = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const k = rand(); pos[i * 3] = -1.45 + 1.75 * k + (rand() - 0.5) * 0.7; pos[i * 3 + 1] = 2.4 - 2.4 * k; pos[i * 3 + 2] = -2.3 + 2.9 * k + (rand() - 0.5) * 0.7; }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); const p = new THREE.Points(g, new THREE.PointsMaterial({ color: '#ffe2b0', size: 0.012, transparent: true, opacity: 0.5, depthWrite: false })); scene.add(p); return p; })();
 
 // ---------- shots (from the shot grammar: EST, WS, MS, INS, CU) ----------
 const SHOTS = {
-  est: { pos: [0.9, 3.3, 8.6], look: [0.1, 1.4, -0.8], fov: 40, focus: [0.2, 1.0, -0.6], ap: 0.0006 },   // the room
-  ws:  { pos: [0.3, 1.55, 6.9], look: [0.3, 1.1, -0.6], fov: 33, focus: [0.25, 1.1, -0.9], ap: 0.0012 },   // both, full figure
+  insm: { pos: [0, 0, 0], look: [0, 0, 0], fov: 30, focus: [0, 0, 0], ap: 0.012 },
+  est: { pos: [0.9, 3.3, 8.6], look: [0.1, 1.4, -0.8], fov: 40, focus: [0.2, 1.0, -0.6], ap: 0.0011 },   // the room
+  ws:  { pos: [0.3, 1.55, 6.9], look: [0.3, 1.1, -0.6], fov: 33, focus: [0.25, 1.1, -0.9], ap: 0.004 },   // both, full figure
   ms:  { pos: [-1.1, 1.6, 1.25], look: [0.85, 1.45, -1.2], fov: 30, focus: [0.95, 1.5, -1.3], ap: 0.0025 }, // David on the throne
   ms3: { pos: [1.6, 1.62, 1.25], look: [-0.05, 1.5, -0.75], fov: 32, focus: [-0.45, 1.6, -0.8], ap: 0.0022 }, // Nathan pointing, seen from the front-left so the arm reads
   ms2: { pos: [1.7, 1.75, -0.6], look: [-0.55, 1.6, -0.8], fov: 30, focus: [-0.55, 1.65, -0.75], ap: 0.0025 },  // Nathan telling
@@ -236,14 +294,14 @@ const ao = new GTAOPass(scene, camera, RW, RH); ao.updateGtaoMaterial({ radius: 
 const bokeh = new BokehPass(scene, camera, { focus: camera.position.distanceTo(V(...S.focus)), aperture: S.ap, maxblur: S.ap * 2.5 }); composer.addPass(bokeh);
 /* ---------- edited sequences: ?cut=1 plays window.EDIT, a list of [t0, t1, shot, move] (CLAY_CAMERA_SPEC: about 1.3 s shots, mostly locked,
    moves with a reason; a move is already going at the cut, eases out to a stop and holds; camera on 1s, characters on 2s) ---------- */
-const setupShot = (name) => { const B = { ...SHOTS[name] }; scene.updateMatrixWorld(true); const h = new THREE.Vector3();
-  if (name === 'ins') { lions[0].getWorldPosition(h); h.y += 0.06; B.look = [h.x, h.y, h.z]; B.focus = B.look; B.pos = [h.x + 0.5, h.y + 0.33, h.z + 0.78]; } /* framed on the lion, where the hand comes to rest */
+const setupShot = (name) => { const B = { ...SHOTS[name] }; scene.updateMatrixWorld(true); const h = new THREE.Vector3();  B.maxblur = name === 'ws' ? 0.03 : B.ap * 2.5;
+  if (name === 'ins') { lions[0].getWorldPosition(h); const L = h.clone(); L.y += 0.07; L.z -= 0.06; B.look = [L.x, L.y, L.z]; B.focus = [L.x - 0.05, L.y, L.z]; B.pos = [L.x - 0.62, L.y + 0.1, L.z + 0.42]; B.fov = 28; B.ap = 0.008; } /* from the outside of the armrest at fist height: the fist on the wood, the carved lion below it /* macro on the lion where the hand comes to rest: the carving and the hand fill the frame, everything else melts */
   if (name === 'cu') { david.head.getWorldPosition(h); B.look = [h.x, h.y + 0.25, h.z]; B.focus = [h.x, h.y + 0.3, h.z + 0.2]; B.pos = [h.x - 1.4, h.y + 0.4, h.z + 1.75]; }
   return B; };
 let curShot = null, curB = null;
 const camAt = (t) => { const E = window.EDIT; if (!E) return null; const e = E.find(x => t >= x[0] && t < x[1]) || E[E.length - 1], [t0, t1, name, mv = {}] = e;
   const u = Math.min(1, (t - t0) / ((t1 - t0) * (mv.over || 0.65))), k = (mv.push || 0) * (1 - (1 - u) * (1 - u)); return { name, t0, k }; };
-const applyCam = (c) => { if (!c) return; if (curShot !== c.name + c.t0) { curShot = c.name + c.t0; curB = setupShot(c.name); camera.fov = curB.fov; camera.updateProjectionMatrix(); bokeh.uniforms.aperture.value = curB.ap; bokeh.uniforms.maxblur.value = curB.ap * 2.5; }
+const applyCam = (c) => { if (!c) return; if (curShot !== c.name + c.t0) { curShot = c.name + c.t0; curB = setupShot(c.name); camera.fov = curB.fov; camera.updateProjectionMatrix(); bokeh.uniforms.aperture.value = curB.ap; bokeh.uniforms.maxblur.value = curB.maxblur; }
   const P = V(...curB.pos), L = V(...curB.look); P.lerp(L, c.k); camera.position.copy(P); camera.lookAt(L); bokeh.uniforms.focus.value = P.distanceTo(V(...curB.focus)); };
 composer.addPass(new OutputPass());
 window.ARMQC = (i, o) => { const a = david.arms[i]; david.setArm(i === 0 ? "L" : "R", { curl: 0.6, ...o }); david.root.updateMatrixWorld(true); return qc({ chars: [a.sh], world: [throne], ignore: [david.root], pairs: false, tol: 0.006 }).issues.map(h => [h.part, h.into, h.points, h.depth]); };
@@ -255,12 +313,12 @@ window.QC = () => { david.root.name = 'David'; nathan.root.name = 'Nathan'; thro
               { part: '^throne/David:Lathe#8b2c3a$', into: '^throne:Box#6a4426$', max: 0.012, why: 'cloak pressed against the backrest' }] }),
     handsOnRests: rests.map((r, i) => Math.min(gap(david.arms[i].hand.g, r), gap(david.arms[i].hand.g, lions[i]))), feetDavid: david.feet.map(f => +(new THREE.Box3().setFromObject(f).min.y - 0.2).toFixed(3)), feetNathan: nathan.feet.map(f => +new THREE.Box3().setFromObject(f).min.y.toFixed(3)) }; };
 window.HANDSEARCH = (i) => { const a = david.arms[i], side = i === 0 ? 'L' : 'R', lion = lions[i]; let best = [1e9];
-  const L = rests[i].localToWorld(new THREE.Vector3(0, 0.05, 0.3));
-  for (const fwd of [0, 0.1, 0.2, 0.3, 0.4, 0.5]) for (const out of [0.1, 0.17, 0.24, 0.31]) for (const bend of [1.2, 1.35, 1.5, 1.65]) for (const wrist of [-0.4, -0.2, 0, 0.2]) {
+  const L = rests[i].localToWorld(new THREE.Vector3(0, 0.05, 0.17)); /* on the wood, just behind the carved lion */
+  for (const fwd of (i ? [-0.4, -0.3, -0.2, -0.1, 0, 0.1] : [-0.1, 0, 0.1, 0.2, 0.3])) for (const out of (i ? [0.31, 0.38, 0.45, 0.52] : [0.17, 0.24, 0.31, 0.38])) for (const bend of [1.3, 1.45, 1.6, 1.75, 1.9]) for (const wrist of [-0.5, -0.3, -0.1, 0.1]) {
     david.setArm(side, { fwd, out, bend, wrist, curl: 0.6 }); david.root.updateMatrixWorld(true);
     const pen = qc({ chars: [a.sh], world: [throne], ignore: [david.root], pairs: false, tol: 0.006 }).issues.reduce((m, h) => Math.max(m, h.depth), 0);
     if (pen > 0.02) continue;
-    const H = a.hand.g.getWorldPosition(new THREE.Vector3()), g = Math.min(gap(a.hand.g, rests[i]), gap(a.hand.g, lion)), off = Math.hypot(H.x - L.x, H.z - L.z);
+    const H = a.hand.g.getWorldPosition(new THREE.Vector3()), g = gap(a.hand.g, rests[i]), off = Math.hypot(H.x - L.x, H.z - L.z); /* contact with the wood itself, not the top of the mane */
     const score = pen * 20 + Math.max(0, g - 0.006) * 10 + off;
     if (score < best[0]) best = [+score.toFixed(3), fwd, out, bend, wrist, +pen.toFixed(3), g, +off.toFixed(3)]; }
   return best; };
@@ -269,7 +327,7 @@ window.OCC = (x, y, z) => { const P = new THREE.Vector3(x, y, z), out = []; scen
 window.DBG = () => { const cols = ["#ff0000","#00ff00","#0000ff","#ffff00","#ff00ff","#00ffff","#ffffff","#ff8800","#000000","#888888"]; const out = []; [...david.body.children, ...david.root.children].forEach((o, i) => { if (o.isMesh && ["5b3591","6a4426","8a5a34"].includes(o.material.color?.getHexString())) { o.material = o.material.clone(); o.material.color.set(cols[out.length % 10]); out.push([i, o.geometry.type, cols[out.length % 10]]); } }); return out; };
 window.PICK = (x, y) => { const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(x, y), camera); return rc.intersectObjects(scene.children, true).filter(h => h.object.isMesh && !h.object.material.transparent).slice(0, 3).map(h => { const o = h.object, wp = o.getWorldPosition(new THREE.Vector3()); return [o.geometry.type, o.geometry.attributes.position.count, o.material.color?.getHexString(), o.material.side, wp.toArray().map(v => +v.toFixed(3)), h.point.toArray().map(v => +v.toFixed(3)), o.parent?.type, o.parent?.children.indexOf(o)]; }); };
 window.drawFrame = (t = 0) => {
-  if (window.POSE) window.POSE(t); applyCam(camAt(t));
+  if (window.POSE) window.POSE(t); applyCam(camAt(t) || { name: SHOT, t0: -1, k: 0 }); /* stills use the same shot setup as the edit */
   david.solve(); nathan.solve();
   composer.render(); o.drawImage(renderer.domElement, 0, 0, RW, RH);
   const g = o.createRadialGradient(RW / 2, RH / 2, RH * 0.3, RW / 2, RH / 2, RH * 0.8); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.45)'); o.fillStyle = g; o.fillRect(0, 0, RW, RH);
