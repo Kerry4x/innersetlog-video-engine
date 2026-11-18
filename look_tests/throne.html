@@ -280,8 +280,8 @@ if (ANIM === 'full') {
     const g = walking ? nathan.walk((t - W0) * 0.9, 1 - seg(t, W1 - 1.0, W1)) : (nathan.walk(0, 0), { bob: 0, sway: 0, swing: 0 }); /* strides shorten as he arrives: no toe into the dais */
     let nR, nL;
     if (t < 20) { nR = { ...NREST.R, fwd: NREST.R.fwd + g.swing * 0.5 }; nL = { ...NREST.L, fwd: NREST.L.fwd - g.swing * 0.5 }; }      /* walks in, arms swinging */
-    else if (t < 23.1) { nR = NC.R; nL = NC.L; }                                                                                         /* stands, hands clasped, says nothing of it */
-    else if (t < 37.5) { const o = seg(t, 23.1, 23.6); nR = mix(NC.R, NT.R, o); nL = mix(NC.L, NT.L, o); }                              /* opens his hands: tells the story */
+    else if (t < 23.1) { nR = NREST.R; nL = NREST.L; }                                                                                   /* stands, hands at his sides, says nothing of it */
+    else if (t < 37.5) { const o = seg(t, 23.1, 23.6); nR = mix(NREST.R, NT.R, o); nL = mix(NREST.L, NT.L, o); }                        /* his hands come up and open: he tells the story */
     else if (t < 52.44) { nR = NT.R; nL = NT.L; }
     else if (t < 78) { nR = { fwd: 1.75, out: 0.35, twist: -0.4, bend: 0.05, point: true }; nL = { fwd: 0.18, out: 0.16, bend: 0.55, curl: 0.5 }; }
     else if (t < 79.6) { nR = NT.R; nL = NT.L; }                                                                                          /* "that's why Nathan told a story": the telling, recalled */
@@ -299,9 +299,9 @@ if (ANIM === 'full') {
       const fw = seg(t, 39.5, 40.0); body.lean = 0.04 * fw; body.bob = 0.025 * fw; head.nod = 0.05 + 0.06 * fw; /* leans in; lifted a touch so the hem doesn't dip into the dais */
       if (t >= 41.7 && t < 43.0) aL.curl = 0.6 + 0.35 * seg(t, 41.7, 41.9);                                                            /* the fist tightens */
       if (t >= 43.0) aL.curl = 0.95;
-      if (t >= 45.4) aL = mix(aL, { fwd: 1.15, out: 0.45, bend: 0.15, point: true }, seg(t, 45.4, 46.2)), aL.point = t > 45.8; }        /* the finger comes up */
+      if (t >= 45.4) { const HV = { fwd: 0.35, out: 0.4, bend: 1.5, wrist: -0.2, curl: 0.9 }; aL = t < 45.7 ? mix(aL, HV, seg(t, 45.4, 45.7)) : { ...mix(HV, { fwd: 1.15, out: 0.45, bend: 0.15, curl: 0.9 }, seg(t, 45.7, 46.2)), point: t > 45.9 }; } } /* lifts clear of the lion first, then the finger comes up */        /* the finger comes up */
     else if (t < 81.74) face = { lid: -0.35, raise: 0.6, open: 0.12, look: [-0.6, 0] };                                                /* frozen */
-    else if (t < 91.24) { face = { lid: -0.1, raise: 0.25, open: 0.05, look: [-0.5, -0.1] }; const sink = seg(t, 81.9, 82.6); body.lean = -0.012 * sink; body.bob = -0.008 * sink; head.nod = 0.05 + 0.05 * sink; /* sinks back */
+    else if (t < 91.24) { face = { lid: -0.1, raise: 0.25, open: 0.05, look: [-0.5, -0.1] }; const sink = seg(t, 81.9, 82.6); body.lean = -0.004 * sink; body.bob = -0.004 * sink; head.nod = 0.05 + 0.08 * sink; /* slumps: shoulders drop and the head sinks (no lean back into the throne) */
       if (t >= 84.0) aL.curl = lerp(0.6, 0.3, seg(t, 84.0, 84.4)); }                                                                  /* the grip loosens */
     else if (t < 92.48) { face = { lid: 0.25, squint: 0.3, angry: 0.5, look: [-0.6, 0] }; aL.curl = 0.3; }                            /* he could argue */
     else { const bow = seg(t, 94.44, 95.1); face = { lid: lerp(0.4, 0.55, bow), sad: 1, look: [-0.3, -0.5 - 0.2 * bow] }; head = { turn: lerp(-0.55, -0.22, bow), nod: lerp(0.1, 0.32, bow), tilt: 0.03 }; aL.curl = 0.3;
@@ -341,8 +341,8 @@ const dust = (() => { const N = 300, pos = new Float32Array(N * 3); for (let i =
 
 // ---------- shots (from the shot grammar: EST, WS, MS, INS, CU) ----------
 const SHOTS = {
-  msl: { pos: [0.15, 1.05, 0.75], look: [0.95, 1.75, -1.35], fov: 32, focus: [0.95, 1.7, -1.3], ap: 0.0025 },   // David from low: the most powerful king
-  wsl: { pos: [0.5, 0.75, 5.4], look: [0.75, 1.55, -1.3], fov: 34, focus: [0.85, 1.4, -1.3], ap: 0.0026 },      // low wide: the king on his throne, the room
+  msl: { pos: [-0.25, 1.0, 0.85], look: [0.82, 1.78, -1.35], /* David on the right third, looking into the open frame */ fov: 32, focus: [0.95, 1.7, -1.3], ap: 0.0025 },   // David from low: the most powerful king
+  wsl: { pos: [0.9, 0.75, 5.4], look: [1.1, 1.55, -1.3], /* David alone: Nathan fully out of frame */ fov: 34, focus: [0.85, 1.4, -1.3], ap: 0.0026 },      // low wide: the king on his throne, the room
   cun: { pos: [0, 0, 0], look: [0, 0, 0], fov: 28, focus: [0, 0, 0], ap: 0.004 },                                  // Nathan's face (set from his head)
   insn: { pos: [0, 0, 0], look: [0, 0, 0], fov: 30, focus: [0, 0, 0], ap: 0.008 },                                 // Nathan's hands (set from his wrists)
   dprof: { pos: [1.75, 1.85, 0.55], look: [0.84, 1.68, -1.28], fov: 30, focus: [0.98, 1.72, -1.3], ap: 0.003 }, // David in profile (beard check)
@@ -372,8 +372,8 @@ const bokeh = new BokehPass(scene, camera, { focus: camera.position.distanceTo(V
    moves with a reason; a move is already going at the cut, eases out to a stop and holds; camera on 1s, characters on 2s) ---------- */
 const setupShot = (name) => { const B = { ...SHOTS[name] }; scene.updateMatrixWorld(true); const h = new THREE.Vector3();  B.maxblur = name === 'ws' ? 0.03 : B.ap * 2.5;
   if (name === 'ins') { lions[0].getWorldPosition(h); const L = h.clone(); L.y += 0.07; L.z -= 0.06; B.look = [L.x, L.y, L.z]; B.focus = [L.x - 0.05, L.y, L.z]; B.pos = [L.x - 0.62, L.y + 0.1, L.z + 0.42]; B.fov = 28; B.ap = 0.008; } /* from the outside of the armrest at fist height: the fist on the wood, the carved lion below it /* macro on the lion where the hand comes to rest: the carving and the hand fill the frame, everything else melts */
-  if (name === 'cun') { nathan.head.getWorldPosition(h); B.look = [h.x, h.y + 0.28, h.z]; B.focus = [h.x + 0.1, h.y + 0.3, h.z]; B.pos = [h.x + 1.45, h.y + 0.42, h.z + 0.6]; }
-  if (name === 'insn') { const a = nathan.arms[0].wr.getWorldPosition(new THREE.Vector3()), b = nathan.arms[1].wr.getWorldPosition(new THREE.Vector3()); h.copy(a).lerp(b, 0.5); B.look = [h.x + 0.05, h.y - 0.02, h.z]; B.focus = B.look; B.pos = [h.x + 0.62, h.y + 0.12, h.z + 0.5]; }
+  if (name === 'cun') { nathan.head.getWorldPosition(h); B.look = [h.x, h.y + 0.28, h.z]; B.focus = [h.x + 0.1, h.y + 0.3, h.z]; B.pos = [h.x + 2.0, h.y + 0.5, h.z + 0.85]; B.look = [h.x + 0.12, h.y + 0.28, h.z]; } /* back far enough that his whole face sits in frame */
+  if (name === 'insn') { B.look = [-0.09, 1.04, -1.06]; B.focus = [-0.074, 1.095, -1.061]; B.pos = [0.5, 1.22, -0.7]; B.fov = 30; B.ap = 0.006; } /* his near hand rises into frame and opens (framed on where it ends: measured with HANDPOS) */
   if (name === 'cu') { david.head.getWorldPosition(h); B.look = [h.x, h.y + 0.25, h.z]; B.focus = [h.x, h.y + 0.3, h.z + 0.2]; B.pos = [h.x - 1.4, h.y + 0.4, h.z + 1.75]; }
   return B; };
 let curShot = null, curB = null;
@@ -387,9 +387,12 @@ window.ARMQC = (i, o) => { const a = david.arms[i]; david.setArm(i === 0 ? "L" :
 const out = document.getElementById('out'); out.width = RW; out.height = RH; const o = out.getContext('2d');
 window.AIMSEARCH = () => { const a = nathan.arms[1]; let best = [1e9]; for (let fwd = 1.0; fwd <= 1.8; fwd += 0.05) for (let out = -0.4; out <= 1.0; out += 0.05) for (const twist of [-0.4, -0.2, 0, 0.2]) { nathan.setArm("R", { fwd, out, twist, bend: 0.05, point: true }); nathan.root.updateMatrixWorld(true); const e = a.el.getWorldPosition(new THREE.Vector3()), w = a.wr.getWorldPosition(new THREE.Vector3()), T = david.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.3, 0)); const ang = Math.acos(Math.min(1, w.clone().sub(e).normalize().dot(T.sub(w).normalize()))) * 57.3; if (ang < best[0]) best = [+ang.toFixed(1), +fwd.toFixed(2), +out.toFixed(2), twist]; } return best; };
 window.QC = () => { david.root.name = 'David'; nathan.root.name = 'Nathan'; throne.name = 'throne';
-  return { hits: qc({ chars: [david.root, nathan.root], world: [scene], floorY: 0, floors: [{ y: 0.2, minX: -0.2, maxX: 2.2, minZ: -2.2, maxZ: -0.5 }], walls: [{ axis: 'z', at: -2.4, sign: -1, thick: 0.32, opening: { axis: 'x', min: DOOR.x - DOOR.w / 2, max: DOOR.x + DOOR.w / 2, ymax: DOOR.h + DOOR.w / 2 } }, { axis: 'x', at: -3.5, sign: -1 }, { axis: 'x', at: 3.5, sign: 1 }],
+  /* a character's hands against its own robe (the main check skips a character's own parts): hands must not sink into the body */
+  const self = []; for (const C of [david, nathan]) for (const a of C.arms) { const r = qc({ chars: [a.hand.g], world: [C.robe], pairs: false, tol: 0.008 }).issues; for (const h of r) self.push({ ...h, part: (C === david ? 'David' : 'Nathan') + ' hand', into: 'own robe' }); }
+  const H = qc({ chars: [david.root, nathan.root], world: [scene], floorY: 0, floors: [{ y: 0.2, minX: -0.2, maxX: 2.2, minZ: -2.2, maxZ: -0.5 }], walls: [{ axis: 'z', at: -2.4, sign: -1, thick: 0.32, opening: { axis: 'x', min: DOOR.x - DOOR.w / 2, max: DOOR.x + DOOR.w / 2, ymax: DOOR.h + DOOR.w / 2 } }, { axis: 'x', at: -3.5, sign: -1 }, { axis: 'x', at: 3.5, sign: 1 }],
       allow: [{ part: '^throne/David:', into: '^throne:Sphere#8b2c3a$', max: 0.06, why: 'seat and back cushions compress under the sitter' },
-              { part: '^throne/David:Lathe#8b2c3a$', into: '^throne:Box#6a4426$', max: 0.012, why: 'cloak pressed against the backrest' }] }),
+              { part: '^throne/David:Lathe#8b2c3a$', into: '^throne:Box#6a4426$', max: 0.012, why: 'cloak pressed against the backrest' }] }); H.issues.push(...self); H.issues.sort((a, b) => b.depth - a.depth);
+  return { hits: H,
     handsOnRests: rests.map((r, i) => Math.min(gap(david.arms[i].hand.g, r), gap(david.arms[i].hand.g, lions[i]))), feetDavid: david.feet.map(f => +(new THREE.Box3().setFromObject(f).min.y - 0.2).toFixed(3)), feetNathan: nathan.feet.map(f => +new THREE.Box3().setFromObject(f).min.y.toFixed(3)) }; };
 window.HANDSEARCH = (i) => { const a = david.arms[i], side = i === 0 ? 'L' : 'R', lion = lions[i]; let best = [1e9];
   const L = rests[i].localToWorld(new THREE.Vector3(0, 0.05, 0.17)); /* on the wood, just behind the carved lion */
@@ -405,6 +408,7 @@ window.GAZE = () => { const r = []; for (const [who, tgt] of [[david, nathan], [
 window.OCC = (x, y, z) => { const P = new THREE.Vector3(x, y, z), out = []; scene.traverse(L => { if (!L.isLight || !L.castShadow) return; const lp = L.getWorldPosition(new THREE.Vector3()); let dir; if (L.isDirectionalLight) dir = lp.clone().sub(L.target.getWorldPosition(new THREE.Vector3())).normalize(); else dir = lp.clone().sub(P).normalize(); const rc = new THREE.Raycaster(P.clone().addScaledVector(dir, 0.02), dir); const h = rc.intersectObjects(scene.children, true).filter(h => h.object.isMesh && h.object.castShadow && !h.object.material.transparent)[0]; out.push([L.type, L.intensity, lp.toArray().map(v => +v.toFixed(2)), h ? [h.object.geometry.type, h.object.material.color?.getHexString(), +h.distance.toFixed(3), h.point.toArray().map(v => +v.toFixed(2))] : null]); }); return out; };
 window.DBG = () => { const cols = ["#ff0000","#00ff00","#0000ff","#ffff00","#ff00ff","#00ffff","#ffffff","#ff8800","#000000","#888888"]; const out = []; [...david.body.children, ...david.root.children].forEach((o, i) => { if (o.isMesh && ["5b3591","6a4426","8a5a34"].includes(o.material.color?.getHexString())) { o.material = o.material.clone(); o.material.color.set(cols[out.length % 10]); out.push([i, o.geometry.type, cols[out.length % 10]]); } }); return out; };
 window.PICK = (x, y) => { const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(x, y), camera); return rc.intersectObjects(scene.children, true).filter(h => h.object.isMesh && !h.object.material.transparent).slice(0, 3).map(h => { const o = h.object, wp = o.getWorldPosition(new THREE.Vector3()); return [o.geometry.type, o.geometry.attributes.position.count, o.material.color?.getHexString(), o.material.side, wp.toArray().map(v => +v.toFixed(3)), h.point.toArray().map(v => +v.toFixed(3)), o.parent?.type, o.parent?.children.indexOf(o)]; }); };
+window.HANDPOS = () => [0, 1].map(i => nathan.arms[i].hand.g.getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)));
 window.PREP = (t = 0) => { if (window.POSE) window.POSE(t); applyCam(camAt(t) || { name: SHOT, t0: -1, k: 0 }); david.solve(); nathan.solve(); }; /* pose + camera + collision solve, no render (for checks) */
 window.drawFrame = (t = 0) => {
   if (window.POSE) window.POSE(t); applyCam(camAt(t) || { name: SHOT, t0: -1, k: 0 }); /* stills use the same shot setup as the edit */
