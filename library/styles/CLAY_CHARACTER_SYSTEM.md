@@ -26,3 +26,30 @@ Head height (round ↔ tall egg), nose length and shape, skin tone, hair and fac
 - Bodies were ~4.5 heads tall and slim; theirs are ~3–3.5 and the head dominates.
 - Eyes were too small and too high; theirs are big, mid-height and pressed against the nose.
 - Built from 6 hand-picked frames instead of this survey.
+
+## Second pass, 2026-11-24: side profiles, women, modern hair (all 542 shots re-read at mid-shot)
+Kerry: "Why do the noses float from the side? ... the monk one had a girl so you have the resources to make them look good."
+Sheets: one mid-shot frame of every shot, `scratchpad/faces` (rebuild: cuts.json shot midpoints). Key frames: S06_071, S06_085 (modern woman in profile), S06_015 (woman), S13_035, S14_039, S10_011, S09_035 (men in profile), S06_068/054, S09_035 (women from the front), S12_046, S13_042 (modern young men).
+
+**Nose in profile (the "floating nose" fix).** In every profile the nose is ONE solid wedge. Its root sits between the eyes (the lids overlap its sides). The forehead line runs straight on into the bridge. It widens to a rounded bulb with small wings. The underside slopes back to the upper lip. It sticks out well past the eyeballs: about ⅓ of the face height, less for women. There is never a gap or a neck between nose and face.
+- Our old nose was a thin capsule with a big ball on the end, so from the side it read as a ball on a stick.
+- New: `noseStyle: 'wedge'` in the kit. It is built from horizontal slices that each run from inside the face out to the silhouette, so there is no gap from any angle.
+- Women: `nose 0.45–0.6` plus `noseUp` (shorter, slightly upturned).
+- The throne-room cast still uses the old nose until their render finishes. Switching them means re-rendering.
+
+**Women.**
+- A rounder, wider face; bigger, calmer eyes; thinner arched brows.
+- A short, soft nose; a small mouth line, with lips only lightly tinted.
+- Hair is the main identity: a part, then thick sculpted strands with coherent waves (S06 modern woman: a wavy bob to the shoulders; S06 village woman: sleek with a bun; S09: red rolled curls).
+
+**Modern men.** Chunky strands swept from a side part, with tips lifting at the forehead (S12 red hoodie, S13 yellow hoodie). A smooth helmet with fine grooves reads as a toy.
+
+**Hair rule.** Build hair from strands (`hairStyle: 'wavy' | 'swept'`: tapered, flattened clay ropes over a darker under-shell).
+- Nothing in front of the ears comes below the brows.
+- Strand angles take the short way round. One strand going the long way crossed the whole forehead; it was caught by measuring the lowest strand point, not by eye.
+
+**Mouth.** A smile is the mouth line itself curving. A second curve under a straight slit reads as a worm on the chin.
+
+**Glasses.** The arms run from the rim along the temple to the ear. A free-floating stub shows at three-quarter view.
+
+**Sideburns.** A straight capsule beside the cheek reads as a headphone strap. Leave them off (a jaw-only short beard) or lay them flat on the face.

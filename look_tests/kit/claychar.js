@@ -30,7 +30,7 @@ const hr = y => { for (let i = 1; i < HP.length; i++) if (y <= HP[i][1]) { const
 const lerp1 = (a, b, k) => a + (b - a) * k;
 const SZ = 0.94, surf = (x, y) => Math.sqrt(Math.max(0.0001, hr(y) ** 2 - x * x)) * SZ;
 
-function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth = 0.85, beardLocks = 0, crown, lidTop = 0.36, hairStyle = 'short', glasses = null, nose = 1, lashes = false, lips = null, hairline = 0, browW = 1 }, R) {
+function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth = 0.85, beardLocks = 0, crown, lidTop = 0.36, hairStyle = 'short', glasses = null, nose = 1, lashes = false, lips = null, hairline = 0, browW = 1, noseStyle = 'ball', noseUp = 0, hairFlip = false, sideburnZ = 0 }, R) {
   const g = new THREE.Group(), sk = clay(skin), hm = clay(hair), ink = clay('#120b08', { roughness: 0.25, bumpScale: 0 }), white = clay('#f4efe2', { roughness: 0.32, bumpScale: 0.15 });
   const skull = M(lathe(HP, 72), sk, g); skull.scale.z = SZ;
   const eY = 0.33, eX = 0.09, eR = 0.076;
@@ -53,15 +53,35 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
     const rim = M(arcTube(0.052, 0.017, 12, 32, Math.PI * 1.55), sk, ear); rim.rotation.set(0, Math.PI / 2, Math.PI * 0.72); rim.position.x = 0.012 * s;
   }
   const n0 = V(0, eY + 0.03, surf(0, eY + 0.03) - 0.015), n1 = V(0, 0.185 + 0.03 * (1 - nose), surf(0, 0.185) + 0.1 * nose); /* nose < 1: smaller, less protruding */
+  if (noseStyle === 'wedge') { /* the reference nose (every Clayrified profile): ONE solid wedge that grows out from between the eyes,
+       continues the forehead line, widens to a rounded bulb with wings and slopes back under itself to the upper lip.
+       Built from horizontal slices that each reach from inside the face out to the silhouette, so from the side there is never a gap. */
+    const yR = eY + 0.075, yT = 0.2 + 0.02 * (1 - nose) + noseUp, yB = yT - 0.07 * Math.pow(nose, 0.6), PR = 0.175 * nose, sm = t => t * t * (3 - 2 * t);
+    const pr = y => y >= yT ? 0.035 + (PR - 0.035) * Math.pow((yR - y) / (yR - yT), 1.05) : PR * Math.sqrt(Math.max(0, 1 - ((yT - y) / (yT - yB)) ** 2));
+    const wd = y => { const k = Math.max(0, Math.min(1, (yR - y) / (yR - yB))); const base = 0.03 + 0.012 * k + 0.03 * Math.pow(nose, 0.8) * sm(Math.max(0, Math.min(1, (k - 0.55) / 0.35))); return y < yT ? base * Math.pow(Math.max(0, 1 - ((yT - y) / (yT - yB)) ** 2), 0.3) : base; };
+    const rows = 44, cols = 40, pos = [], idx = [];
+    for (let r = 0; r <= rows; r++) { const u = r / rows; let y, P, Wd;
+      if (u < 0.12) { const k = sm(u / 0.12); y = yR + 0.03 * (1 - k); P = pr(yR) * k - 0.012 * (1 - k); Wd = wd(yR) * Math.sqrt(k); } /* the root: tucks in under the brow */
+      else { y = yR - (yR - yB) * (u - 0.12) / 0.88; P = pr(y); Wd = wd(y); }
+      const back = surf(0, y) - 0.03, front = surf(0, y) + Math.max(P, -0.01), zc = (back + front) / 2, D = Math.max(0.0005, (front - back) / 2);
+      for (let c = 0; c <= cols; c++) { const a = c / cols * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a); const x = Wd * sa * (1 - 0.3 * Math.max(0, ca) ** 2); /* rounded-triangle section: narrower at the bridge */ pos.push(x, y, zc + D * ca); } }
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const a = r * (cols + 1) + c, b = a + cols + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+    const ng = new THREE.BufferGeometry(); ng.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ng.setIndex(idx); ng.computeVertexNormals(); smoothSeams(ng);
+    const nm = M(ng, clay(skin, { side: THREE.DoubleSide }), g); R.nose = nm;
+    n1.set(0, yT, surf(0, yT) + PR);
+    { const tp = M(new THREE.SphereGeometry(0.042 * nose, 28, 20), sk, g); tp.position.set(0, yT - 0.012 * nose, surf(0, yT) + PR - 0.034 * nose); tp.scale.set(1.1, 1, 1); } /* a rounded bulb over the wedge's point */
+    for (const s of [-1, 1]) { const w = M(new THREE.SphereGeometry(0.03 * nose, 20, 14), sk, g); w.scale.set(0.8, 0.85, 1); w.position.set(wd(yT - 0.02) * 0.8 * s, yT - 0.03 * nose, surf(0, yT) + PR * 0.22); } /* nostril wings, half sunk into the bulb */
+  } else {
   sausage(n0, n1, 0.05 * nose, sk, g);
   const tip = M(new THREE.SphereGeometry(0.07 * nose, 32, 24), sk, g); tip.position.copy(n1); tip.scale.set(1, 0.92, 1);
   for (const s of [-1, 1]) { const w = M(new THREE.SphereGeometry(0.03 * nose, 16, 12), sk, g); w.position.set(0.04 * nose * s, n1.y - 0.015 * nose, n1.z - 0.035 * nose); }
+  }
   if (lashes) for (const e of R.eyes) for (let k = 0; k < 3; k++) { const ls = M(new THREE.CapsuleGeometry(0.006, 0.03, 4, 8), clay('#1a120c', { bumpScale: 0 }), e.top); const a = (0.35 + k * 0.13) * e.s; ls.position.set(Math.sin(a) * 0.08, 0.035, 0.055); ls.rotation.set(-0.6, 0, -a * 1.3); } /* lashes ride on the top lid */
   if (lidTop > 0.33) for (const y of [0.47, 0.505]) { const c = M(arcTube(hr(y) * 0.98, 0.006, 8, 48, Math.PI * 0.32), sk, g); c.rotation.set(Math.PI / 2, 0, Math.PI * 0.34); c.position.y = y; c.scale.y = SZ; }
   // mouth: a dark opening behind the lips; the jaw (with the beard) swings down to show it
   const mY = 0.062;
   R.mouth = M(new THREE.SphereGeometry(0.05, 24, 16), clay('#2a0d08', { bumpScale: 0 }), g); R.mouth.scale.set(1, 0.15, 0.5); R.mouth.position.set(0, mY, surf(0, mY) - 0.02);
-  const lip = M(arcTube(0.042, lips ? 0.011 : 0.0075, 10, 32, Math.PI * 0.62), clay(lips || '#4a1e14', { bumpScale: 0 }), g); lip.rotation.z = Math.PI * 0.19; lip.position.set(0, mY - 0.03, surf(0, mY) - 0.004); R.lip = lip; if (beard) lip.visible = false; /* a beard covers the lower lip: a half-hidden lip reads as a dark blob with legs */
+  const lip = M(arcTube(0.042, lips ? 0.0085 : 0.0075, 10, 32, Math.PI * 0.62), clay(lips || '#4a1e14', { bumpScale: 0 }), g); lip.rotation.z = Math.PI * 0.19; lip.position.set(0, mY - 0.03, surf(0, mY) - 0.004); R.lip = lip; if (beard) lip.visible = false; /* a beard covers the lower lip: a half-hidden lip reads as a dark blob with legs */
   R.jaw = new THREE.Group(); R.jaw.position.set(0, 0.2, 0); g.add(R.jaw); // pivot near the ears
   if (bald) {
     for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { const t = M(grooves(new THREE.SphereGeometry(0.06, 28, 20), 0.004, 10), hm, g); t.scale.set(0.55, 0.75, 1.3); const y = 0.43 - i * 0.045; t.position.set(hr(y) * 0.98 * s, y, -0.04 - i * 0.03); t.rotation.set(0.2, 0.5 * s, 0.25 * s); }
@@ -69,15 +89,16 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
   } else {
     /* the hair is a thick clay slab that follows the skull (2.4 cm proud of it, so the grooves never let skin through).
        At the hairline and the nape it slopes down under the skin: one closed surface, no thin cut edge. */
-    const LONG = hairStyle === 'long', T = 0.024, hp = []; for (let y = LONG ? -0.22 : 0.15; y < 0.62; y += 0.01) hp.push([y < 0.1 ? hr(0.1) + T + 0.06 * (0.1 - y) : hr(y) + T, y]); /* long: the same shell flows on down to the shoulders, flaring a little */ hp.push([hr(0.625) + T * 0.8, 0.629 + T * 0.55], [0, 0.629 + T]);
+    const LOCKS = hairStyle === 'wavy' || hairStyle === 'swept', LONG = hairStyle === 'long' || hairStyle === 'wavy', T = LOCKS ? 0.01 : 0.024, hp = []; for (let y = LONG ? (hairStyle === 'wavy' ? -0.08 : -0.22) : 0.15; y < 0.62; y += 0.01) hp.push([y < 0.1 ? hr(0.1) + T + 0.06 * (0.1 - y) : hr(y) + T, y]); /* long: the same shell flows on down to the shoulders, flaring a little */ hp.push([hr(0.625) + T * 0.8, 0.629 + T * 0.55], [0, 0.629 + T]);
     const hg = lathe(hp, 120), hpos = hg.attributes.position, sm = (v, a, b) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
     for (let i = 0; i < hpos.count; i++) { const x = hpos.getX(i), y = hpos.getY(i), z = hpos.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue; const c = z / r; /* 1 = front */
-      const lim = LONG ? lerp1(-0.3, 0.47, sm(c, 0.42, 0.6)) /* long: open only where the face is */ : c >= 0 ? 0.33 + hairline * 0.6 + (0.14 + hairline) * sm(c, 0.25, 0.75) : 0.33 - 0.13 * sm(-c, 0.2, 0.8); /* forehead 0.47 (+hairline), sides above the ears, nape 0.2 */
+      const lim = LOCKS && LONG ? lerp1(-0.06, 0.52, sm(c, 0.5, 0.68)) : LONG ? lerp1(-0.3, 0.47, sm(c, 0.42, 0.6)) /* long: open only where the face is */ : c >= 0 ? 0.33 + hairline * 0.6 + (0.14 + hairline) * sm(c, 0.25, 0.75) : 0.33 - 0.13 * sm(-c, 0.2, 0.8); /* forehead 0.47 (+hairline), sides above the ears, nape 0.2 */
       const k = sm(y, lim - 0.03, lim + 0.004), outer = y < 0.1 ? hr(0.1) + T + 0.06 * (0.1 - y) : hr(Math.min(y, 0.628)) + T, inner = y < 0.12 ? 0.06 : hr(Math.min(y, 0.628)) - 0.012, rn = Math.max(0.001, inner + k * (outer - inner)); hpos.setX(i, x * rn / r); hpos.setZ(i, z * rn / r); }
-    const cap = M(grooves(hg, 0.005, 30), hm, g); cap.scale.z = SZ;
+    const cap = M(LOCKS ? (hg.computeVertexNormals(), smoothSeams(hg)) : grooves(hg, 0.005, 30), LOCKS ? clay(new THREE.Color(hair).multiplyScalar(0.6).getStyle()) : hm, g); cap.scale.z = SZ; /* under the strands: a darker shell, so gaps read as depth */
+    if (hairStyle === 'wavy' || hairStyle === 'swept') { hairLocks(hairStyle, g, hm, T, R); if (hairFlip) R.hairLocks.scale.x = -1; /* part on the other side */ }
 
     if (R.earrings) for (const sd of [-1, 1]) { const ring = M(new THREE.TorusGeometry(0.022, 0.0055, 8, 24), clay(R.earrings, { roughness: 0.3, bumpScale: 0 }), g); ring.position.set((hr(0.2) + 0.01) * sd, 0.17, 0.0); ring.rotation.y = Math.PI / 2; }
-    for (const s of [-1, 1]) { const sb = M(new THREE.CapsuleGeometry(0.03, 0.09, 8, 16), hm, g); sb.position.set(hr(0.3) * 0.95 * s, 0.31, 0.05); }
+    if (!LOCKS) for (const s of [-1, 1]) { const sb = M(new THREE.CapsuleGeometry(0.03, 0.09, 8, 16), hm, g); sb.position.set(hr(0.3) * 0.95 * s, 0.31, 0.05); }
   }
   if (beard) {
     const t = 0.03, pts = []; for (let y = 0.0; y <= 0.04; y += 0.01) pts.push([hr(y) + t, y]); pts.unshift([hr(0) * 0.6 + t, -0.02]);
@@ -91,12 +112,14 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
       const fade = Math.max(0, Math.min(1, (-0.165 - y) / 0.025)), a = Math.atan2(x, z); const k = fade * (0.006 * Math.sin(a * 26 + y * 9 + Math.sin(y * 23) * 0.8) + beardLocks * 0.022 * Math.pow(0.5 + 0.5 * Math.sin(a * 8 + 1.3 + y * 4), 2) * Math.min(1, (-0.18 - y) / 0.08)); /* + chunky locks: depth in profile, not even grooves */ gx[i] = x / r * k; gz[i] = z / r * k; } /* strands fade out at the top edge: a clean line under the mustache */
     const beardM = M(bg, clay(beard, { side: THREE.DoubleSide, bumpScale: 0.08 }), R.jaw); R.beardMeshes = [beardM]; R.beardStrands = { base, gx, gz, nb };
     { const p = bg.attributes.position; for (let i = 0; i < n; i++) p.setXYZ(i, base[i * 3] + gx[i], base[i * 3 + 1], base[i * 3 + 2] + gz[i]); bg.computeVertexNormals(); smoothSeams(bg); }
-    for (const s of [-1, 1]) { sausage(V(hr(0.3) * 0.95 * s, 0.29, 0.0), V(hr(0.07) * 0.98 * s, 0.05, 0.06), 0.032, clay(beard), g);
+    for (const s of [-1, 1]) { if (sideburnZ < 0) { const pts = []; for (let k = 0; k <= 12; k++) { const t = k / 12, y = 0.36 - 0.32 * t, th = s * (1.32 - 0.3 * t), r = hr(y) + 0.012; pts.push(V(r * Math.sin(th), y, r * Math.cos(th) * SZ)); }
+        M(lockGeo(pts, 0.034, 0.45, false, 1), clay(beard), g); } /* a flat sideburn laid on the cheek, in front of the ear, down into the beard */
+      else if (!sideburnZ) sausage(V(hr(0.3) * 0.95 * s, 0.29, 0.0), V(hr(0.07) * 0.98 * s, 0.05, 0.06), 0.032, clay(beard), g); /* sideburnZ > 0: none (a short beard on the jaw only) */
       sausage(V(0.015 * s, n1.y - 0.07, n1.z - 0.06), V(0.1 * s, mY + 0.03, surf(0.1, mY + 0.03) + 0.004), 0.026, clay(beard), g); }
   }
   if (glasses) { const gm = clay(glasses, { roughness: 0.3, bumpScale: 0 }); for (const s of [-1, 1]) { const ring = M(new THREE.TorusGeometry(0.068, 0.009, 10, 32), gm, g); ring.position.set(0.09 * s, 0.33, surf(0.09, 0.33) + 0.045); }
     const br = M(new THREE.CylinderGeometry(0.008, 0.008, 0.05, 8), gm, g); br.rotation.z = Math.PI / 2; br.position.set(0, 0.35, surf(0, 0.35) + 0.04);
-    for (const s of [-1, 1]) { const arm = M(new THREE.CylinderGeometry(0.007, 0.007, 0.2, 8), gm, g); arm.rotation.x = Math.PI / 2; arm.position.set((hr(0.34) - 0.005) * s, 0.34, 0.06); } } /* glasses: rings in front of the eyes, arms back to the ears */
+    for (const s of [-1, 1]) { const a0 = V(0.158 * s, 0.335, surf(0.09, 0.33) + 0.04), a1 = V((hr(0.34) + 0.004) * s, 0.34, surf(0.09, 0.33) - 0.06), a2 = V((hr(0.3) * 0.98) * s, 0.3, -0.02); sausage(a0, a1, 0.007, gm, g); sausage(a1, a2, 0.007, gm, g); } } /* each arm runs from the rim along the temple to the ear: no floating stub */ /* glasses: rings in front of the eyes, arms back to the ears */
   if (crown) { /* the band sits ON the hair: tapered to the skull at y 0.46-0.54, squashed front-to-back like the head (no floating gap) */
     const cg = new THREE.Group(); cg.position.y = 0.515; cg.scale.z = SZ * 1.03; g.add(cg); const gold = clay('#d6a640', { roughness: 0.38, side: THREE.DoubleSide });
     M(new THREE.CylinderGeometry(0.222, 0.245, 0.085, 64, 1, true), gold, cg);
@@ -105,6 +128,47 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
       const gem = M(new THREE.SphereGeometry(0.014, 12, 10), clay('#8a1c2a', { roughness: 0.25, bumpScale: 0 }), cg); gem.position.set(Math.cos(a) * 0.24, 0, Math.sin(a) * 0.24); } }
   return g;
 }
+
+/* Hair built like the references: many thick sculpted strands (tapered, flattened clay ropes) laid over a dark under-shell.
+   'wavy': a side part, strands sweep down over the skull and hang to the shoulders in waves, open around the face (S06 modern woman).
+   'swept': a side part, chunky strands swept across the top to the other side, tips lifting at the forehead (S12/S13 modern men). */
+function lockGeo(pts, R0, flat, up, blunt = 0) { const cv = new THREE.CatmullRomCurve3(pts), N = 48, S = 10, pos = [], idx = [], P = new THREE.Vector3(), Tn = new THREE.Vector3(), Nr = new THREE.Vector3(), B = new THREE.Vector3();
+  for (let i = 0; i <= N; i++) { const t = i / N; cv.getPointAt(t, P); cv.getTangentAt(t, Tn); Nr.set(P.x, up ? P.y - 0.2 : 0, P.z).normalize(); B.crossVectors(Tn, Nr).normalize(); Nr.crossVectors(B, Tn).normalize();
+    const r = R0 * Math.pow(Math.min(1, t / 0.06), 0.5) * (blunt ? Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, (t - 0.93) / 0.07), 2))) : Math.pow(Math.max(0.0, 1 - Math.pow(t, 2.5)), 0.6)) + 0.0006;
+    for (let j = 0; j <= S; j++) { const a = j / S * Math.PI * 2; const w = Math.cos(a) * r, h = Math.sin(a) * r * flat; pos.push(P.x + B.x * w + Nr.x * h, P.y + B.y * w + Nr.y * h, P.z + B.z * w + Nr.z * h); } }
+  for (let i = 0; i < N; i++) for (let j = 0; j < S; j++) { const a = i * (S + 1) + j, b = a + S + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  { const p = g.attributes.position, n = g.attributes.normal; cv.getPointAt(0.5, P); const k = Math.floor(N / 2) * (S + 1); const dx = p.getX(k) - P.x, dy = p.getY(k) - P.y, dz = p.getZ(k) - P.z; if (dx * n.getX(k) + dy * n.getY(k) + dz * n.getZ(k) < 0) { for (let i = 0; i < idx.length; i += 3) { const t = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = t; } g.setIndex(idx); g.computeVertexNormals(); } } /* faces point outward */
+  return smoothSeams(g); }
+function hairLocks(style, g, hm, T, R) {
+  let sd = 11; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const rad = y => y >= 0.3 ? hr(Math.min(y, 0.628)) : hr(0.3) + 0.05 * (0.3 - y); /* below the cheeks the hair hangs straight down, flaring a little */
+  const at = (th, y, off) => { const r = rad(y) + off; return V(r * Math.sin(th), y, r * Math.cos(th) * SZ); };
+  const geos = [], wrap = (a, b) => b - a > Math.PI ? a + 2 * Math.PI : a - b > Math.PI ? a - 2 * Math.PI : a; /* start angle on the near side of the end angle: strands never go the long way round, across the face */
+  if (style === 'wavy') {
+    const xp = 0.05; /* part: a little to her left */
+    for (const side of [-1, 1]) { const n = side > 0 ? 19 : 22;
+      for (let i = 0; i < n; i++) { const u = (i + 0.5 * rnd()) / n, th1 = side * (0.8 + (Math.PI - 0.8) * Math.pow(u, 0.9)), wph = u * 1.2 + rnd() * 0.5, R0 = 0.034 + 0.006 * rnd();
+        /* start on the part line: from the front hairline over the top to the crown */
+        const ps = Math.PI * 0.3 + u * Math.PI * 0.45, sy = 0.33 + 0.3 * Math.sin(ps), sz = Math.cos(ps) * 0.3; const th0 = wrap(Math.atan2(xp - side * 0.012, sz), th1); /* both sides start a little past the part: they overlap, no skin shows */
+        const pts = []; const yEnd = -0.06 - 0.05 * rnd() + 0.06 * Math.max(0, 1 - Math.abs(th1) / 1.2);
+        for (let k = 0; k <= 24; k++) { const t = k / 24, ease = 1 - Math.pow(1 - Math.min(1, t / 0.45), 2), th = th0 + (th1 - th0) * ease, y = t < 0.45 ? sy + (0.4 - sy) * Math.pow(t / 0.45, 1.8) : 0.4 + (yEnd - 0.4) * ((t - 0.45) / 0.55);
+          const wave = t > 0.3 ? 0.016 * Math.sin(y * 30 + wph) * Math.min(1, (t - 0.3) / 0.2) : 0; pts.push(at(th + wave * 1.6, y, T + R0 * 0.62 + (t > 0.45 ? 0.006 + 0.01 * (t - 0.45) : 0))); }
+        geos.push(lockGeo(pts, R0, 0.62, true, 1)); } }
+  } else { /* swept */
+    const xp = -0.11;
+    for (let i = 0; i < 26; i++) { const u = (i + 0.5 * rnd()) / 26, R0 = 0.036 + 0.008 * rnd();
+      const ps = Math.PI * 0.28 + u * Math.PI * 0.5, sy = 0.33 + 0.29 * Math.sin(ps), sz = Math.cos(ps) * 0.3, th0r = Math.atan2(xp - 0.015, sz);
+      /* the long side: across the top to the right, front strands ending in tips over the forehead, back ones down to the nape */
+      const th1 = 0.15 + u * 2.6 + 0.08 * rnd(), th0 = wrap(th0r, th1), y1 = u < 0.25 ? 0.535 + 0.015 * rnd() : th1 < 1.35 ? 0.52 : 0.45 - 0.22 * (u - 0.25) / 0.75, pts = []; /* nothing in front of the ears comes below the brows */
+      for (let k = 0; k <= 16; k++) { const t = k / 16, th = th0 + (th1 - th0) * t, y = sy + (y1 - sy) * Math.pow(t, 1.4); pts.push(at(th, y, T + R0 * 0.6 + (u < 0.25 ? 0.03 * t * t : 0.006 * t))); }
+      geos.push(lockGeo(pts, R0, 0.62, true)); }
+    for (let i = 0; i < 11; i++) { const u = (i + 0.5 * rnd()) / 11, R0 = 0.034 + 0.006 * rnd(); /* the short side: down to above the left ear */
+      const ps = Math.PI * 0.3 + u * Math.PI * 0.48, sy = 0.33 + 0.29 * Math.sin(ps), sz = Math.cos(ps) * 0.3, th1 = -0.55 - u * 2.3, th0 = wrap(Math.atan2(xp + 0.015, sz), th1), y1 = th1 > -1.35 ? 0.5 : 0.42 - 0.18 * u, pts = [];
+      for (let k = 0; k <= 12; k++) { const t = k / 12; pts.push(at(th0 + (th1 - th0) * t, sy + (y1 - sy) * Math.pow(t, 1.3), T + R0 * 0.6 + 0.004 * t)); }
+      geos.push(lockGeo(pts, R0, 0.62, true)); }
+  }
+  const lm = M(mergeGeometries(geos), hm, g); lm.userData.locks = true; R.hairLocks = lm; }
 
 function buildHand(skin, s) {
   const g = new THREE.Group(), sk = clay(skin), H = { g, fingers: [] };
@@ -181,7 +245,7 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, se
       bot.rotation.set(Math.PI - 0.1 - squint * 0.35 - blink * 0.2, 0, -0.12 * s);
     });
     R.brows.forEach(({ g, s, y0 }, i) => { const extra = i === 0 ? browL : 0; g.position.y = y0 + 0.03 * (raise + extra) - 0.018 * angry + 0.008 * sad; g.rotation.z = s * (-0.35 * angry + 0.35 * sad + 0.3 * soft); }); /* soft: relaxed brows (the resting brow reads stern) */
-    R.jaw.rotation.x = 0.16 * open; R.mouth.scale.set(1, 0.15 + 0.85 * open, 0.5); R.lip.position.y = 0.032 - 0.03 * open; R.lip.rotation.z = smile > 0 ? Math.PI * 1.19 : Math.PI * 0.19; R.lip.position.y += smile > 0 ? 0.03 : 0; /* smile flips the mouth curve */
+    R.jaw.rotation.x = 0.16 * open; R.mouth.scale.set(1, 0.15 + 0.85 * open, 0.5); R.lip.position.y = 0.032 - 0.03 * open; R.lip.rotation.z = smile > 0 ? Math.PI * 1.19 : Math.PI * 0.19; R.lip.position.y += smile > 0 ? 0.06 : 0; R.mouth.visible = !(smile > 0 && open < 0.05); /* smile: the curve IS the closed mouth (ends at the slit's corners), not a second line under it */
   };
   // arm: fwd raises forward, out raises sideways, twist rolls, bend folds the elbow; curl 0 open → 1 fist; point
   R.setArm = (side, { fwd = 0.1, out = 0.13, twist = 0, bend = 0.35, wrist = 0, curl = 0.35, point = false } = {}) => {
