@@ -14,3 +14,4 @@ shot 1: done 2453 frames, 0 rendered, 0 frames with issues
 shot 2: done 2453 frames, 0 rendered, 0 frames with issues
 shot 3: done 2453 frames, 0 rendered, 0 frames with issues
 shot 4: done 2453 frames, 0 rendered, 0 frames with issues
+shot 5: done 2453 frames, 0 rendered, 0 frames with issues

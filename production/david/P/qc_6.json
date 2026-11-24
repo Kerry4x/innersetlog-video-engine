@@ -1,0 +1,29 @@
+{
+ "page": "paper.html",
+ "fps": 24,
+ "frames": 2453,
+ "audio": [
+  0,
+  102.2
+ ],
+ "unique": 4,
+ "issues": [],
+ "gaze": [
+  {
+   "frame": 438,
+   "g": []
+  },
+  {
+   "frame": 440,
+   "g": []
+  },
+  {
+   "frame": 442,
+   "g": []
+  },
+  {
+   "frame": 444,
+   "g": []
+  }
+ ]
+}
