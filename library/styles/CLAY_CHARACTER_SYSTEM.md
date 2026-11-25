@@ -77,3 +77,12 @@ Not everything in the references carries over to our 3D clay figures. What does 
   - The under-shell must open before the brows, and its mesh must be fine (240 segments), or its edge steps.
   - Over the forehead the strands stay above the brows and only fall at the temples.
   - Replacing the strands on top with a grooved cap was tried and is worse: the grooves pinch at the crown.
+
+## Face structure at every angle (Kerry, 2026-11-25: "make their faces look more natural all around")
+Check a 6-angle turnaround (`scratchpad turn.sh`: 0°, 23°, 46°, 69°, 90°, 137°), not only front and side.
+`sculpt: { cheek, jaw, temple, socket, brow, lips, nape }` adds soft radial bumps and dents to the skull. `surf()` follows them, so the features sit on the sculpted surface.
+- **Most important:** `nape`. The lower back of the head narrows into the neck, giving a jaw angle under the ear. Without it the head bottom is a flat disc and the jaw bulges behind the mouth in profile.
+- **Ears:** `earArc 1.2` and `earScale` about 0.85. The full 1.55 arc reads as a ring.
+- **Swept hair:** the hair layer underneath is grooved and hair-coloured, because it shows at the back.
+- **Temples:** the hair layer's inner edge sits 3.2 cm under the skin. The temple dent otherwise lets it poke through as a dark speck.
+- **Throne cast:** all of this is off unless its option is set (`headShape: 'egg'`, `sculpt`, `lidTube > 0.25`, lock hair styles). The throne cast's geometry stays exactly as rendered.
