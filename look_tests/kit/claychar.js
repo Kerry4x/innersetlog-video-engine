@@ -50,7 +50,7 @@ const faceOff = (x, y, c) => { if (!FACE.muzzle && !FACE.chin) return 0; const w
    Each term is a soft bump or dent, so the face reads as bone under clay from every angle instead of one smooth egg. */
 const G2 = (x, y, x0, y0, sx, sy) => Math.exp(-(((x - x0) / sx) ** 2) - (((y - y0) / sy) ** 2));
 const sideOff = (x, y, c) => { const F = FACE.s; if (!F) return 0; const s = sm01(c / 0.35), w = sm01((c - 0.35) / 0.45); let d = 0;
-  for (const k of [-1, 1]) d += (F.cheek || 0) * 0.02 * G2(x, y, 0.13 * k, 0.215, 0.055, 0.05) + (F.jaw || 0) * 0.016 * G2(x, y, 0.155 * k, 0.075, 0.05, 0.045)
+  for (const k of [-1, 1]) d += (F.cheek || 0) * 0.014 * G2(x, y, 0.12 * k, 0.2, 0.09, 0.085) + (F.jaw || 0) * 0.01 * G2(x, y, 0.14 * k, 0.08, 0.08, 0.07) /* broad and gentle: small bumps made the outline wiggle */
                               - (F.temple || 0) * 0.012 * G2(x, y, 0.2 * k, 0.4, 0.04, 0.06) - (F.socket || 0) * 0.01 * G2(x, y, 0.09 * k, 0.32, 0.05, 0.04);
   d *= s; d -= (F.nape || 0) * 0.05 * sm01((0.17 - y) / 0.13) * sm01((0.35 - c) / 0.7); /* the lower back of the head narrows into the neck: a jaw angle under the ear, not a flat disc */
   d += w * ((F.brow || 0) * 0.012 * Math.exp(-(((y - 0.43) / 0.028) ** 2)) * Math.exp(-((x / 0.17) ** 2)) + (F.lips || 0) * 0.008 * G2(x, y, 0, 0.072, 0.05, 0.022));
