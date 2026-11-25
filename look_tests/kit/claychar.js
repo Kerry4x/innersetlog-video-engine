@@ -114,12 +114,12 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
   } else {
     /* the hair is a thick clay slab that follows the skull (2.4 cm proud of it, so the grooves never let skin through).
        At the hairline and the nape it slopes down under the skin: one closed surface, no thin cut edge. */
-    const LOCKS = hairStyle === 'wavy' || hairStyle === 'swept', LONG = hairStyle === 'long' || hairStyle === 'wavy', T = LOCKS ? 0.01 : 0.024, hp = []; for (let y = LONG ? (hairStyle === 'wavy' ? -0.08 : -0.22) : 0.15; y < 0.62; y += 0.01) hp.push([y < 0.1 ? hr(0.1) + T + 0.06 * (0.1 - y) : hr(y) + T, y]); /* long: the same shell flows on down to the shoulders, flaring a little */ hp.push([hr(0.625) + T * 0.8, 0.629 + T * 0.55], [0, 0.629 + T]);
-    const hg = lathe(hp, 120), hpos = hg.attributes.position, sm = (v, a, b) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+    const LOCKS = hairStyle === 'wavy' || hairStyle === 'swept', LONG = hairStyle === 'long' || hairStyle === 'wavy', T = LOCKS ? 0.01 : 0.024, hp = []; for (let y = LONG ? (hairStyle === 'wavy' ? -0.08 : -0.22) : 0.15; y < 0.62; y += LOCKS ? 0.004 : 0.01) hp.push([y < 0.1 ? hr(0.1) + T + 0.06 * (0.1 - y) : hr(y) + T, y]); /* long: the same shell flows on down to the shoulders, flaring a little */ hp.push([hr(0.625) + T * 0.8, 0.629 + T * 0.55], [0, 0.629 + T]);
+    const hg = lathe(hp, LOCKS ? 240 : 120) /* fine mesh: the hairline edge is smooth, not stepped */, hpos = hg.attributes.position, sm = (v, a, b) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
     for (let i = 0; i < hpos.count; i++) { const x = hpos.getX(i), y = hpos.getY(i), z = hpos.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue; const c = z / r; /* 1 = front */
-      const lim = LOCKS && LONG ? (c < 0.5 ? -0.06 : lerp1(-0.06, 0.53, Math.sqrt(sm(c, 0.5, 1)))) /* an arched hairline around a round face, not a box */ : LONG ? lerp1(-0.3, 0.47, sm(c, 0.42, 0.6)) /* long: open only where the face is */ : c >= 0 ? 0.33 + hairline * 0.6 + (0.14 + hairline) * sm(c, 0.25, 0.75) : 0.33 - 0.13 * sm(-c, 0.2, 0.8); /* forehead 0.47 (+hairline), sides above the ears, nape 0.2 */
+      const lim = LOCKS && LONG ? lerp1(-0.06, 0.53, sm(c, 0.3, 0.58)) /* the under-shell opens fully before the brows, and its edge stays under the strands */ /* an arched hairline around a round face, not a box */ : LONG ? lerp1(-0.3, 0.47, sm(c, 0.42, 0.6)) /* long: open only where the face is */ : c >= 0 ? 0.33 + hairline * 0.6 + (0.14 + hairline) * sm(c, 0.25, 0.75) : 0.33 - 0.13 * sm(-c, 0.2, 0.8); /* forehead 0.47 (+hairline), sides above the ears, nape 0.2 */
       const k = sm(y, lim - 0.03, lim + 0.004), outer = y < 0.1 ? hr(0.1) + T + 0.06 * (0.1 - y) : hr(Math.min(y, 0.628)) + T, inner = y < 0.12 ? 0.06 : hr(Math.min(y, 0.628)) - 0.012, rn = Math.max(0.001, inner + k * (outer - inner)); hpos.setX(i, x * rn / r); hpos.setZ(i, z * rn / r); }
-    const cap = M(LOCKS ? (hg.computeVertexNormals(), smoothSeams(hg)) : grooves(hg, 0.005, 30), LOCKS ? clay(new THREE.Color(hair).multiplyScalar(0.78).getStyle()) : hm, g); cap.scale.z = SZ; /* under the strands: a darker shell, so gaps read as depth */
+    const cap = M(LOCKS ? (hg.computeVertexNormals(), smoothSeams(hg)) : grooves(hg, 0.005, 30), LOCKS ? clay(new THREE.Color(hair).multiplyScalar(0.9).getStyle()) : hm, g); cap.scale.z = SZ; /* under the strands: a darker shell, so gaps read as depth */
     if (hairStyle === 'wavy' || hairStyle === 'swept') { hairLocks(hairStyle, g, hm, T, R); if (hairFlip) R.hairLocks.scale.x = -1; /* part on the other side */ }
 
     if (R.earrings) for (const sd of [-1, 1]) { const ring = M(new THREE.TorusGeometry(0.022, 0.0055, 8, 24), clay(R.earrings, { roughness: 0.3, bumpScale: 0 }), g); ring.position.set((hr(0.2) + 0.01) * sd, 0.17, 0.0); ring.rotation.y = Math.PI / 2; }
@@ -159,7 +159,7 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
    'swept': a side part, chunky strands swept across the top to the other side, tips lifting at the forehead (S12/S13 modern men). */
 function lockGeo(pts, R0, flat, up, blunt = 0) { const cv = new THREE.CatmullRomCurve3(pts), N = 48, S = 10, pos = [], idx = [], P = new THREE.Vector3(), Tn = new THREE.Vector3(), Nr = new THREE.Vector3(), B = new THREE.Vector3();
   for (let i = 0; i <= N; i++) { const t = i / N; cv.getPointAt(t, P); cv.getTangentAt(t, Tn); Nr.set(P.x, up ? P.y - 0.2 : 0, P.z).normalize(); B.crossVectors(Tn, Nr).normalize(); Nr.crossVectors(B, Tn).normalize();
-    const r = R0 * Math.pow(Math.min(1, t / 0.06), 0.5) * (blunt ? Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, (t - 0.93) / 0.07), 2))) : Math.pow(Math.max(0.0, 1 - Math.pow(t, 2.5)), 0.6)) + 0.0006;
+    const r = R0 * Math.pow(Math.min(1, t / 0.1), 0.6) * (blunt ? Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, (t - 0.93) / 0.07), 2))) : Math.pow(Math.max(0.0, 1 - Math.pow(t, 2.5)), 0.6)) + 0.0006;
     for (let j = 0; j <= S; j++) { const a = j / S * Math.PI * 2; const w = Math.cos(a) * r, h = Math.sin(a) * r * flat; pos.push(P.x + B.x * w + Nr.x * h, P.y + B.y * w + Nr.y * h, P.z + B.z * w + Nr.z * h); } }
   for (let i = 0; i < N; i++) for (let j = 0; j < S; j++) { const a = i * (S + 1) + j, b = a + S + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
@@ -175,10 +175,11 @@ function hairLocks(style, g, hm, T, R) {
     for (const side of [-1, 1]) { const n = side > 0 ? 19 : 22;
       for (let i = 0; i < n; i++) { const u = (i + 0.5 * rnd()) / n, th1 = side * (0.95 + (Math.PI - 0.95) * Math.pow(u, 0.9)), wph = u * 1.2 + rnd() * 0.5, R0 = 0.034 + 0.006 * rnd();
         /* start on the part line: from the front hairline over the top to the crown */
-        const ps = Math.PI * 0.3 + u * Math.PI * 0.45, sy = 0.33 + 0.3 * Math.sin(ps), sz = Math.cos(ps) * 0.3; const th0 = wrap(Math.atan2(xp - side * 0.012, sz), th1); /* both sides start a little past the part: they overlap, no skin shows */
+        const ps = Math.PI * 0.2 + u * Math.PI * 0.55, sy = 0.33 + 0.3 * Math.sin(ps), sz = Math.cos(ps) * 0.3; const th0 = wrap(Math.atan2(xp - side * 0.012, sz), th1); /* both sides start a little past the part: they overlap, no skin shows */
         const pts = []; const yEnd = -0.06 - 0.05 * rnd() + 0.06 * Math.max(0, 1 - Math.abs(th1) / 1.2);
         for (let k = 0; k <= 24; k++) { const t = k / 24, ease = 1 - Math.pow(1 - Math.min(1, t / 0.45), 2), th = th0 + (th1 - th0) * ease, y = t < 0.45 ? sy + (0.4 - sy) * Math.pow(t / 0.45, 1.8) : 0.4 + (yEnd - 0.4) * ((t - 0.45) / 0.55);
-          const wave = t > 0.3 ? 0.024 * Math.sin(y * 26 + wph) * Math.min(1, (t - 0.3) / 0.2) : 0; pts.push(at(th + wave * 1.6, y, T + R0 * 0.62 + (t > 0.45 ? 0.006 + 0.01 * (t - 0.45) : 0))); }
+          const yF = Math.max(y, 0.535 + (-1.5) * sm01((Math.abs(th) - 0.75) / 0.35)); /* over the forehead the strands stay above y 0.5 (no helmet across the brows); they only fall once they reach the temples */
+          const wave = t > 0.3 ? 0.024 * Math.sin(yF * 26 + wph) * Math.min(1, (t - 0.3) / 0.2) : 0; pts.push(at(th + wave * 1.6, yF, T + (1 - u) * 0.016 + R0 * (0.62 * sm01(t / 0.12) - 0.55 * (1 - sm01(t / 0.12))) /* shingled: each strand lies a little above the one behind it, so neighbours never cut through each other */ /* the strand's root dives under the shell: no tabs at the part */ + (t > 0.45 ? 0.006 + 0.01 * (t - 0.45) : 0))); }
         geos.push(lockGeo(pts, R0 * 1.12, 0.7, true, 1)); } }
   } else { /* swept */
     const xp = -0.11;
@@ -186,11 +187,11 @@ function hairLocks(style, g, hm, T, R) {
       const ps = Math.PI * 0.28 + u * Math.PI * 0.5, sy = 0.33 + 0.29 * Math.sin(ps), sz = Math.cos(ps) * 0.3, th0r = Math.atan2(xp - 0.015, sz);
       /* the long side: across the top to the right, front strands ending in tips over the forehead, back ones down to the nape */
       const th1 = 0.15 + u * 2.6 + 0.08 * rnd(), th0 = wrap(th0r, th1), y1 = u < 0.25 ? 0.535 + 0.015 * rnd() : th1 < 1.35 ? 0.52 : 0.45 - 0.22 * (u - 0.25) / 0.75, pts = []; /* nothing in front of the ears comes below the brows */
-      for (let k = 0; k <= 16; k++) { const t = k / 16, th = th0 + (th1 - th0) * t, y = sy + (y1 - sy) * Math.pow(t, 1.4); pts.push(at(th, y, T + R0 * 0.6 + (u < 0.25 ? 0.03 * t * t : 0.006 * t))); }
+      for (let k = 0; k <= 16; k++) { const t = k / 16, th = th0 + (th1 - th0) * t, y = sy + (y1 - sy) * Math.pow(t, 1.4); pts.push(at(th, y, T + (1 - u) * 0.014 + R0 * (0.6 * sm01(t / 0.12) - 0.4 * (1 - sm01(t / 0.12))) + (u < 0.25 ? 0.03 * t * t : 0.006 * t))); } /* shingled, roots tucked under */
       geos.push(lockGeo(pts, R0, 0.62, true)); }
     for (let i = 0; i < 11; i++) { const u = (i + 0.5 * rnd()) / 11, R0 = 0.034 + 0.006 * rnd(); /* the short side: down to above the left ear */
       const ps = Math.PI * 0.3 + u * Math.PI * 0.48, sy = 0.33 + 0.29 * Math.sin(ps), sz = Math.cos(ps) * 0.3, th1 = -0.55 - u * 2.3, th0 = wrap(Math.atan2(xp + 0.015, sz), th1), y1 = th1 > -1.35 ? 0.5 : 0.42 - 0.18 * u, pts = [];
-      for (let k = 0; k <= 12; k++) { const t = k / 12; pts.push(at(th0 + (th1 - th0) * t, sy + (y1 - sy) * Math.pow(t, 1.3), T + R0 * 0.6 + 0.004 * t)); }
+      for (let k = 0; k <= 12; k++) { const t = k / 12; pts.push(at(th0 + (th1 - th0) * t, sy + (y1 - sy) * Math.pow(t, 1.3), T + (1 - u) * 0.01 + R0 * (0.6 * sm01(t / 0.12) - 0.4 * (1 - sm01(t / 0.12))) + 0.004 * t)); }
       geos.push(lockGeo(pts, R0, 0.62, true)); }
   }
   const lm = M(mergeGeometries(geos), hm, g); lm.userData.locks = true; R.hairLocks = lm; }

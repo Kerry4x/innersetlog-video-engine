@@ -72,3 +72,8 @@ Not everything in the references carries over to our 3D clay figures. What does 
   - The arms grow out of the shoulder slope.
   - Sleeves are lathes of matching width with a rounded elbow. A capsule's UVs streak the knit; the lathe points must go bottom-up or the surface renders dark.
   - Knit bump map on sweaters, a ribbed hem, and slim lower lids (thick ones read as tired bags).
+- **Hair glitch (Kerry, 2026-11-25: "Her hair kinda glitches in her head"):** neighbouring strands overlapped at the part and cut through each other, leaving scraps and tabs.
+  - **Fix:** shingle the strands (each one lies slightly above the one behind it) and tuck the roots under the shell.
+  - The under-shell must open before the brows, and its mesh must be fine (240 segments), or its edge steps.
+  - Over the forehead the strands stay above the brows and only fall at the temples.
+  - Replacing the strands on top with a grooved cap was tried and is worse: the grooves pinch at the crown.
