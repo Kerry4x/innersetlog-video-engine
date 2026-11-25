@@ -33,10 +33,15 @@ const hr = y => { for (let i = 1; i < HP.length; i++) if (y <= HP[i][1]) { const
 const lerp1 = (a, b, k) => a + (b - a) * k;
 const SZ = 0.94, surf = (x, y) => Math.sqrt(Math.max(0.0001, hr(y) ** 2 - x * x)) * SZ;
 
-function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth = 0.85, beardLocks = 0, crown, lidTop = 0.36, hairStyle = 'short', glasses = null, nose = 1, lashes = false, lips = null, hairline = 0, browW = 1, noseStyle = 'ball', noseUp = 0, hairFlip = false, sideburnZ = 0, lidTube = 0.25, lidTilt = 0, browY = 0.06, lidWrap = 1, headShape = 'base', mouthY = 0.062, eyeR = 0.076, eyeX = 0.09, eyeSink = 0.12, noseRoot = 0 }, R) {
+function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth = 0.85, beardLocks = 0, crown, lidTop = 0.36, hairStyle = 'short', glasses = null, nose = 1, lashes = false, lips = null, hairline = 0, browW = 1, noseStyle = 'ball', noseUp = 0, hairFlip = false, sideburnZ = 0, lidTube = 0.25, lidTilt = 0, browY = 0.06, lidWrap = 1, headShape = 'base', chin = 0, mouthY = 0.062, eyeR = 0.076, eyeX = 0.09, eyeSink = 0.12, noseRoot = 0 }, R) {
   HP = headShape === 'egg' ? HP_EGG : HP_BASE; /* every feature is placed on hr(): they all follow the shape */
   const g = new THREE.Group(), sk = clay(skin), hm = clay(hair), ink = clay('#120b08', { roughness: 0.25, bumpScale: 0 }), white = clay('#f4efe2', { roughness: 0.32, bumpScale: 0.15 });
-  const skull = M(lathe(HP, 72), sk, g); skull.scale.z = SZ;
+  const skullG = lathe(HP, 96);
+  if (chin) { /* sculpt a chin INTO the skull (one surface): the front of the lower face pushes forward and a little down, below the mouth */
+    const p = skullG.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue; const c = Math.max(0, z / r), f = c * c * c;
+      const k = chin * f * Math.exp(-(((y - 0.005) / 0.026) ** 2)); p.setXYZ(i, x * (r + 0.045 * k) / r, y - 0.02 * k, z * (r + 0.045 * k) / r); /* centred well below the mouth, so the lips stay on the surface */ }
+    skullG.computeVertexNormals(); smoothSeams(skullG); }
+  const skull = M(skullG, sk, g); skull.scale.z = SZ;
   const eY = 0.33, eX = eyeX, eR = eyeR;
   R.eyes = []; R.brows = [];
   for (const s of [-1, 1]) {
@@ -87,6 +92,7 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
   R.mouth = M(new THREE.SphereGeometry(0.05, 24, 16), clay('#2a0d08', { bumpScale: 0 }), g); R.mouth.scale.set(1, 0.15, 0.5); R.mouth.position.set(0, mY, surf(0, mY) - 0.02);
   const lip = M(arcTube(0.042, lips ? 0.0085 : 0.0075, 10, 32, Math.PI * 0.62), clay(lips || '#4a1e14', { bumpScale: 0 }), g); lip.rotation.z = Math.PI * 0.19; lip.position.set(0, mY - 0.03, surf(0, mY) - 0.004); R.lip = lip; if (beard) lip.visible = false; /* a beard covers the lower lip: a half-hidden lip reads as a dark blob with legs */
   R.jaw = new THREE.Group(); R.jaw.position.set(0, 0.2, 0); g.add(R.jaw); // pivot near the ears
+
   if (bald) {
     for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { const t = M(grooves(new THREE.SphereGeometry(0.06, 28, 20), 0.004, 10), hm, g); t.scale.set(0.55, 0.75, 1.3); const y = 0.43 - i * 0.045; t.position.set(hr(y) * 0.98 * s, y, -0.04 - i * 0.03); t.rotation.set(0.2, 0.5 * s, 0.25 * s); }
     const back = M(arcTube(0.215, 0.05, 16, 48, Math.PI * 0.9), hm, g); back.rotation.set(Math.PI / 2, 0, Math.PI * 1.05); back.position.y = 0.37; back.scale.z = 1.5;
@@ -187,12 +193,12 @@ function buildHand(skin, s) {
   H.set(); return H;
 }
 
-export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, seated = false, outfit = 'robe', pants = '#2f3a52', shoes = '#ece6da', earrings = null, ...h }) {
+export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, seated = false, outfit = 'robe', pants = '#2f3a52', shoes = '#ece6da', earrings = null, legLen = 0, chest = 0, ...h }) {
   const root = new THREE.Group(), R = { root, earrings };
   R.body = new THREE.Group(); root.add(R.body); // pivot at the feet: lean, sway, bob
   const tm = clay(tunic);
   const modern = outfit === 'modern';
-  const T = modern ? [[0, 0.6], [0.205, 0.6], [0.212, 0.66], [0.214, 0.8], [0.226, 0.95], [0.234, 1.1], [0.22, 1.22], [0.13, 1.29], [0.08, 1.31], [0, 1.31]] /* shirt/sweater over the hips */
+  const T = modern ? [[0, 0.6], [0.205, 0.6], [0.212, 0.66], [0.214 + chest * 0.2, 0.8], [0.226 + chest * 0.6, 0.95], [0.234 + chest, 1.1], [0.22 + chest * 0.9, 1.22], [0.13 + chest * 0.3, 1.29], [0.08, 1.31], [0, 1.31]] /* shirt/sweater over the hips */
                    : [[0, 0.04], [0.3, 0.04], [0.31, 0.1], [0.28, 0.35], [0.235, 0.6], [0.222, 0.72], [0.232, 0.86], [0.238, 1.02], [0.238, 1.14], [0.22, 1.23], [0.13, 1.29], [0.08, 1.31], [0, 1.31]]; /* cinched at the belt so arms can hang */
   if (modern) { /* modern clothes: sweater or shirt, jeans as two legs that swing from the hip, shoes */
     R.robe = M(folds(lathe(T, 72), 0.006, 9, 0.6, 0.75), tm, R.body);
@@ -236,6 +242,12 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, se
   });
   R.head = buildHead({ skin, ...h }, R); R.head.position.y = 1.35; R.body.add(R.head); if (h.headScale) R.head.scale.set(...h.headScale); /* e.g. [0.88, 1.05, 0.95]: a taller, narrower egg */
   R.lidRest = h.lidTop || 0.36;
+  if (legLen) { /* adapted build: longer legs lift the whole upper body (a more natural 4-head figure in 3D) */
+    for (const c of R.body.children) if (!R.legs || !R.legs.includes(c)) c.position.y += legLen;
+    if (R.legs) R.legs.forEach(L => { L.position.y += legLen; L.scale.y = (0.56 + legLen) / 0.56; const ft = L.children[1]; ft.scale.y /= L.scale.y; ft.position.y = -(0.52 + legLen) / L.scale.y; });
+  }
+  if (chest) R.arms.forEach(a => { a.sh.position.x += chest * 0.4 * a.s; });
+  if (modern) R.arms.forEach(a => { a.sh.children[0].scale.setScalar(0.85); a.sh.position.x -= 0.012 * a.s; }); /* smaller shoulder balls tucked into the sweater: no puffed epaulettes */
 
   // ---------- posing API (all angles in radians) ----------
   R.setBody = ({ lean = 0, sway = 0, twist = 0, bob = 0, breathe = 0 } = {}) => { R.body.rotation.set(lean, twist, sway); R.body.position.y = bob; R.robe.scale.set(1 + breathe * 0.008, 1, 1 + breathe * 0.012); }; /* breathing moves the chest only: hands resting on things stay planted */

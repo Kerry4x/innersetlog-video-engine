@@ -53,3 +53,12 @@ Sheets: one mid-shot frame of every shot, `scratchpad/faces` (rebuild: cuts.json
 **Glasses.** The arms run from the rim along the temple to the ear. A free-floating stub shows at three-quarter view.
 
 **Sideburns.** A straight capsule beside the cheek reads as a headphone strap. Leave them off (a jaw-only short beard) or lay them flat on the face.
+
+## Adapt, don't copy (Kerry, 2026-11-25)
+"Some things are transferable over to 3d but not everything because they don't look right."
+Not everything in the references carries over to our 3D clay figures. What does and doesn't:
+- **Keep:** big eyes set into the face with thick lid rolls; low, thick brows; strand-built hair; clay surface; costume identity.
+- **Don't copy:**
+  - **The 3-head body.** In full 3D it reads stumpy. Modern cast: `legLen 0.2` (about 4 heads), a smaller head (`headScale ~0.85`), and a slightly broader chest with the shoulders tucked in.
+  - **The giant nose.** Men 0.6–0.75, women about 0.46.
+  - **The chinless egg jaw.** Without a beard it looks wrong. `chin: 1` sculpts a chin into the skull surface itself; a separate chin ball reads as a double chin.
