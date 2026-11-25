@@ -67,3 +67,8 @@ Not everything in the references carries over to our 3D clay figures. What does 
   - The skull profile is a smooth spline. Straight segments showed as facets.
   - `muzzle` brings the whole lower face forward and `chin` gives a rounded chin. Both are part of the skull surface, and `surf()` includes them, so every feature follows.
   - A narrow egg bottom reads as a pointy chin; the jaw stays full.
+- **Bodies (2026-11-25):**
+  - A soft waist and sloping shoulders, with the torso oval front to back (`scale.z 0.8`).
+  - The arms grow out of the shoulder slope.
+  - Sleeves are lathes of matching width with a rounded elbow. A capsule's UVs streak the knit; the lathe points must go bottom-up or the surface renders dark.
+  - Knit bump map on sweaters, a ribbed hem, and slim lower lids (thick ones read as tired bags).

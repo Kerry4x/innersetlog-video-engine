@@ -11,6 +11,14 @@ const print = (() => { const c = document.createElement('canvas'); c.width = c.h
   for (let i = 0; i < 30; i++) { const x = rand() * 512, y = rand() * 512, R = 14 + rand() * 18, rot = rand() * 3; for (let k = 1; k < 8; k++) { g.strokeStyle = k % 2 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(x, y, R * k / 7, R * k / 7 * 0.7, rot, 0.4, 5.8); g.stroke(); } }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2); return t; })();
 const cache = {};
+/* knit: rows of little V stitches in the bump map (sweaters read as wool, not plastic) */
+const knitTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.fillStyle = '#606060'; g.fillRect(0, 0, 256, 256);
+  for (let y = 0; y < 256; y += 16) for (let x = 0; x < 256; x += 16) for (const sd of [-1, 1]) { const gr = g.createLinearGradient(x + 8, y, x + 8 + sd * 8, y + 16); gr.addColorStop(0, '#d8d8d8'); gr.addColorStop(1, '#505050');
+    g.fillStyle = gr; g.beginPath(); g.ellipse(x + 8 + sd * 3.6, y + 9, 3.4, 7.2, -sd * 0.55, 0, Math.PI * 2); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })();
+const knitCache = {};
+export const knit = (c, rep = [18, 10]) => { const k = c + rep; if (knitCache[k]) return knitCache[k]; const t = knitTex.clone(); t.repeat.set(...rep); t.needsUpdate = true;
+  return (knitCache[k] = new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.85, bumpMap: t, bumpScale: 2.2, sheen: 0.5, sheenRoughness: 0.8, sheenColor: new THREE.Color(c).multiplyScalar(1.2) })); };
 export const clay = (c, o = {}) => { const k = c + JSON.stringify(o); return cache[k] || (cache[k] = new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.58, bumpMap: print, bumpScale: 0.8, sheen: 0.06, ...o })); };
 export const M = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; if (parent) parent.add(m); return m; };
 /* a tube bent along an arc with rounded, closed ends (an open TorusGeometry end shows a hollow) */
@@ -40,7 +48,7 @@ const faceOff = (x, y, c) => { if (!FACE.muzzle && !FACE.chin) return 0; const w
   return w * (FACE.muzzle * 0.06 * Math.exp(-(((y - 0.11) / 0.11) ** 2)) * Math.exp(-((x / 0.24) ** 2)) + FACE.chin * 0.035 * Math.exp(-(((y - 0.025) / 0.04) ** 2)) * Math.exp(-((x / 0.11) ** 2))); }; /* broad and soft: a full lower face and a rounded chin, not a ridge or a point */
 const SZ = 0.94, surf = (x, y) => { const r = hr(y), z = Math.sqrt(Math.max(0.0001, r ** 2 - x * x)); return z * SZ + faceOff(x, y, r > 1e-4 ? z / r : 0); };
 
-function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth = 0.85, beardLocks = 0, crown, lidTop = 0.36, hairStyle = 'short', glasses = null, nose = 1, lashes = false, lips = null, hairline = 0, browW = 1, noseStyle = 'ball', noseUp = 0, hairFlip = false, sideburnZ = 0, lidTube = 0.25, lidTilt = 0, browY = 0.06, lidWrap = 1, headShape = 'base', chin = 0, muzzle = 0, mouthY = 0.062, eyeR = 0.076, eyeX = 0.09, eyeSink = 0.12, noseRoot = 0 }, R) {
+function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth = 0.85, beardLocks = 0, crown, lidTop = 0.36, hairStyle = 'short', glasses = null, nose = 1, lashes = false, lips = null, hairline = 0, browW = 1, noseStyle = 'ball', noseUp = 0, hairFlip = false, sideburnZ = 0, lidTube = 0.25, lidTilt = 0, browY = 0.06, lidWrap = 1, headShape = 'base', chin = 0, muzzle = 0, beardArc = 3.5, mouthY = 0.062, eyeR = 0.076, eyeX = 0.09, eyeSink = 0.12, noseRoot = 0 }, R) {
   HP = headShape === 'egg' ? HP_EGG : HP_BASE; /* every feature is placed on hr(): they all follow the shape */
   const g = new THREE.Group(), sk = clay(skin), hm = clay(hair), ink = clay('#120b08', { roughness: 0.25, bumpScale: 0 }), white = clay('#f4efe2', { roughness: 0.32, bumpScale: 0.15 });
   const skullG = lathe(HP, 128);
@@ -59,7 +67,7 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
       M(new THREE.SphereGeometry(LR, 40, 18, 0, Math.PI * 2, 0, Math.PI * cover), sk, lg);
       const rim = M(new THREE.TorusGeometry(LR * Math.sin(Math.PI * cover), tube, 16, 56), sk, lg); rim.rotation.x = Math.PI / 2; rim.position.y = LR * Math.cos(Math.PI * cover);
       e.add(lg); return lg; };
-    const top = lid(lidTop, eR * lidTube, false), bot = lid(0.15, eR * lidTube * 0.84, true); if (lidWrap < 1) for (const L of [top, bot]) L.scale.set(lidWrap, 1, 1); /* lidWrap < 1: the lids stay inside the eyeball's outline (no visor wings) */
+    const top = lid(lidTop, eR * lidTube, false), bot = lid(0.15, eR * Math.min(lidTube * 0.84, 0.19), true); /* the lower lid stays slim: a thick one reads as tired bags */ if (lidWrap < 1) for (const L of [top, bot]) L.scale.set(lidWrap, 1, 1); /* lidWrap < 1: the lids stay inside the eyeball's outline (no visor wings) */
     R.eyes.push({ aim, top, bot, s, tilt: lidTilt });
     const bg = new THREE.Group(); bg.position.set(eX * s + 0.004 * s, eY + browY, surf(eX, eY + browY + 0.03) + 0.002); g.add(bg);
     const bw = M(arcTube(0.062, 0.019 * browW, 14, 40, Math.PI * 0.62), clay(browC), bg); bw.rotation.set(-0.25, 0, Math.PI * 0.19 + (s > 0 ? -0.08 : 0.08)); bw.scale.set(1, 1, 1.3);
@@ -120,7 +128,7 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
   if (beard) {
     const t = 0.03, pts = []; for (let y = 0.0; y <= 0.04; y += 0.01) pts.push([hr(y) + t, y]); pts.unshift([hr(0) * 0.6 + t, -0.02]);
     /* one sculpted piece: the jaw band and the mass under the chin are merged, then ONE strand pattern is cut into both */
-    const bandG = lathe(pts, 144, Math.PI * 0.5 - 1.75, 3.5); bandG.applyMatrix4(new THREE.Matrix4().compose(V(0, -0.2, 0), new THREE.Quaternion(), V(1, 1, SZ * 1.04)));
+    const bandG = lathe(pts, 144, Math.PI * 0.5 - beardArc / 2, beardArc); bandG.applyMatrix4(new THREE.Matrix4().compose(V(0, -0.2, 0), new THREE.Quaternion(), V(1, 1, SZ * 1.04)));
     const massG = new THREE.SphereGeometry(0.15, 96, 64); massG.applyMatrix4(new THREE.Matrix4().compose(V(0, 0.03 - beardLen * 0.9 - 0.2, surf(0, 0.05) - 0.08), new THREE.Quaternion(), V(1.25, 0.8 + beardLen * 5, beardDepth))); /* beardDepth: front-to-back volume (seen in profile) */
     const bg = mergeGeometries([bandG, massG]); bg.computeVertexNormals(); const nb = bg.attributes.normal.array.slice(); /* smooth, indexed */
     /* strands are stored separately from the shape, so draping can move the shape and the strands are cut back in afterwards */
@@ -200,18 +208,20 @@ function buildHand(skin, s) {
   H.set(); return H;
 }
 
-export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, seated = false, outfit = 'robe', pants = '#2f3a52', shoes = '#ece6da', earrings = null, legLen = 0, chest = 0, ...h }) {
+export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, seated = false, outfit = 'robe', pants = '#2f3a52', shoes = '#ece6da', earrings = null, legLen = 0, chest = 0, hips = 0, ...h }) {
   const root = new THREE.Group(), R = { root, earrings };
   R.body = new THREE.Group(); root.add(R.body); // pivot at the feet: lean, sway, bob
-  const tm = clay(tunic);
   const modern = outfit === 'modern';
-  const T = modern ? [[0, 0.6], [0.205, 0.6], [0.212, 0.66], [0.214 + chest * 0.2, 0.8], [0.226 + chest * 0.6, 0.95], [0.234 + chest, 1.1], [0.22 + chest * 0.9, 1.22], [0.13 + chest * 0.3, 1.29], [0.08, 1.31], [0, 1.31]] /* shirt/sweater over the hips */
+  const tm = modern ? knit(tunic, [1, 1.3]) : clay(tunic);
+  const T = modern ? [[0, 0.6], [0.2, 0.6], [0.212, 0.63]].concat(smoothProfile([[0.214, 0.66], [0.208 + hips, 0.7], [0.2 + chest * 0.3 + hips * 0.2, 0.84], [0.214 + chest * 0.6, 0.98], [0.222 + chest, 1.08], [0.208 + chest * 0.8, 1.17], [0.16, 1.245], [0.1, 1.295]]), [[0.08, 1.31], [0, 1.31]]) /* modern: a soft waist and sloping shoulders (no box) */ /* shirt/sweater over the hips */
                    : [[0, 0.04], [0.3, 0.04], [0.31, 0.1], [0.28, 0.35], [0.235, 0.6], [0.222, 0.72], [0.232, 0.86], [0.238, 1.02], [0.238, 1.14], [0.22, 1.23], [0.13, 1.29], [0.08, 1.31], [0, 1.31]]; /* cinched at the belt so arms can hang */
   if (modern) { /* modern clothes: sweater or shirt, jeans as two legs that swing from the hip, shoes */
-    R.robe = M(folds(lathe(T, 72), 0.006, 9, 0.6, 0.75), tm, R.body);
-    const pm = clay(pants, { roughness: 0.7 }); M(lathe([[0, 0.5], [0.19, 0.5], [0.205, 0.6], [0.2, 0.64], [0, 0.64]], 48), pm, R.body);
+    R.robe = M(lathe(T, 96), knit(tunic, [2.2, 1.6]), R.body); R.robe.scale.z = 0.8; /* an oval chest, flatter front to back than a tube */
+    { const rib = M(new THREE.TorusGeometry(0.212, 0.022, 14, 72), clay(new THREE.Color(tunic).multiplyScalar(0.9).getStyle()), R.body); rib.rotation.x = Math.PI / 2; rib.position.y = 0.625; rib.scale.set(1, 0.8, 0.8); /* torus: scale y is the depth after the rotation */ } /* ribbed sweater hem */
+    const pm = clay(pants, { roughness: 0.7 }); { const hp = M(lathe([[0, 0.5], [0.19, 0.5], [0.198, 0.58], [0.2, 0.64], [0, 0.64]], 48), pm, R.body); hp.scale.z = 0.8; } /* hips oval like the sweater */
     R.legs = [-1, 1].map(sd => { const L = new THREE.Group(); L.position.set(0.095 * sd, 0.56, 0); R.body.add(L); sausage(V(0, 0, 0), V(0, -0.47, 0.0), 0.088, pm, L);
-      const ft = M(new THREE.SphereGeometry(0.075, 24, 16), clay(shoes, { roughness: 0.45 }), L); ft.scale.set(0.95, 0.55, 1.6); ft.position.set(0, -0.52, 0.07); return L; });
+      const ft = M(new THREE.SphereGeometry(0.075, 32, 20), clay(shoes, { roughness: 0.45 }), L); ft.scale.set(1.0, 0.62, 1.75); ft.position.set(0, -0.52, 0.075);
+        return L; });
     R.feet = R.legs.map(L => L.children[1]);
   } else if (!seated) {
     R.robe = M(folds(lathe(T, 72), 0.012, 9, 0.05, 0.7), tm, R.body);
@@ -254,7 +264,8 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, se
     if (R.legs) R.legs.forEach(L => { L.position.y += legLen; L.scale.y = (0.56 + legLen) / 0.56; const ft = L.children[1]; ft.scale.y /= L.scale.y; ft.position.y = -(0.52 + legLen) / L.scale.y; });
   }
   if (chest) R.arms.forEach(a => { a.sh.position.x += chest * 0.4 * a.s; });
-  if (modern) R.arms.forEach(a => { a.sh.children[0].scale.setScalar(0.78); a.sh.children[1].scale.set(0.82, 1, 0.82); a.sh.position.x -= 0.025 * a.s; a.el.children[0].scale.set(0.88, 1, 0.88); }); /* slimmer sleeves, shoulders tucked in: not a bodybuilder */ /* smaller shoulder balls tucked into the sweater: no puffed epaulettes */
+  if (modern) { R.arms.forEach(a => { a.sh.children[0].scale.setScalar(0.72); a.sh.children[1].scale.set(0.8, 1, 0.8); a.sh.position.x -= 0.065 * a.s; a.sh.position.y -= 0.05; a.sh.children[1].geometry = lathe([[0, -0.245], [0.057, -0.24], [0.058, -0.12], [0.058, 0.0], [0.04, 0.026], [0, 0.03]], 40) /* points bottom-up: normals face out */; a.sh.children[1].position.set(0, 0, 0); a.sh.children[1].quaternion.identity(); a.sh.children[1].scale.set(1, 1, 1); /* lathe sleeve: even knit, no stretched capsule UVs */ a.el.children[0].geometry = lathe([[0.056, 0.0], [0.055, -0.08], [0.051, -0.16], [0.052, -0.19], [0.05, -0.205], [0.043, -0.214], [0.038, -0.2]], 40); /* a straight sleeve the same width as the upper arm, with a soft rolled cuff */ const j = M(new THREE.SphereGeometry(0.056, 24, 16), tm, a.el); j.userData.elbow = true; }); /* one continuous sleeve: matching radii and a rounded elbow, no stacked posts */ /* the arm grows out of the sloping shoulder, half inside the sweater */
+    R.head.position.y -= 0.035; } /* slimmer sleeves, shoulders tucked in: not a bodybuilder */ /* smaller shoulder balls tucked into the sweater: no puffed epaulettes */
 
   // ---------- posing API (all angles in radians) ----------
   R.setBody = ({ lean = 0, sway = 0, twist = 0, bob = 0, breathe = 0 } = {}) => { R.body.rotation.set(lean, twist, sway); R.body.position.y = bob; R.robe.scale.set(1 + breathe * 0.008, 1, 1 + breathe * 0.012); }; /* breathing moves the chest only: hands resting on things stay planted */
