@@ -62,3 +62,8 @@ Not everything in the references carries over to our 3D clay figures. What does 
   - **The 3-head body.** In full 3D it reads stumpy. Modern cast: `legLen 0.2` (about 4 heads), a smaller head (`headScale ~0.85`), and a slightly broader chest with the shoulders tucked in.
   - **The giant nose.** Men 0.6–0.75, women about 0.46.
   - **The chinless egg jaw.** Without a beard it looks wrong. `chin: 1` sculpts a chin into the skull surface itself; a separate chin ball reads as a double chin.
+- **Not buff (2026-11-25):** chest 0 (or negative for women), slimmer sleeves, shoulder balls tucked in.
+- **Faces with depth:**
+  - The skull profile is a smooth spline. Straight segments showed as facets.
+  - `muzzle` brings the whole lower face forward and `chin` gives a rounded chin. Both are part of the skull surface, and `surf()` includes them, so every feature follows.
+  - A narrow egg bottom reads as a pointy chin; the jaw stays full.

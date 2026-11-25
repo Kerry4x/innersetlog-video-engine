@@ -27,19 +27,26 @@ function sausage(a, b, r, mat, parent) { const d = b.clone().sub(a), m = M(new T
 
 const HP_BASE = [[0, 0], [0.11, 0.008], [0.19, 0.05], [0.228, 0.13], [0.238, 0.24], [0.232, 0.36], [0.218, 0.45], [0.2, 0.51], [0.168, 0.565], [0.12, 0.605], [0.062, 0.624], [0, 0.629]];
 /* 'egg' (the reference heads): widest at the eyes, the jaw tapering to a small chin */
-const HP_EGG = [[0, 0], [0.085, 0.008], [0.15, 0.05], [0.19, 0.13], [0.215, 0.24], [0.23, 0.34], [0.228, 0.44], [0.212, 0.51], [0.178, 0.565], [0.125, 0.605], [0.064, 0.624], [0, 0.629]];
+const smoothProfile = pts => { const c = new THREE.CatmullRomCurve3(pts.map(([x, y]) => V(x, y, 0)), false, 'centripetal'); return c.getSpacedPoints(64).map(v => [Math.max(0, v.x), v.y]); }; /* a smooth curve, not a dozen straight segments (they showed as facets) */
+const HP_EGG = smoothProfile([[0, 0], [0.1, 0.006], [0.168, 0.04], [0.203, 0.11], [0.221, 0.2], [0.23, 0.3], [0.229, 0.4], [0.213, 0.5], [0.178, 0.565], [0.125, 0.605], [0.064, 0.624], [0, 0.629]]); /* fuller, rounder jaw than the first egg */
 let HP = HP_BASE;
 const hr = y => { for (let i = 1; i < HP.length; i++) if (y <= HP[i][1]) { const [r0, y0] = HP[i - 1], [r1, y1] = HP[i]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return 0; };
 const lerp1 = (a, b, k) => a + (b - a) * k;
-const SZ = 0.94, surf = (x, y) => Math.sqrt(Math.max(0.0001, hr(y) ** 2 - x * x)) * SZ;
+/* face sculpt: a muzzle (the lower face comes forward, like a real jaw) and a chin, added to the skull's front.
+   surf() includes it, so eyes, nose, mouth and beard sit on the sculpted surface. */
+let FACE = { muzzle: 0, chin: 0 };
+const sm01 = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+const faceOff = (x, y, c) => { if (!FACE.muzzle && !FACE.chin) return 0; const w = sm01((c - 0.35) / 0.45);
+  return w * (FACE.muzzle * 0.06 * Math.exp(-(((y - 0.11) / 0.11) ** 2)) * Math.exp(-((x / 0.24) ** 2)) + FACE.chin * 0.035 * Math.exp(-(((y - 0.025) / 0.04) ** 2)) * Math.exp(-((x / 0.11) ** 2))); }; /* broad and soft: a full lower face and a rounded chin, not a ridge or a point */
+const SZ = 0.94, surf = (x, y) => { const r = hr(y), z = Math.sqrt(Math.max(0.0001, r ** 2 - x * x)); return z * SZ + faceOff(x, y, r > 1e-4 ? z / r : 0); };
 
-function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth = 0.85, beardLocks = 0, crown, lidTop = 0.36, hairStyle = 'short', glasses = null, nose = 1, lashes = false, lips = null, hairline = 0, browW = 1, noseStyle = 'ball', noseUp = 0, hairFlip = false, sideburnZ = 0, lidTube = 0.25, lidTilt = 0, browY = 0.06, lidWrap = 1, headShape = 'base', chin = 0, mouthY = 0.062, eyeR = 0.076, eyeX = 0.09, eyeSink = 0.12, noseRoot = 0 }, R) {
+function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth = 0.85, beardLocks = 0, crown, lidTop = 0.36, hairStyle = 'short', glasses = null, nose = 1, lashes = false, lips = null, hairline = 0, browW = 1, noseStyle = 'ball', noseUp = 0, hairFlip = false, sideburnZ = 0, lidTube = 0.25, lidTilt = 0, browY = 0.06, lidWrap = 1, headShape = 'base', chin = 0, muzzle = 0, mouthY = 0.062, eyeR = 0.076, eyeX = 0.09, eyeSink = 0.12, noseRoot = 0 }, R) {
   HP = headShape === 'egg' ? HP_EGG : HP_BASE; /* every feature is placed on hr(): they all follow the shape */
   const g = new THREE.Group(), sk = clay(skin), hm = clay(hair), ink = clay('#120b08', { roughness: 0.25, bumpScale: 0 }), white = clay('#f4efe2', { roughness: 0.32, bumpScale: 0.15 });
-  const skullG = lathe(HP, 96);
-  if (chin) { /* sculpt a chin INTO the skull (one surface): the front of the lower face pushes forward and a little down, below the mouth */
-    const p = skullG.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z); if (r < 1e-5) continue; const c = Math.max(0, z / r), f = c * c * c;
-      const k = chin * f * Math.exp(-(((y - 0.005) / 0.026) ** 2)); p.setXYZ(i, x * (r + 0.045 * k) / r, y - 0.02 * k, z * (r + 0.045 * k) / r); /* centred well below the mouth, so the lips stay on the surface */ }
+  const skullG = lathe(HP, 128);
+  FACE = { muzzle, chin };
+  if (muzzle || chin) { const p = skullG.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z); if (r < 1e-5 || z <= 0) continue;
+      const d = faceOff(x, y, z / r) / SZ; p.setZ(i, z + d); if (chin && y < 0.03) p.setY(i, y - 0.03 * chin * Math.exp(-((x / 0.08) ** 2)) * sm01((z / r - 0.35) / 0.45) * (0.03 - y) / 0.03); }
     skullG.computeVertexNormals(); smoothSeams(skullG); }
   const skull = M(skullG, sk, g); skull.scale.z = SZ;
   const eY = 0.33, eX = eyeX, eR = eyeR;
@@ -136,7 +143,7 @@ function buildHead({ skin, hair, browC, bald, beard, beardLen = 0.1, beardDepth 
     for (const [y, r] of [[0.0425, 0.222], [-0.0425, 0.245]]) { const rim = M(new THREE.TorusGeometry(r, 0.006, 8, 64), gold, cg); rim.rotation.x = Math.PI / 2; rim.position.y = y; }
     for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; const k = M(new THREE.ConeGeometry(0.026, 0.09, 16), clay('#d6a640', { roughness: 0.38 }), cg); k.position.set(Math.cos(a) * 0.217, 0.087, Math.sin(a) * 0.217);
       const gem = M(new THREE.SphereGeometry(0.014, 12, 10), clay('#8a1c2a', { roughness: 0.25, bumpScale: 0 }), cg); gem.position.set(Math.cos(a) * 0.24, 0, Math.sin(a) * 0.24); } }
-  HP = HP_BASE; return g;
+  HP = HP_BASE; FACE = { muzzle: 0, chin: 0 }; return g;
 }
 
 /* Hair built like the references: many thick sculpted strands (tapered, flattened clay ropes) laid over a dark under-shell.
@@ -247,7 +254,7 @@ export function buildCharacter({ skin = '#c8784e', tunic, trim, mantle, sash, se
     if (R.legs) R.legs.forEach(L => { L.position.y += legLen; L.scale.y = (0.56 + legLen) / 0.56; const ft = L.children[1]; ft.scale.y /= L.scale.y; ft.position.y = -(0.52 + legLen) / L.scale.y; });
   }
   if (chest) R.arms.forEach(a => { a.sh.position.x += chest * 0.4 * a.s; });
-  if (modern) R.arms.forEach(a => { a.sh.children[0].scale.setScalar(0.85); a.sh.position.x -= 0.012 * a.s; }); /* smaller shoulder balls tucked into the sweater: no puffed epaulettes */
+  if (modern) R.arms.forEach(a => { a.sh.children[0].scale.setScalar(0.78); a.sh.children[1].scale.set(0.82, 1, 0.82); a.sh.position.x -= 0.025 * a.s; a.el.children[0].scale.set(0.88, 1, 0.88); }); /* slimmer sleeves, shoulders tucked in: not a bodybuilder */ /* smaller shoulder balls tucked into the sweater: no puffed epaulettes */
 
   // ---------- posing API (all angles in radians) ----------
   R.setBody = ({ lean = 0, sway = 0, twist = 0, bob = 0, breathe = 0 } = {}) => { R.body.rotation.set(lean, twist, sway); R.body.position.y = bob; R.robe.scale.set(1 + breathe * 0.008, 1, 1 + breathe * 0.012); }; /* breathing moves the chest only: hands resting on things stay planted */
